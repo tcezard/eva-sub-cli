@@ -152,11 +152,11 @@ def copy_files_to_container(docker, container_name, mapping_file):
                                     f"mkdir -p {container_validation_dir}/{Path(row['vcf']).parent}")
             run_command_with_output("Copy vcf file to container",
                                     f"{docker} cp {row['vcf']} {container_name}:{container_validation_dir}/{row['vcf']}")
-            # run_command_with_output("Create directory structure to copy fasta files into container",
-            #                         f"{docker} exec {container_name} "
-            #                         f"mkdir -p {container_validation_dir}/{Path(row['fasta']).parent}")
-            # run_command_with_output("Copy fasta file to container",
-            #                         f"{docker} cp {row['fasta']} {container_name}:{container_validation_dir}/{row['fasta']}")
+            run_command_with_output("Create directory structure to copy fasta files into container",
+                                    f"{docker} exec {container_name} "
+                                    f"mkdir -p {container_validation_dir}/{Path(row['fasta']).parent}")
+            run_command_with_output("Copy fasta file to container",
+                                    f"{docker} cp {row['fasta']} {container_name}:{container_validation_dir}/{row['fasta']}")
 
 
 if __name__ == "__main__":
