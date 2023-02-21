@@ -166,7 +166,7 @@ if __name__ == "__main__":
     parser.add_argument("--container_name", help="name of the docker container", required=False)
     parser.add_argument("--vcf_files_mapping",
                         help="csv file with the mappings for vcf files, fasta and assembly report", required=True)
-    parser.add_argument("--output_dir", help="output_directory where the reports will be output", required=True)
+    parser.add_argument("--output_dir", help="Directory where the validation output reports will be made available", required=True)
     args = parser.parse_args()
 
     docker = args.docker_path if args.docker_path else 'docker'
