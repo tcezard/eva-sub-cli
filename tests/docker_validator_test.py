@@ -53,14 +53,14 @@ class TestDockerValidator(TestCase):
 
         with open(vcf_format_log_file) as vcf_format_log_file:
             vcf_format_logs = vcf_format_log_file.readlines()
-            self.assertEquals('[info] According to the VCF specification, the input file is valid\n',
-                              vcf_format_logs[3])
+            self.assertEqual('[info] According to the VCF specification, the input file is valid\n',
+                             vcf_format_logs[3])
 
             text_report = vcf_format_logs[2].split(':')[1].strip()
             with open(os.path.join(self.output_dir, text_report)) as text_report:
                 text_report_content = text_report.readlines()
-                self.assertEquals('According to the VCF specification, the input file is valid\n',
-                                  text_report_content[0])
+                self.assertEqual('According to the VCF specification, the input file is valid\n',
+                                 text_report_content[0])
 
         # assert assembly report
         assembly_check_dir = os.path.join(self.output_dir, 'assembly_check')
@@ -71,5 +71,5 @@ class TestDockerValidator(TestCase):
 
         with open(assembly_check_log_file) as assembly_check_log_file:
             assembly_check_logs = assembly_check_log_file.readlines()
-            self.assertEquals('[info] Number of matches: 247/247\n', assembly_check_logs[5])
-            self.assertEquals('[info] Percentage of matches: 100%\n', assembly_check_logs[6])
+            self.assertEqual('[info] Number of matches: 247/247\n', assembly_check_logs[5])
+            self.assertEqual('[info] Percentage of matches: 100%\n', assembly_check_logs[6])
