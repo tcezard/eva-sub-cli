@@ -1,0 +1,75 @@
+import csv
+import os
+import shutil
+from unittest import TestCase
+
+from cli.docker_validator import run_docker_validator
+
+
+class TestDockerValidator(TestCase):
+    resources_folder = os.path.join(os.path.dirname(__file__), 'resources')
+
+    vcf_files = os.path.join(resources_folder, 'vcf_files')
+    fasts_files = os.path.join(resources_folder, 'fasta_files')
+    assembly_reports = os.path.join(resources_folder, 'assembly_reports')
+
+    test_run_dir = os.path.join(resources_folder, 'docker_test_run')
+    mapping_file = os.path.join(test_run_dir, 'vcf_files_metadata.csv')
+    output_dir = os.path.join(test_run_dir, 'validation_output')
+
+    def setUp(self):
+        if not os.path.exists(self.test_run_dir):
+            os.makedirs(self.test_run_dir)
+
+        # create vcf metadata file
+        data = [
+            ['vcf', 'fasta', 'report'],
+            [os.path.join(self.vcf_files, 'input_passed.vcf'),
+             os.path.join(self.fasts_files, 'input_passed.fa'),
+             os.path.join(self.assembly_reports, 'input_passed.txt')]
+        ]
+        with open(self.mapping_file, 'w', encoding='UTF8') as f:
+            writer = csv.writer(f)
+            for row in data:
+                writer.writerow(row)
+
+    def tearDown(self):
+        if os.path.exists(self.test_run_dir):
+            shutil.rmtree(self.test_run_dir)
+
+    def test_docker_validator(self):
+        docker = 'docker'
+        container_name = 'test'
+
+        # run validation in docker
+        run_docker_validator(docker, container_name, self.mapping_file, self.output_dir)
+
+        # assert vcf checks
+        vcf_format_dir = os.path.join(self.output_dir, 'vcf_format')
+        self.assertTrue(os.path.exists(vcf_format_dir))
+
+        vcf_format_log_file = os.path.join(vcf_format_dir, 'input_passed.vcf.vcf_format.log')
+        self.assertTrue(os.path.exists(vcf_format_log_file))
+
+        with open(vcf_format_log_file) as vcf_format_log_file:
+            vcf_format_logs = vcf_format_log_file.readlines()
+            self.assertEquals('[info] According to the VCF specification, the input file is valid\n',
+                              vcf_format_logs[3])
+
+            text_report = vcf_format_logs[2].split(':')[1].strip()
+            with open(os.path.join(self.output_dir, text_report)) as text_report:
+                text_report_content = text_report.readlines()
+                self.assertEquals('According to the VCF specification, the input file is valid\n',
+                                  text_report_content[0])
+
+        # assert assembly report
+        assembly_check_dir = os.path.join(self.output_dir, 'assembly_check')
+        self.assertTrue(os.path.exists(assembly_check_dir))
+
+        assembly_check_log_file = os.path.join(assembly_check_dir, 'input_passed.vcf.assembly_check.log')
+        self.assertTrue(os.path.exists(assembly_check_log_file))
+
+        with open(assembly_check_log_file) as assembly_check_log_file:
+            assembly_check_logs = assembly_check_log_file.readlines()
+            self.assertEquals('[info] Number of matches: 247/247\n', assembly_check_logs[5])
+            self.assertEquals('[info] Percentage of matches: 100%\n', assembly_check_logs[6])
