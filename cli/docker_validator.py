@@ -5,6 +5,8 @@ import os
 import subprocess
 import time
 
+from cli.validator import Validator
+
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level='INFO')
 
 container_image = 'eva_sub_cli'
@@ -43,171 +45,215 @@ def run_command_with_output(command_description, command, return_process_output=
         return process_output
 
 
-def check_if_file_missing(mapping_file):
-    files_missing = False
-    missing_files_list = []
-    with open(mapping_file) as open_file:
-        reader = csv.DictReader(open_file, delimiter=',')
-        for row in reader:
-            if not os.path.exists(row['vcf']):
-                files_missing = True
-                missing_files_list.append(row['vcf'])
-            if not os.path.exists(row['fasta']):
-                files_missing = True
-                missing_files_list.append(row['fasta'])
-            if not os.path.exists(row['report']):
-                files_missing = True
-                missing_files_list.append(row['report'])
+class DockerValidator(Validator):
 
-    return files_missing, missing_files_list
+    def __init__(self, mapping_file, output_dir, container_name=container_image, docker_path='docker'):
+        self.docker_path = docker_path
+        self.mapping_file = mapping_file
+        self.container_name = container_name
+        super().__init__(self._find_vcf_file(), output_dir)
 
+    def _validate(self):
+        self.run_docker_validator()
 
-def verify_docker_is_installed(docker):
-    try:
-        run_command_with_output("check docker is installed and available on the path", f"{docker} --version")
-    except subprocess.CalledProcessError as ex:
-        logging.error(ex)
-        raise RuntimeError(f"Please make sure docker ({docker}) is installed and available on the path")
+    def _find_vcf_file(self):
+        vcf_files = []
+        with open(self.mapping_file) as open_file:
+            reader = csv.DictReader(open_file, delimiter=',')
+            for row in reader:
+                vcf_files.append(row['vcf'])
+        return vcf_files
 
+    def run_docker_validator(self):
+        # verify mapping file exists
+        if not os.path.exists(self.mapping_file):
+            raise RuntimeError(f'Mapping file {self.mapping_file} not found')
 
-def verify_container_is_running(docker, container_name):
-    container_run_cmd_ouptut = run_command_with_output("check if container is running", f"{docker} ps")
-    if container_run_cmd_ouptut is not None and container_name in container_run_cmd_ouptut:
-        logging.info(f"Container ({container_name}) is running")
-        return True
-    else:
-        logging.info(f"Container ({container_name}) is not running")
-        return False
+        # verify all files mentioned in metadata files exist
+        files_missing, missing_files_list = self.check_if_file_missing()
+        if files_missing:
+            raise RuntimeError(f"some files (vcf/fasta) mentioned in metadata file could not be found. "
+                               f"Missing files list {missing_files_list}")
 
+        # check if docker container is ready for running validation
+        self.verify_docker_env()
 
-def verify_container_is_stopped(docker, container_name):
-    container_stop_cmd_ouptut = run_command_with_output("check if container is stopped", f"{docker} ps -a")
-    if container_stop_cmd_ouptut is not None and container_name in container_stop_cmd_ouptut:
-        logging.info(f"Container ({container_name}) is in stop state")
-        return True
-    else:
-        logging.info(f"Container ({container_name}) is not in stop state")
-        return False
+        try:
+            # remove all existing files from container
+            run_command_with_output(
+                "Remove existing files from validation directory in container",
+                f"{self.docker_path} exec {self.container_name} rm -rf work {container_validation_dir}"
+            )
 
+            # copy all required files to container (mapping file, vcf and fasta)
+            self.copy_files_to_container()
 
-def try_restarting_container(docker, container_name):
-    logging.info(f"Trying to restart container {container_name}")
-    try:
-        run_command_with_output("Try restarting container", f"{docker} start {container_name}")
-        if not verify_container_is_running(docker, container_name):
-            raise RuntimeError(f"Container ({container_name}) could not be restarted")
-    except subprocess.CalledProcessError as ex:
-        logging.error(ex)
-        raise RuntimeError(f"Container ({container_name}) could not be restarted")
+            # start validation
+            run_command_with_output("Run Validation using Nextflow",
+                                    f"{self.docker_path} exec {self.container_name} nextflow run validation.nf "
+                                    f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
+                                    f"--output_dir {container_validation_output_dir}")
 
+            # copy validation result to user host
+            run_command_with_output(
+                "Copy validation output from container to host",
+                f"{self.docker_path} cp {self.container_name}:{container_validation_output_dir} {self.output_dir}"
+            )
+        except subprocess.CalledProcessError as ex:
+            logging.error(ex)
 
-def verify_image_available_locally(docker, container_image):
-    container_images_cmd_ouptut = run_command_with_output("Check if validator image is present", f"{docker} images")
-    if container_images_cmd_ouptut is not None and container_image in container_images_cmd_ouptut:
-        logging.info(f"Container ({container_image}) image is available locally")
-        return True
-    else:
-        logging.info(f"Container ({container_image}) image is not available locally")
-        return False
+    def check_if_file_missing(self):
+        files_missing = False
+        missing_files_list = []
+        with open(self.mapping_file) as open_file:
+            reader = csv.DictReader(open_file, delimiter=',')
+            for row in reader:
+                if not os.path.exists(row['vcf']):
+                    files_missing = True
+                    missing_files_list.append(row['vcf'])
+                if not os.path.exists(row['fasta']):
+                    files_missing = True
+                    missing_files_list.append(row['fasta'])
+                if not os.path.exists(row['report']):
+                    files_missing = True
+                    missing_files_list.append(row['report'])
 
+        return files_missing, missing_files_list
 
-def run_container(docker, container_name):
-    logging.info(f"Trying to run container {container_name}")
-    try:
-        run_command_with_output("Try running container",
-                                f"{docker} run -it --rm -d --name {container_name} {container_image}")
-        # stopping execution to give some time to container to get up and running
-        time.sleep(5)
-        if not verify_container_is_running(docker, container_name):
-            raise RuntimeError(f"Container ({container_name}) could not be started")
-    except subprocess.CalledProcessError as ex:
-        logging.error(ex)
-        raise RuntimeError(f"Container ({container_name}) could not be started")
+    def verify_docker_is_installed(self):
+        try:
+            run_command_with_output(
+                "check docker is installed and available on the path",
+                f"{self.docker_path} --version"
+            )
+        except subprocess.CalledProcessError as ex:
+            logging.error(ex)
+            raise RuntimeError(f"Please make sure docker ({self.docker_path}) is installed and available on the path")
 
-
-def download_container_image(docker, container_name):
-    logging.info(f"Pulling container ({container_image}) image")
-    try:
-        run_command_with_output("pull container image", f"{docker} pull {container_image}")
-        if not run_container(docker, container_name):
-            raise RuntimeError(f"Container ({container_name}) could not be started")
-    except subprocess.CalledProcessError as ex:
-        logging.error(ex)
-        raise RuntimeError(f"Cannot pull container ({container_image}) image")
-
-
-def verify_docker_env(docker, container_name):
-    verify_docker_is_installed(docker)
-
-    if not verify_container_is_running(docker, container_name):
-        if verify_container_is_stopped(docker, container_name):
-            try_restarting_container(docker, container_name)
+    def verify_container_is_running(self):
+        container_run_cmd_ouptut = run_command_with_output("check if container is running", f"{self.docker_path} ps")
+        if container_run_cmd_ouptut is not None and self.container_name in container_run_cmd_ouptut:
+            logging.info(f"Container ({self.container_name}) is running")
+            return True
         else:
-            if verify_image_available_locally(docker, container_image):
-                run_container(docker, container_name)
+            logging.info(f"Container ({self.container_name}) is not running")
+            return False
+
+    def verify_container_is_stopped(self):
+        container_stop_cmd_ouptut = run_command_with_output(
+            "check if container is stopped",
+            f"{self.docker_path} ps -a"
+        )
+        if container_stop_cmd_ouptut is not None and self.container_name in container_stop_cmd_ouptut:
+            logging.info(f"Container ({self.container_name}) is in stop state")
+            return True
+        else:
+            logging.info(f"Container ({self.container_name}) is not in stop state")
+            return False
+
+    def try_restarting_container(self):
+        logging.info(f"Trying to restart container {self.container_name}")
+        try:
+            run_command_with_output("Try restarting container", f"{self.docker_path} start {self.container_name}")
+            if not self.verify_container_is_running():
+                raise RuntimeError(f"Container ({self.container_name}) could not be restarted")
+        except subprocess.CalledProcessError as ex:
+            logging.error(ex)
+            raise RuntimeError(f"Container ({self.container_name}) could not be restarted")
+
+    def verify_image_available_locally(self):
+        container_images_cmd_ouptut = run_command_with_output(
+            "Check if validator image is present",
+            f"{self.docker_path} images"
+        )
+        if container_images_cmd_ouptut is not None and container_image in container_images_cmd_ouptut:
+            logging.info(f"Container ({container_image}) image is available locally")
+            return True
+        else:
+            logging.info(f"Container ({container_image}) image is not available locally")
+            return False
+
+    def run_container(self):
+        logging.info(f"Trying to run container {self.container_name}")
+        try:
+            run_command_with_output(
+                "Try running container",
+                f"{self.docker_path} run -it --rm -d --name {self.container_name} {container_image}"
+            )
+            # stopping execution to give some time to container to get up and running
+            time.sleep(5)
+            if not self.verify_container_is_running():
+                raise RuntimeError(f"Container ({self.container_name}) could not be started")
+        except subprocess.CalledProcessError as ex:
+            logging.error(ex)
+            raise RuntimeError(f"Container ({self.container_name}) could not be started")
+
+    def download_container_image(self):
+        logging.info(f"Pulling container ({container_image}) image")
+        try:
+            run_command_with_output("pull container image", f"{self.docker_path} pull {container_image}")
+            if not self.run_container():
+                raise RuntimeError(f"Container ({self.container_name}) could not be started")
+        except subprocess.CalledProcessError as ex:
+            logging.error(ex)
+            raise RuntimeError(f"Cannot pull container ({container_image}) image")
+
+    def verify_docker_env(self):
+        self.verify_docker_is_installed()
+
+        if not self.verify_container_is_running():
+            if self.verify_container_is_stopped():
+                self.try_restarting_container()
             else:
-                download_container_image(docker, container_name)
+                if self.verify_image_available_locally():
+                    self.run_container()
+                else:
+                    self.download_container_image()
 
+    def copy_files_to_container(self):
+        run_command_with_output(
+            "Create directory structure for copying vcf metadata file into container",
+            (f"{self.docker_path} exec {self.container_name} "
+             f"mkdir -p {container_validation_dir}/{os.path.dirname(self.mapping_file)}")
+        )
+        run_command_with_output(
+            "Copy vcf metadata file to container",
+            (f"{self.docker_path} cp {self.mapping_file} "
+             f"{self.container_name}:{container_validation_dir}/{self.mapping_file}")
+        )
 
-def copy_files_to_container(docker, container_name, mapping_file):
-    run_command_with_output("Create directory structure for copying vcf metadata file into container",
-                            f"{docker} exec {container_name} mkdir -p {container_validation_dir}/{os.path.dirname(mapping_file)}")
-    run_command_with_output("Copy vcf metadata file to container",
-                            f"{docker} cp {mapping_file} {container_name}:{container_validation_dir}/{mapping_file}")
-
-    with open(mapping_file) as open_file:
-        reader = csv.DictReader(open_file, delimiter=',')
-        for row in reader:
-            run_command_with_output("Create directory structure to copy vcf files into container",
-                                    f"{docker} exec {container_name} "
-                                    f"mkdir -p {container_validation_dir}/{os.path.dirname(row['vcf'])}")
-            run_command_with_output("Copy vcf file to container",
-                                    f"{docker} cp {row['vcf']} {container_name}:{container_validation_dir}/{row['vcf']}")
-            run_command_with_output("Create directory structure to copy fasta files into container",
-                                    f"{docker} exec {container_name} "
-                                    f"mkdir -p {container_validation_dir}/{os.path.dirname(row['fasta'])}")
-            run_command_with_output("Copy fasta file to container",
-                                    f"{docker} cp {row['fasta']} {container_name}:{container_validation_dir}/{row['fasta']}")
-            run_command_with_output("Create directory structure to copy assembly report files into container",
-                                    f"{docker} exec {container_name} "
-                                    f"mkdir -p {container_validation_dir}/{os.path.dirname(row['report'])}")
-            run_command_with_output("Copy assembly report file to container",
-                                    f"{docker} cp {row['report']} {container_name}:{container_validation_dir}/{row['report']}")
-
-
-def run_docker_validator(docker, container_name, mapping_file, output_dir):
-    # verify mapping file exists
-    if not os.path.exists(mapping_file):
-        raise RuntimeError(f'Mapping file {mapping_file} not found')
-
-    # verify all files mentioned in metadata files exist
-    files_missing, missing_files_list = check_if_file_missing(mapping_file)
-    if files_missing:
-        raise RuntimeError(f"some files (vcf/fasta) mentioned in metadata file could not be found. "
-                           f"Missing files list {missing_files_list}")
-
-    # check if docker container is ready for running validation
-    verify_docker_env(docker, container_name)
-
-    try:
-        # remove all existing files from container
-        run_command_with_output("Remove existing files from validation directory in container",
-                                f"{docker} exec {container_name} rm -rf work {container_validation_dir}")
-
-        # copy all required files to container (mapping file, vcf and fasta)
-        copy_files_to_container(docker, container_name, mapping_file)
-
-        # start validation
-        run_command_with_output("Run Validation using Nextflow",
-                                f"{docker} exec {container_name} nextflow run validation.nf "
-                                f"--vcf_files_mapping {container_validation_dir}/{mapping_file} "
-                                f"--output_dir {container_validation_output_dir}")
-
-        # copy validation result to user host
-        run_command_with_output("Copy validation output from container to host",
-                                f"{docker} cp {container_name}:{container_validation_output_dir} {output_dir}")
-    except subprocess.CalledProcessError as ex:
-        logging.error(ex)
+        with open(self.mapping_file) as open_file:
+            reader = csv.DictReader(open_file, delimiter=',')
+            for row in reader:
+                run_command_with_output(
+                    "Create directory structure to copy vcf files into container",
+                    (f"{self.docker_path} exec {self.container_name} "
+                     f"mkdir -p {container_validation_dir}/{os.path.dirname(row['vcf'])}")
+                )
+                run_command_with_output(
+                    "Copy vcf file to container",
+                    f"{self.docker_path} cp {row['vcf']} {self.container_name}:{container_validation_dir}/{row['vcf']}"
+                )
+                run_command_with_output(
+                    "Create directory structure to copy fasta files into container",
+                    (f"{self.docker_path} exec {self.container_name} "
+                     f"mkdir -p {container_validation_dir}/{os.path.dirname(row['fasta'])}")
+                )
+                run_command_with_output(
+                    "Copy fasta file to container",
+                    (f"{self.docker_path} cp {row['fasta']} "
+                     f"{self.container_name}:{container_validation_dir}/{row['fasta']}")
+                )
+                run_command_with_output(
+                    "Create directory structure to copy assembly report files into container",
+                    (f"{self.docker_path} exec {self.container_name} "
+                     f"mkdir -p {container_validation_dir}/{os.path.dirname(row['report'])}")
+                )
+                run_command_with_output(
+                    "Copy assembly report file to container",
+                    (f"{self.docker_path} cp {row['report']} "
+                     f"{self.container_name}:{container_validation_dir}/{row['report']}")
+                )
 
 
 if __name__ == "__main__":
@@ -224,4 +270,5 @@ if __name__ == "__main__":
     docker_path = args.docker_path if args.docker_path else 'docker'
     docker_container_name = args.container_name if args.container_name else container_image
 
-    run_docker_validator(docker_path, docker_container_name, args.vcf_files_mapping, args.output_dir)
+    validator = DockerValidator(args.vcf_files_mapping, args.output_dir, docker_container_name, docker_path)
+    validator.validate()
