@@ -17,6 +17,8 @@ class Validator:
     def __init__(self, vcf_files, output_dir):
         self.output_dir = output_dir
         self.vcf_files = vcf_files
+        self.results = {}
+
 
     def validate(self):
         self._validate()
@@ -83,6 +85,7 @@ class Validator:
     def _collect_vcf_check_results(self,):
         total_error = 0
         # detect output files for vcf check
+        self.results['vcf_check'] = {}
         for vcf_file in self.vcf_files:
             vcf_name = os.path.basename(vcf_file)
 
@@ -100,11 +103,19 @@ class Validator:
                 valid, error_list, error_count, warning_count = self.parse_vcf_check_report(vcf_check_text_report)
             else:
                 valid, error_list, error_count, warning_count = (False, ['Process failed'], 1, 0)
+            self.results['vcf_check'][vcf_name] = {
+                'valid': valid,
+                'error_list': error_list,
+                'error_count': error_count,
+                'warning_count': warning_count
+            }
             total_error += error_count
+            self.results['vcf_check']['total_error'] = total_error
 
     def _collect_assembly_check_results(self):
         # detect output files for assembly check
         total_error = 0
+        self.results['assembly_check'] = {}
         for vcf_file in self.vcf_files:
             vcf_name = os.path.basename(vcf_file)
 
@@ -127,7 +138,16 @@ class Validator:
                 error_list = error_list_from_log + error_list_from_report
             else:
                 error_list, mismatch_list, nb_mismatch, nb_error, match, total = (['Process failed'], [], 0, 1, 0, 0)
+            self.results['assembly_check'][vcf_name] = {
+                'error_list': error_list,
+                'mismatch_list': mismatch_list,
+                'nb_mismatch': nb_mismatch,
+                'nb_error': nb_error,
+                'match': match,
+                'total': total
+            }
             total_error += nb_error + nb_mismatch
+            self.results['assembly_check']['total_error'] = total_error
 
     def report(self):
         """Collect information from the config and write the report."""

@@ -11,7 +11,7 @@ RUN curl -LJo /usr/local/bin/vcf_validator  https://github.com/EBIvariation/vcf-
 
 RUN apt update && apt install -y default-jdk
 
-RUN curl -s https://get.nextflow.io | bash \
+RUN curl -L "https://github.com/nextflow-io/nextflow/releases/download/v${NXF_VER}/nextflow-${NXF_VER}-all" | bash \
     && mv nextflow /usr/local/bin/
 
-COPY validation.nf /opt/validation.nf
+COPY cli/nextflow/validation.nf /opt/validation.nf
