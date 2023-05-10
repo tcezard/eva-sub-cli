@@ -2,6 +2,9 @@
 import csv
 import glob
 import os
+import re
+
+from cli.report import generate_html_report
 
 
 def resolve_single_file_path(file_path):
@@ -18,7 +21,6 @@ class Validator:
         self.output_dir = output_dir
         self.vcf_files = vcf_files
         self.results = {}
-
 
     def validate(self):
         self._validate()
@@ -62,8 +64,9 @@ class Validator:
 
     def parse_vcf_check_report(self, vcf_check_report):
         valid = True
-        error_list = []
-        warning_count = error_count = 0
+        max_error_reported = 10
+        error_list, critical_list = [], []
+        warning_count = error_count = critical_count = 0
         with open(vcf_check_report) as open_file:
             for line in open_file:
                 if 'warning' in line:
@@ -71,11 +74,16 @@ class Validator:
                 elif line.startswith('According to the VCF specification'):
                     if 'not' in line:
                         valid = False
+                elif vcf_check_errors_is_critical(line.strip()):
+                    critical_count += 1
+                    if critical_count <= max_error_reported:
+                        critical_list.append(line.strip())
                 else:
                     error_count += 1
-                    if error_count < 11:
+                    if error_count <= max_error_reported:
                         error_list.append(line.strip())
-        return valid, error_list, error_count, warning_count
+
+        return valid, warning_count, error_count, critical_count, error_list, critical_list
 
     def _collect_validation_workflow_results(self, ):
         # Collect information from the output and summarise in the config
@@ -83,7 +91,7 @@ class Validator:
         self._collect_assembly_check_results()
 
     def _collect_vcf_check_results(self,):
-        total_error = 0
+        total_critical = 0
         # detect output files for vcf check
         self.results['vcf_check'] = {}
         for vcf_file in self.vcf_files:
@@ -100,17 +108,17 @@ class Validator:
             )
 
             if vcf_check_log and vcf_check_text_report and vcf_check_db_report:
-                valid, error_list, error_count, warning_count = self.parse_vcf_check_report(vcf_check_text_report)
+                valid, warning_count, error_count, critical_count, error_list, critical_list = self.parse_vcf_check_report(vcf_check_text_report)
             else:
-                valid, error_list, error_count, warning_count = (False, ['Process failed'], 1, 0)
+                valid, warning_count, error_count, critical_count, error_list, critical_list = (False, 0, 0, 1, [], ['Process failed'])
             self.results['vcf_check'][vcf_name] = {
                 'valid': valid,
                 'error_list': error_list,
                 'error_count': error_count,
-                'warning_count': warning_count
+                'warning_count': warning_count,
+                'critical_count': critical_count,
+                'critical_list': critical_list
             }
-            total_error += error_count
-            self.results['vcf_check']['total_error'] = total_error
 
     def _collect_assembly_check_results(self):
         # detect output files for assembly check
@@ -146,76 +154,41 @@ class Validator:
                 'match': match,
                 'total': total
             }
-            total_error += nb_error + nb_mismatch
-            self.results['assembly_check']['total_error'] = total_error
 
-    def report(self):
-        """Collect information from the config and write the report."""
+    def create_reports(self):
+        report_html = generate_html_report(self.results)
+        with open("report.html", "w") as f:
+            f.write(report_html)
 
-        report_data = {
-            'validation_date': self.eload_cfg.query('validation', 'validation_date'),
-            'metadata_check': self._check_pass_or_fail(self.eload_cfg.query('validation', 'metadata_check')),
-            'vcf_check': self._check_pass_or_fail(self.eload_cfg.query('validation', 'vcf_check')),
-            'assembly_check': self._check_pass_or_fail(self.eload_cfg.query('validation', 'assembly_check')),
-            'sample_check': self._check_pass_or_fail(self.eload_cfg.query('validation', 'sample_check')),
-            'aggregation_check': self._check_pass_or_fail(self.eload_cfg.query('validation', 'aggregation_check')),
-            'structural_variant_check': self._check_pass_or_fail(self.eload_cfg.query('validation',
-                                                                                      'structural_variant_check')),
-            'normalisation_check': self._check_pass_or_fail(self.eload_cfg.query('validation', 'normalisation_check')),
-            'metadata_check_report': self._metadata_check_report(),
-            'vcf_check_report': self._vcf_check_report(),
-            'assembly_check_report': self._assembly_check_report(),
-            'sample_check_report': self._sample_check_report(),
-            'vcf_merge_report': self._vcf_merge_report(),
-            'aggregation_report': self._aggregation_report(),
-            'normalisation_check_report': self._normalisation_check_report(),
-            'structural_variant_check_report': self._structural_variant_check_report()
-        }
+def vcf_check_errors_is_critical(error):
+    '''
+    This function identify VCF check errors that are not critical for the processing of the VCF within EVA.
+    They affect specific INFO or FORMAT fields that are used in the variant detection but less so in the downstream analysis.
+Critical:
+Reference and alternate alleles must not be the same.
+Requested evidence presence with --require-evidence. Please provide genotypes (GT field in FORMAT and samples), or allele frequencies (AF field in INFO), or allele counts (AC and AN fields in INFO)..
+Contig is not sorted by position. Contig chr10 position 41695506 found after 41883113.
+Duplicated variant chr1A:1106203:A>G found.
+Metadata description string is not valid.
 
-        report = """Validation performed on {validation_date}
-Metadata check: {metadata_check}
-VCF check: {vcf_check}
-Assembly check: {assembly_check}
-Sample names check: {sample_check}
-Aggregation check: {aggregation_check}
-Normalisation check: {normalisation_check}
-Structural variant check: {structural_variant_check}
-----------------------------------
+Error
 
-Metadata check:
-{metadata_check_report}
-----------------------------------
-
-VCF check:
-{vcf_check_report}
-----------------------------------
-
-Assembly check:
-{assembly_check_report}
-----------------------------------
-
-Sample names check:
-{sample_check_report}
-----------------------------------
-
-Aggregation:
-{aggregation_report}
-
-----------------------------------
-
-VCF merge:
-{vcf_merge_report}
-
-----------------------------------
-
-Normalisation:
-{normalisation_check_report}
-
-----------------------------------
-
-Structural variant check:
-{structural_variant_check_report}
-
-----------------------------------
-"""
-        print(report.format(**report_data))
+Sample #10, field PL does not match the meta specification Number=G (expected 2 value(s)). PL=.. It must derive its number of values from the ploidy of GT (if present), or assume diploidy. Contains 1 value(s), expected 2 (derived from ploidy 1).
+Sample #102, field AD does not match the meta specification Number=R (expected 3 value(s)). AD=..
+Sample #106, field AD does not match the meta specification Number=R (expected 2 value(s)). AD=..
+Sample #10, field AD does not match the meta specification Number=R (expected 2 value(s)). AD=..
+Sample #11, field AD does not match the meta specification Number=R (expected 2 value(s)). AD=..
+    '''
+    non_critical_format_fields = ['PL', 'AD', 'AC']
+    non_critical_info_fields = ['AC']
+    regexes = {
+        r'^INFO (\w+) does not match the specification Number': non_critical_format_fields,
+        r'^Sample #\d+, field (\w+) does not match the meta specification Number=': non_critical_info_fields
+    }
+    for regex in regexes:
+        match = re.match(regex, error)
+        if match:
+            field_affected = match.group(1)
+            if field_affected in regexes[regex]:
+                return False
+    return True
