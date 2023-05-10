@@ -13,7 +13,7 @@ def helpMessage() {
 params.vcf_files_mapping = null
 params.output_dir = null
 // executables
-params.executable = ["vcf_validator": "vcf_validator", "vcf_assembly_checker": "7"]
+params.executable = ["vcf_validator": "vcf_validator", "vcf_assembly_checker": "vcf_assembly_checker"]
 // validation tasks
 params.validation_tasks = [ "vcf_check", "assembly_check"]
 // container validation dir (prefix for vcf files)

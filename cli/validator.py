@@ -74,7 +74,7 @@ class Validator:
                 elif line.startswith('According to the VCF specification'):
                     if 'not' in line:
                         valid = False
-                elif vcf_check_errors_is_critical(line.strip()):
+                elif self.vcf_check_errors_is_critical(line.strip()):
                     critical_count += 1
                     if critical_count <= max_error_reported:
                         critical_list.append(line.strip())
@@ -85,13 +85,41 @@ class Validator:
 
         return valid, warning_count, error_count, critical_count, error_list, critical_list
 
+    def vcf_check_errors_is_critical(self, error):
+        """
+        This function identify VCF check errors that are not critical for the processing of the VCF within EVA.
+        They affect specific INFO or FORMAT fields that are used in the variant detection but less so in the downstream analysis.
+        Critical:
+        Reference and alternate alleles must not be the same.
+        Requested evidence presence with --require-evidence. Please provide genotypes (GT field in FORMAT and samples), or allele frequencies (AF field in INFO), or allele counts (AC and AN fields in INFO)..
+        Contig is not sorted by position. Contig chr10 position 41695506 found after 41883113.
+        Duplicated variant chr1A:1106203:A>G found.
+        Metadata description string is not valid.
+
+        Error
+        Sample #10, field PL does not match the meta specification Number=G (expected 2 value(s)). PL=.. It must derive its number of values from the ploidy of GT (if present), or assume diploidy. Contains 1 value(s), expected 2 (derived from ploidy 1).
+        Sample #102, field AD does not match the meta specification Number=R (expected 3 value(s)). AD=..
+        """
+        non_critical_format_fields = ['PL', 'AD', 'AC']
+        non_critical_info_fields = ['AC']
+        regexes = {
+            r'^INFO (\w+) does not match the specification Number': non_critical_format_fields,
+            r'^Sample #\d+, field (\w+) does not match the meta specification Number=': non_critical_info_fields
+        }
+        for regex in regexes:
+            match = re.match(regex, error)
+            if match:
+                field_affected = match.group(1)
+                if field_affected in regexes[regex]:
+                    return False
+        return True
+
     def _collect_validation_workflow_results(self, ):
         # Collect information from the output and summarise in the config
         self._collect_vcf_check_results()
         self._collect_assembly_check_results()
 
     def _collect_vcf_check_results(self,):
-        total_critical = 0
         # detect output files for vcf check
         self.results['vcf_check'] = {}
         for vcf_file in self.vcf_files:
@@ -160,35 +188,3 @@ class Validator:
         with open("report.html", "w") as f:
             f.write(report_html)
 
-def vcf_check_errors_is_critical(error):
-    '''
-    This function identify VCF check errors that are not critical for the processing of the VCF within EVA.
-    They affect specific INFO or FORMAT fields that are used in the variant detection but less so in the downstream analysis.
-Critical:
-Reference and alternate alleles must not be the same.
-Requested evidence presence with --require-evidence. Please provide genotypes (GT field in FORMAT and samples), or allele frequencies (AF field in INFO), or allele counts (AC and AN fields in INFO)..
-Contig is not sorted by position. Contig chr10 position 41695506 found after 41883113.
-Duplicated variant chr1A:1106203:A>G found.
-Metadata description string is not valid.
-
-Error
-
-Sample #10, field PL does not match the meta specification Number=G (expected 2 value(s)). PL=.. It must derive its number of values from the ploidy of GT (if present), or assume diploidy. Contains 1 value(s), expected 2 (derived from ploidy 1).
-Sample #102, field AD does not match the meta specification Number=R (expected 3 value(s)). AD=..
-Sample #106, field AD does not match the meta specification Number=R (expected 2 value(s)). AD=..
-Sample #10, field AD does not match the meta specification Number=R (expected 2 value(s)). AD=..
-Sample #11, field AD does not match the meta specification Number=R (expected 2 value(s)). AD=..
-    '''
-    non_critical_format_fields = ['PL', 'AD', 'AC']
-    non_critical_info_fields = ['AC']
-    regexes = {
-        r'^INFO (\w+) does not match the specification Number': non_critical_format_fields,
-        r'^Sample #\d+, field (\w+) does not match the meta specification Number=': non_critical_info_fields
-    }
-    for regex in regexes:
-        match = re.match(regex, error)
-        if match:
-            field_affected = match.group(1)
-            if field_affected in regexes[regex]:
-                return False
-    return True

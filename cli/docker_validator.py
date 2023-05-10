@@ -272,3 +272,4 @@ if __name__ == "__main__":
 
     validator = DockerValidator(args.vcf_files_mapping, args.output_dir, docker_container_name, docker_path)
     validator.validate()
+    validator.create_reports()
