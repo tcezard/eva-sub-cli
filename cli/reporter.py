@@ -15,7 +15,7 @@ def resolve_single_file_path(file_path):
         return files[0]
 
 
-class Validator:
+class Reporter:
 
     def __init__(self, vcf_files, output_dir):
         self.output_dir = output_dir
@@ -185,6 +185,8 @@ class Validator:
 
     def create_reports(self):
         report_html = generate_html_report(self.results)
-        with open("report.html", "w") as f:
+        file_path = 'expected_report.html'
+        with open(file_path, "w") as f:
             f.write(report_html)
+        return file_path
 

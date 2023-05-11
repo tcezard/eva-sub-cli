@@ -1,5 +1,6 @@
 import csv
 import os
+import shutil
 from unittest import TestCase
 
 from cli.docker_validator import DockerValidator
@@ -33,6 +34,10 @@ class TestDockerValidator(TestCase):
                 writer.writerow(row)
 
         self.validator = DockerValidator(self.mapping_file, self.output_dir, container_name='test')
+
+    def tearDown(self):
+        if os.path.exists(self.test_run_dir):
+            shutil.rmtree(self.test_run_dir)
 
     def test_validate(self):
         # run validation in docker

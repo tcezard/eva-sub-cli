@@ -5,7 +5,7 @@ import os
 import subprocess
 import time
 
-from cli.validator import Validator
+from cli.reporter import Reporter
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level='INFO')
 
@@ -45,7 +45,7 @@ def run_command_with_output(command_description, command, return_process_output=
         return process_output
 
 
-class DockerValidator(Validator):
+class DockerValidator(Reporter):
 
     def __init__(self, mapping_file, output_dir, container_name=container_image, docker_path='docker'):
         self.docker_path = docker_path
