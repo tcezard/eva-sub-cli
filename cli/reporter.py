@@ -185,7 +185,7 @@ class Reporter:
 
     def create_reports(self):
         report_html = generate_html_report(self.results)
-        file_path = 'expected_report.html'
+        file_path = 'report.html'
         with open(file_path, "w") as f:
             f.write(report_html)
         return file_path
