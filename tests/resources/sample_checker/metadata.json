@@ -99,7 +99,7 @@
     },
     {
       "analysisAlias": "VD3",
-      "fileName": "example3.vcf.gz",
+      "fileName": "example3.vcf",
       "fileType": "vcf"
     }
   ]
