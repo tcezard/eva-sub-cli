@@ -1,5 +1,7 @@
 #!/usr/bin/env nextflow
 
+nextflow.enable.dsl=2
+
 def helpMessage() {
     log.info"""
     Validate a set of VCF files to check if they are valid to be submitted to EVA.
@@ -33,11 +35,24 @@ if (!params.vcf_files_mapping || !params.output_dir) {
 }
 
 
-// vcf files are used multiple times
-Channel.fromPath(params.vcf_files_mapping)
-    .splitCsv(header:true)
-    .map{row -> tuple(file(params.container_validation_dir+row.vcf), file(params.container_validation_dir+row.fasta), file(params.container_validation_dir+row.report))}
-    .into{vcf_channel1; vcf_channel2}
+
+workflow {
+    vcf_channel = Channel.fromPath(params.vcf_files_mapping)
+        .splitCsv(header:true)
+        .map{row -> tuple(
+            file(params.container_validation_dir+row.vcf),
+            file(params.container_validation_dir+row.fasta),
+            file(params.container_validation_dir+row.report)
+        )}
+
+
+    if ("vcf_check" in params.validation_tasks) {
+        check_vcf_valid(vcf_channel)
+    }
+    if ("assembly_check" in params.validation_tasks) {
+        check_vcf_reference(vcf_channel)
+    }
+}
 
 /*
 * Validate the VCF file format
@@ -48,15 +63,12 @@ process check_vcf_valid {
             mode: "copy"
 
     input:
-    set file(vcf), file(fasta), file(report) from vcf_channel1
-
-    when:
-    "vcf_check" in params.validation_tasks
+    tuple path(vcf), path(fasta), path(report)
 
     output:
-    path "vcf_format/*.errors.*.db" into vcf_validation_db
-    path "vcf_format/*.errors.*.txt" into vcf_validation_txt
-    path "vcf_format/*.vcf_format.log" into vcf_validation_log
+    path "vcf_format/*.errors.*.db", emit: vcf_validation_db
+    path "vcf_format/*.errors.*.txt", emit: vcf_validation_txt
+    path "vcf_format/*.vcf_format.log", emit: vcf_validation_log
 
     """
     trap 'if [[ \$? == 1 ]]; then exit 0; fi' EXIT
@@ -76,12 +88,12 @@ process check_vcf_reference {
             mode: "copy"
 
     input:
-    set file(vcf), file(fasta), file(report) from vcf_channel2
+    tuple path(vcf), path(fasta), path(report)
 
     output:
-    path "assembly_check/*valid_assembly_report*" into vcf_assembly_valid
-    path "assembly_check/*text_assembly_report*" into assembly_check_report
-    path "assembly_check/*.assembly_check.log" into assembly_check_log
+    path "assembly_check/*valid_assembly_report*", emit: vcf_assembly_valid
+    path "assembly_check/*text_assembly_report*", emit: assembly_check_report
+    path "assembly_check/*.assembly_check.log", emit: assembly_check_log
 
     when:
     "assembly_check" in params.validation_tasks
