@@ -3,7 +3,7 @@ import os
 import shutil
 from unittest import TestCase
 
-from cli.docker_validator import run_docker_validator
+from cli.docker_validator import DockerValidator
 
 
 class TestDockerValidator(TestCase):
@@ -33,16 +33,15 @@ class TestDockerValidator(TestCase):
             for row in data:
                 writer.writerow(row)
 
+        self.validator = DockerValidator(self.mapping_file, self.output_dir, container_name='test')
+
     def tearDown(self):
         if os.path.exists(self.test_run_dir):
             shutil.rmtree(self.test_run_dir)
 
-    def test_docker_validator(self):
-        docker = 'docker'
-        container_name = 'test'
-
+    def test_validate(self):
         # run validation in docker
-        run_docker_validator(docker, container_name, self.mapping_file, self.output_dir)
+        self.validator.validate()
 
         # assert vcf checks
         vcf_format_dir = os.path.join(self.output_dir, 'vcf_format')
