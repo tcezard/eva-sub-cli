@@ -2,7 +2,7 @@
 {% macro sample_name_check_report(validation_results) -%}
     {% set results = validation_results.get('sample_check', {}) %}
     {% for analysis, results_for_analysis in results.get('results_per_analysis', {}).items() %}
-        {% if results_for_analysis.get(difference) == "assembly_check" %}
+        {% if results_for_analysis.get('difference') %}
             {% set icon = "&#10060;" %}
             {% set row_class = "fail collapsible" %}
         {% else %}
@@ -10,5 +10,13 @@
             {% set row_class = "pass" %}
         {% endif %}
         <li class='{{ row_class }}'>{{ icon }} {{ analysis }}: Sample names concordance check </li>
+        {% if results_for_analysis.get('difference') %}
+            <div class='error-list'>
+                <ul>
+                    <li><strong> List of samples described in the metadata but not in the VCF files:</strong> {{ results_for_analysis.get('more_metadata_submitted_files')|join(", ") }}</li>
+                    <li><strong> List of samples used in the VCF files but not described in the metadata:</strong> {{ results_for_analysis.get('more_submitted_files_metadata')|join(", ") }}</li>
+                </ul>
+            </div>
+        {% endif %}
     {% endfor %}
 {%- endmacro %}

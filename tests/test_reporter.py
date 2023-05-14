@@ -1,5 +1,4 @@
 import os.path
-import pprint
 import shutil
 from unittest import TestCase
 
@@ -19,7 +18,17 @@ class TestReporter(TestCase):
             shutil.rmtree(report_path)
 
     def test__collect_validation_workflow_results(self):
+        expected_results = {
+            'vcf_check': {
+                'input_passed.vcf': {'valid': True, 'error_list': [], 'error_count': 0, 'warning_count': 0, 'critical_count': 0, 'critical_list': []}
+            },
+            'assembly_check': {
+                'input_passed.vcf': {'error_list': [], 'mismatch_list': [], 'nb_mismatch': 0, 'nb_error': 0, 'match': 247, 'total': 247}
+            },
+            'sample_check': {'overall_differences': False, 'results_per_analysis': {'AA': {'difference': False, 'more_metadata_submitted_files': [], 'more_per_submitted_files_metadata': {}, 'more_submitted_files_metadata': []}}}
+        }
         self.reporter._collect_validation_workflow_results()
+        assert self.reporter.results == expected_results
 
     def test_create_report(self):
         self.reporter._collect_validation_workflow_results()

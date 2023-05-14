@@ -1,37 +1,17 @@
 <!DOCTYPE html>
 {% from 'file_validation.html' import file_validation_report %}
 {% from 'sample_name_check.html' import sample_name_check_report %}
-
 <html>
 <head>
     <meta charset="UTF-8">
     <title>Validation Report</title>
     <style>
-        table {
-            border-collapse: collapse;
-        }
-
-        th, td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: left;
-        }
-
-        th {
-            background-color: lightgrey;
-        }
-
-        tr.fail {
-            background-color: #FFB6C1;
-        }
-
-        tr.pass {
-            background-color: #90EE90;
-        }
-
-        .error-list {
-            display: none;
-        }
+        table { border-collapse: collapse; }
+        th, td { border: 1px solid black;  padding: 8px;  text-align: left; }
+        th {  background-color: lightgrey;  }
+        tr.fail { background-color: #FFB6C1; }
+        tr.pass { background-color: #90EE90; }
+        .error-list { display: none; }
     </style>
 </head>
 <body>

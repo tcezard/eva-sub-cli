@@ -2,7 +2,6 @@ import csv
 import json
 import os
 import shutil
-from pprint import pprint
 from unittest import TestCase
 
 import yaml
@@ -109,4 +108,3 @@ class TestDockerValidator(TestCase):
         self.assertTrue(os.path.isfile(sample_checker_yaml))
         with open(sample_checker_yaml) as open_yaml:
             assert yaml.safe_load(open_yaml) == expected_checker
-        pprint(self.validator.results)
