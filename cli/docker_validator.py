@@ -47,9 +47,10 @@ def run_command_with_output(command_description, command, return_process_output=
 
 class DockerValidator(Reporter):
 
-    def __init__(self, mapping_file, output_dir, container_name=container_image, docker_path='docker'):
+    def __init__(self, mapping_file, metadata_json, output_dir, container_name=container_image, docker_path='docker'):
         self.docker_path = docker_path
         self.mapping_file = mapping_file
+        self.metadata_json = metadata_json
         self.container_name = container_name
         super().__init__(self._find_vcf_file(), output_dir)
 
@@ -87,13 +88,14 @@ class DockerValidator(Reporter):
 
             # copy all required files to container (mapping file, vcf and fasta)
             self.copy_files_to_container()
-
+            docker_cmd = (
+                f"{self.docker_path} exec {self.container_name} nextflow run cli/nextflow/validation.nf "
+                f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
+                f"--metadata_json {container_validation_dir}/{self.metadata_json} "
+                f"--output_dir {container_validation_output_dir}"
+            )
             # start validation
-            run_command_with_output("Run Validation using Nextflow",
-                                    f"{self.docker_path} exec {self.container_name} nextflow run validation.nf "
-                                    f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
-                                    f"--output_dir {container_validation_output_dir}")
-
+            run_command_with_output("Run Validation using Nextflow", docker_cmd)
             # copy validation result to user host
             run_command_with_output(
                 "Copy validation output from container to host",
@@ -188,6 +190,12 @@ class DockerValidator(Reporter):
             logging.error(ex)
             raise RuntimeError(f"Container ({self.container_name}) could not be started")
 
+    def stop_running_container(self):
+        if not self.verify_container_is_stopped():
+            run_command_with_output(
+                "Stop the running container",
+                f"{self.docker_path} stop --name {self.container_name}"
+            )
     def download_container_image(self):
         logging.info(f"Pulling container ({container_image}) image")
         try:
@@ -220,6 +228,11 @@ class DockerValidator(Reporter):
             "Copy vcf metadata file to container",
             (f"{self.docker_path} cp {self.mapping_file} "
              f"{self.container_name}:{container_validation_dir}/{self.mapping_file}")
+        )
+        run_command_with_output(
+            "Copy vcf metadata file to container",
+            (f"{self.docker_path} cp {self.metadata_json} "
+             f"{self.container_name}:{container_validation_dir}/{self.metadata_json}")
         )
 
         with open(self.mapping_file) as open_file:
@@ -263,6 +276,8 @@ if __name__ == "__main__":
     parser.add_argument("--container_name", help="Name of the docker container", required=False)
     parser.add_argument("--vcf_files_mapping",
                         help="csv file with the mappings for vcf files, fasta and assembly report", required=True)
+    parser.add_argument("--metadata_json",
+                        help="Json file that describe the project, analysis, samples and files", required=True)
     parser.add_argument("--output_dir", help="Directory where the validation output reports will be made available",
                         required=True)
     args = parser.parse_args()
@@ -270,6 +285,6 @@ if __name__ == "__main__":
     docker_path = args.docker_path if args.docker_path else 'docker'
     docker_container_name = args.container_name if args.container_name else container_image
 
-    validator = DockerValidator(args.vcf_files_mapping, args.output_dir, docker_container_name, docker_path)
+    validator = DockerValidator(args.vcf_files_mapping, args.metadata_json, args.output_dir, docker_container_name, docker_path)
     validator.validate()
     validator.create_reports()

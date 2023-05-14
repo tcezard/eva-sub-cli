@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 import gzip
 import json
@@ -6,6 +7,7 @@ import os
 from collections import defaultdict
 
 import yaml
+
 
 def open_gzip_if_required(input_file):
     if input_file.endswith('.gz'):
@@ -47,7 +49,7 @@ def compare_names_in_files_and_samples(sample_name_in_analysis, sample_name_per_
     more_per_submitted_files_metadata = {}
     if more_submitted_files_metadata:
         for file_name in sample_name_per_file:
-            more_per_submitted_files_metadata[os.path.basename(file_name)] = set(sample_name_per_file[file_name]) - set(sample_name_in_analysis)
+            more_per_submitted_files_metadata[os.path.basename(file_name)] = list(set(sample_name_per_file[file_name]) - set(sample_name_in_analysis))
         has_difference = True
 
     if more_metadata_submitted_files:
@@ -73,17 +75,13 @@ def compare_all_analysis(samples_per_analysis, files_per_analysis):
             has_difference, more_per_submitted_files_metadata,
             more_submitted_files_metadata, more_metadata_submitted_files
         ) = compare_names_in_files_and_samples(sample_name_in_analysis, sample_name_per_file)
-        print(analysis_alias)
-        print(more_per_submitted_files_metadata)
-        print(more_submitted_files_metadata)
-        print(more_metadata_submitted_files)
+        overall_differences = overall_differences or has_difference
         results_per_analysis_alias[analysis_alias] = {
             'difference': has_difference,
             'more_per_submitted_files_metadata': more_per_submitted_files_metadata,
             'more_submitted_files_metadata': more_submitted_files_metadata,
             'more_metadata_submitted_files': more_metadata_submitted_files
         }
-        overall_differences = overall_differences or has_difference
     return overall_differences, results_per_analysis_alias
 
 
@@ -105,7 +103,8 @@ def resolve_vcf_file_location(vcf_dir, files_per_analysis):
     for analysis_alias in files_per_analysis:
         result_files_per_analysis[analysis_alias] = []
         for f in files_per_analysis[analysis_alias]:
-            file_path = os.path.join(vcf_dir, f)
+            # Remove leading / to ensure Join concatenate the path
+            file_path = os.path.join(vcf_dir, f.lstrip('/'))
             if os.path.exists(file_path):
                 result_files_per_analysis[analysis_alias].append(file_path)
             else:
@@ -126,6 +125,7 @@ def check_sample_name_concordance(metadata_json, vcf_dir, output_yaml):
     files_per_analysis = resolve_vcf_file_location(vcf_dir, files_per_analysis)
     overall_differences, results_per_analysis_alias = compare_all_analysis(samples_per_analysis, files_per_analysis)
     write_result_yaml(output_yaml, overall_differences, results_per_analysis_alias)
+
 
 def main():
     arg_parser = argparse.ArgumentParser(

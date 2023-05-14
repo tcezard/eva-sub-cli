@@ -30,7 +30,7 @@ class TestSampleChecker(TestCase):
                 'VD2': {
                     'difference': True,
                     'more_metadata_submitted_files': [],
-                    'more_per_submitted_files_metadata': {'example2.vcf': {'sample3'}},
+                    'more_per_submitted_files_metadata': {'example2.vcf': ['sample3']},
                     'more_submitted_files_metadata': ['sample3']
                 },
                 'VD3': {
