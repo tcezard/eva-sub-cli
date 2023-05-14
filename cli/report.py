@@ -1,16 +1,19 @@
 import base64
 import os.path
+from pprint import pprint
+
+from jinja2 import Template, Environment, FileSystemLoader
 
 current_dir = os.path.dirname(__file__)
 
 
-def get_logo():
+def get_logo_data():
     with open(os.path.join(current_dir, "eva_logo.png"), "rb") as f:
         logo_data = base64.b64encode(f.read()).decode("utf-8")
-        return f'<img src="data:image/png;base64,{logo_data}" width="100" height="100">'
+        return logo_data
 
 
-def generate_html_report(validation_results):
+def generate_html_report_(validation_results):
     file_names = set([file_name for check_per_file in validation_results.values() for file_name in check_per_file])
     html = """<html><head>
     <style>
@@ -84,3 +87,22 @@ def generate_html_report(validation_results):
         }); 
     }</script></body></html>"""
     return html
+
+
+def generate_html_report(validation_results):
+    file_names = set([file_name
+                      for check in validation_results if check in ["vcf_check", "assembly_check"]
+                      for file_name in validation_results[check]
+                      ])
+
+    template = Environment(
+        loader=FileSystemLoader(os.path.join(current_dir, 'jinja_templates'))
+    ).get_template('html_report.html')
+    # pprint(validation_results)
+    rendered_template = template.render(
+        logo_data=get_logo_data(),
+        file_names=file_names,
+        validation_results=validation_results,
+    )
+
+    return rendered_template

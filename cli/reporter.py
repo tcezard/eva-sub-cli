@@ -4,6 +4,8 @@ import glob
 import os
 import re
 
+import yaml
+
 from cli.report import generate_html_report
 
 
@@ -118,6 +120,7 @@ class Reporter:
         # Collect information from the output and summarise in the config
         self._collect_vcf_check_results()
         self._collect_assembly_check_results()
+        self._load_sample_check_results()
 
     def _collect_vcf_check_results(self,):
         # detect output files for vcf check
@@ -182,6 +185,11 @@ class Reporter:
                 'match': match,
                 'total': total
             }
+
+    def _load_sample_check_results(self):
+        sample_check_yaml = resolve_single_file_path(os.path.join(self.output_dir, 'sample_checker.yml'))
+        with open(sample_check_yaml) as open_yaml:
+            self.results['sample_check'] = yaml.safe_load(open_yaml)
 
     def create_reports(self):
         report_html = generate_html_report(self.results)

@@ -1,0 +1,14 @@
+
+{% macro sample_name_check_report(validation_results) -%}
+    {% set results = validation_results.get('sample_check', {}) %}
+    {% for analysis, results_for_analysis in results.get('results_per_analysis', {}).items() %}
+        {% if results_for_analysis.get(difference) == "assembly_check" %}
+            {% set icon = "&#10060;" %}
+            {% set row_class = "fail collapsible" %}
+        {% else %}
+            {% set icon = "&#10004;" %}
+            {% set row_class = "pass" %}
+        {% endif %}
+        <li class='{{ row_class }}'>{{ icon }} {{ analysis }}: Sample names concordance check </li>
+    {% endfor %}
+{%- endmacro %}
