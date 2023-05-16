@@ -67,10 +67,10 @@ def compare_all_analysis(samples_per_analysis, files_per_analysis):
     results_per_analysis_alias = {}
     for analysis_alias in samples_per_analysis:
         sample_name_in_analysis = samples_per_analysis[analysis_alias]
-        sample_name_per_file = dict(
-            (file_path, get_samples_from_vcf(file_path))
+        sample_name_per_file = {
+            file_path: get_samples_from_vcf(file_path)
             for file_path in files_per_analysis[analysis_alias]
-        )
+        }
         (
             has_difference, more_per_submitted_files_metadata,
             more_submitted_files_metadata, more_metadata_submitted_files
@@ -135,7 +135,7 @@ def main():
     arg_parser.add_argument('--vcf_dir', required=True, dest='vcf_dir',
                             help='Path to the directory in which submitted files can be found')
     arg_parser.add_argument('--output_yaml', required=True, dest='output_yaml',
-                            help='Path to the location of ')
+                            help='Path to the location of the results')
 
     args = arg_parser.parse_args()
     samples_per_analysis, files_per_analysis = read_metadata_json(args.metadata_json)
