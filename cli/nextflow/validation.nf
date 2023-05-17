@@ -128,7 +128,7 @@ process sample_name_concordance {
 
     script:
     """
-    $params.executable.samples_checker --metadata_json $metadata_json --vcf_dir $vcf_dir --output_yaml sample_checker.yml
+    $params.executable.samples_checker --metadata_json $metadata_json --vcf_dir_prefix $vcf_dir --output_yaml sample_checker.yml
     """
 
 }
