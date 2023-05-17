@@ -14,7 +14,6 @@ def get_logo_data():
         return logo_data
 
 
-
 def generate_html_report(validation_results):
     file_names = sorted(set([file_name
                       for check in validation_results if check in ["vcf_check", "assembly_check"]
