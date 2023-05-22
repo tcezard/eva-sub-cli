@@ -11,7 +11,8 @@ class TestSampleChecker(TestCase):
     output_yaml = os.path.join(resource_dir, 'validation_output', 'sample_checker.yaml')
 
     def tearDown(self) -> None:
-        os.remove(self.output_yaml)
+        if os.path.exists(self.output_yaml):
+            os.remove(self.output_yaml)
 
     def test_check_sample_name_concordance(self):
         metadata_json = os.path.join(self.resource_dir, 'sample_checker', 'metadata.json')
