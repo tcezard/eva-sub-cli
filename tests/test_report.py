@@ -3,7 +3,6 @@ import os
 from unittest import TestCase
 
 from cli.report import generate_html_report
-
 validation_results = {
     "assembly_check": {
         "input_passed.vcf": {
@@ -49,6 +48,17 @@ validation_results = {
             "warning_count": 0,
         },
     },
+    "sample_check": {
+        'overall_differences': True,
+        'results_per_analysis': {
+            'AA': {
+                'difference': True,
+                'more_metadata_submitted_files': ['Sample1'],
+                'more_per_submitted_files_metadata': {},
+                'more_submitted_files_metadata': ['1Sample']
+            }
+        }
+    }
 }
 
 

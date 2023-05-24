@@ -14,4 +14,6 @@ RUN apt update && apt install -y default-jdk
 RUN curl -L "https://github.com/nextflow-io/nextflow/releases/download/v${NXF_VER}/nextflow-${NXF_VER}-all" | bash \
     && mv nextflow /usr/local/bin/
 
-COPY cli/nextflow/validation.nf /opt/validation.nf
+COPY . /opt/
+
+RUN python setup.py install

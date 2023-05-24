@@ -1,0 +1,106 @@
+{
+  "submitterDetails": [
+    {
+      "lastName": "Smith",
+      "firstName": "John",
+      "email": "john.smith@example.com",
+      "laboratory": "Genomics Lab",
+      "centre": "University of Example"
+    },
+    {
+      "lastName": "Doe",
+      "firstName": "Jane",
+      "email": "jane.doe@example.com",
+      "laboratory": "Bioinformatics Lab",
+      "centre": "University of Example"
+    }
+  ],
+  "project": {
+    "title": "Example Project",
+    "description": "An example project for demonstration purposes",
+    "taxId": 9606,
+    "centre": "University of Example"
+  },
+  "sample": [
+    {
+      "analysisAlias":  "VD1",
+      "sampleInVCF":  "sample1",
+      "BioSampleAccession": "SAME00001"
+    },
+    {
+      "analysisAlias":  "VD1",
+      "sampleInVCF":  "sample2",
+      "BioSampleAccession": "SAME00002"
+    },
+    {
+      "analysisAlias":  "VD2",
+      "sampleInVCF":  "sample1",
+      "BioSampleAccession": "SAME00001"
+    },
+    {
+      "analysisAlias":  "VD2",
+      "sampleInVCF":  "sample2",
+      "BioSampleAccession": "SAME00002"
+    },
+    {
+      "analysisAlias":  "VD3",
+      "sampleInVCF":  "sample1",
+      "BioSampleAccession": "SAME00001"
+    },
+    {
+      "analysisAlias":  "VD3",
+      "sampleInVCF":  "sample2",
+      "BioSampleAccession": "SAME00002"
+    },
+    {
+      "analysisAlias":  "VD3",
+      "sampleInVCF":  "sample3",
+      "BioSampleAccession": "SAME00003"
+    }
+  ],
+  "analysis": [
+    {
+      "analysisTitle": "Variant Detection 1",
+      "analysisAlias": "VD1",
+      "description": "An example analysis for demonstration purposes",
+      "experimentType": "Whole genome sequencing",
+      "referenceGenome": "GCA_000001405.27"
+    },
+    {
+      "analysisTitle": "Variant Detection 2",
+      "analysisAlias": "VD2",
+      "description": "An example analysis for demonstration purposes",
+      "experimentType": "Whole genome sequencing",
+      "referenceGenome": "GCA_000001405.27"
+    },
+    {
+      "analysisTitle": "Variant Detection 3",
+      "analysisAlias": "VD3",
+      "description": "An example analysis for demonstration purposes",
+      "experimentType": "Whole genome sequencing",
+      "referenceGenome": "GCA_000001405.27"
+    }
+  ],
+  "file": [
+    {
+      "analysisAlias": "VD1",
+      "fileName": "example1.vcf.gz",
+      "fileType": "vcf"
+    },
+    {
+      "analysisAlias": "VD1",
+      "fileName": "example1.vcf.gz.tbi",
+      "fileType": "tabix"
+    },
+    {
+      "analysisAlias": "VD2",
+      "fileName": "example2.vcf",
+      "fileType": "vcf"
+    },
+    {
+      "analysisAlias": "VD3",
+      "fileName": "example3.vcf",
+      "fileType": "vcf"
+    }
+  ]
+}

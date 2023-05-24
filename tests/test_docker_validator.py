@@ -1,7 +1,10 @@
 import csv
+import json
 import os
 import shutil
 from unittest import TestCase
+
+import yaml
 
 from cli.docker_validator import DockerValidator
 
@@ -15,6 +18,8 @@ class TestDockerValidator(TestCase):
 
     test_run_dir = os.path.join(resources_folder, 'docker_test_run')
     mapping_file = os.path.join(test_run_dir, 'vcf_files_metadata.csv')
+    metadata_json = os.path.join(test_run_dir, 'sub_metadata.json')
+
     output_dir = os.path.join(test_run_dir, 'validation_output')
 
     def setUp(self):
@@ -32,8 +37,22 @@ class TestDockerValidator(TestCase):
             writer = csv.writer(f)
             for row in data:
                 writer.writerow(row)
-
-        self.validator = DockerValidator(self.mapping_file, self.output_dir, container_name='test')
+        sub_metadata = {
+            "submitterDetails": [],
+            "project": {},
+            "sample": [
+                {"analysisAlias":  "AA", "sampleInVCF":  "HG00096", "BioSampleAccession": "SAME0000096"}
+            ],
+            "analysis": [
+                {"analysisAlias": "AA"}
+            ],
+            "file": [
+                {"analysisAlias": "AA", "fileName": os.path.join(self.vcf_files, 'input_passed.vcf'), "fileType": "vcf"}
+            ]
+        }
+        with open(self.metadata_json, 'w') as open_metadata:
+            json.dump(sub_metadata, open_metadata)
+        self.validator = DockerValidator(self.mapping_file, self.metadata_json, self.output_dir, container_name='test')
 
     def tearDown(self):
         if os.path.exists(self.test_run_dir):
@@ -72,3 +91,20 @@ class TestDockerValidator(TestCase):
             assembly_check_logs = assembly_check_log_file.readlines()
             self.assertEqual('[info] Number of matches: 247/247\n', assembly_check_logs[5])
             self.assertEqual('[info] Percentage of matches: 100%\n', assembly_check_logs[6])
+
+        # Assert Samples concordance
+        expected_checker = {
+            'overall_differences': False,
+            'results_per_analysis': {
+                'AA': {
+                    'difference': False,
+                    'more_metadata_submitted_files': [],
+                    'more_per_submitted_files_metadata': {},
+                   'more_submitted_files_metadata': []
+                }
+            }
+        }
+        sample_checker_yaml = os.path.join(self.output_dir, 'sample_checker.yml')
+        self.assertTrue(os.path.isfile(sample_checker_yaml))
+        with open(sample_checker_yaml) as open_yaml:
+            assert yaml.safe_load(open_yaml) == expected_checker

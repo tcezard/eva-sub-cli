@@ -1,0 +1,4 @@
+[info] Reading from input file...
+[info] Database report written to : vcf_format/input_passed.vcf.errors.1680102476854.db
+[info] Text report written to : vcf_format/input_passed.vcf.errors.1680102476854.txt
+[info] According to the VCF specification, the input file is valid
