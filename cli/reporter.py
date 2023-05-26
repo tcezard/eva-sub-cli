@@ -26,7 +26,7 @@ class Reporter:
 
     def validate(self):
         self._validate()
-        # self._collect_validation_workflow_results()
+        self._collect_validation_workflow_results()
 
     def _validate(self):
         raise NotImplementedError

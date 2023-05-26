@@ -25,7 +25,6 @@ def run_command_with_output(command_description, command, return_process_output=
     stdout = subprocess.PIPE
     # Some utilities output non-error messages to error stream. This is a workaround for that
     stderr = subprocess.STDOUT if log_error_stream_to_output else subprocess.PIPE
-    print(command)
     with subprocess.Popen(command, stdout=stdout, stderr=stderr, bufsize=1, universal_newlines=True,
                           shell=True) as process:
         for line in iter(process.stdout.readline, ''):
