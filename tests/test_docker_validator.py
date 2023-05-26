@@ -19,6 +19,7 @@ class TestDockerValidator(TestCase):
     test_run_dir = os.path.join(resources_folder, 'docker_test_run')
     mapping_file = os.path.join(test_run_dir, 'vcf_files_metadata.csv')
     metadata_json = os.path.join(test_run_dir, 'sub_metadata.json')
+    metadata_xls = os.path.join(test_run_dir, 'sub_metadata.xlsx')
 
     output_dir = os.path.join(test_run_dir, 'validation_output')
 
@@ -52,7 +53,23 @@ class TestDockerValidator(TestCase):
         }
         with open(self.metadata_json, 'w') as open_metadata:
             json.dump(sub_metadata, open_metadata)
-        self.validator = DockerValidator(self.mapping_file, self.metadata_json, self.output_dir, container_name='test')
+        self.validator = DockerValidator(
+            mapping_file=self.mapping_file,
+            output_dir=self.output_dir,
+            metadata_json=self.metadata_json,
+            container_name='test'
+        )
+        shutil.copyfile(
+            os.path.join(self.resources_folder, 'EVA_Submission_template.V1.1.4.xlsx'),
+            self.metadata_xls
+        )
+
+        self.validator_from_excel = DockerValidator(
+            mapping_file=self.mapping_file,
+            output_dir=self.output_dir,
+            metadata_xls=self.metadata_xls,
+            container_name='test'
+        )
 
     def tearDown(self):
         if os.path.exists(self.test_run_dir):
@@ -108,3 +125,9 @@ class TestDockerValidator(TestCase):
         self.assertTrue(os.path.isfile(sample_checker_yaml))
         with open(sample_checker_yaml) as open_yaml:
             assert yaml.safe_load(open_yaml) == expected_checker
+
+    def test_validate_from_excel(self):
+        self.validator_from_excel.validate()
+        # FIXME: The Sample check fails because the json file generated does not currently match the expected one
+        sample_checker_yaml = os.path.join(self.output_dir, 'sample_checker.yml')
+        self.assertFalse(os.path.isfile(sample_checker_yaml))
