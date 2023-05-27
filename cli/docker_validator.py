@@ -112,6 +112,7 @@ class DockerValidator(Reporter):
 
             docker_cmd = self.get_docker_validation_cmd()
             # start validation
+            # FIXME: If nextflow fails in the docker exec still exit with error code 0
             run_command_with_output("Run Validation using Nextflow", docker_cmd)
             # copy validation result to user host
             run_command_with_output(

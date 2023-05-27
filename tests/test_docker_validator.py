@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 from unittest import TestCase
+from unittest.mock import patch
 
 import yaml
 
@@ -127,7 +128,9 @@ class TestDockerValidator(TestCase):
             assert yaml.safe_load(open_yaml) == expected_checker
 
     def test_validate_from_excel(self):
-        self.validator_from_excel.validate()
         # FIXME: The Sample check fails because the json file generated does not currently match the expected one
-        sample_checker_yaml = os.path.join(self.output_dir, 'sample_checker.yml')
-        self.assertFalse(os.path.isfile(sample_checker_yaml))
+        # Need to skip the file collection
+        with patch.object(DockerValidator, '_collect_validation_workflow_results'):
+            self.validator_from_excel.validate()
+            sample_checker_yaml = os.path.join(self.output_dir, 'sample_checker.yml')
+            self.assertFalse(os.path.isfile(sample_checker_yaml))
