@@ -9,7 +9,6 @@ from cli.xlsx2json import XlsxParser, create_xls_template_from_yaml
 
 class TestXlsReader(TestCase):
     resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
-    output_yaml = os.path.join(resource_dir, 'validation_output', 'sample_checker.yaml')
 
     def test_conversion_2_json(self) -> None:
         conf_filename = os.path.join(ETC_DIR, 'spreadsheet2json_conf.yaml')

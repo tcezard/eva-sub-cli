@@ -24,7 +24,7 @@ params.executable = [
     "vcf_validator": "vcf_validator",
     "vcf_assembly_checker": "vcf_assembly_checker",
     "samples_checker": "samples_checker.py",
-    "xls2json": "xls2json.py"
+    "xls2json": "xlsx2json.py"
 ]
 // validation tasks
 params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check"]

@@ -27,7 +27,7 @@ class DateTimeEncoder(JSONEncoder):
 class XlsxParser:
     """
     Base parser for Excel file for the fields from worksheets defined in a configuration file.
-    It implements the base functioanlity allowing to open and validate the spreadsheet
+    It implements the base functionality for opening and validating the spreadsheet.
     """
 
     def __init__(self, xls_filename, conf_filename):
@@ -60,7 +60,7 @@ class XlsxParser:
         if self.worksheets is None:
             self.valid_worksheets()
         if worksheet not in self.worksheets:
-            raise ValueError('Worksheet ' + worksheet + ' is not part of the accepted !')
+            raise ValueError('Worksheet ' + worksheet + ' is not a valid worksheet!')
 
         self._active_worksheet = worksheet
 
@@ -192,7 +192,7 @@ class XlsxParser:
             for row in self.get_rows():
                 # Remove the row number
                 row.pop('row_num')
-                # remove any None
+                # Remove any None and translate header name
                 json_data[self.xls_conf[WORKSHEETS_KEY_NAME][title]].append(
                     {self.translate_header(title, k): v for k, v in row.items() if v is not None}
                 )
@@ -236,7 +236,7 @@ def create_xls_template_from_yaml(xls_filename, conf_filename):
 def main():
     arg_parser = argparse.ArgumentParser(
         description='Compare the sample name in the VCF file and the one specified in the metadata.')
-    arg_parser.add_argument('--metadata_json', required=True, dest='metadata_json', help='EVA metadata json file')
+    arg_parser.add_argument('--metadata_json', required=True, dest='metadata_json', help='Path to output EVA metadata json file')
     arg_parser.add_argument('--metadata_xls', required=True, dest='metadata_xls', help='EVA metadata Excel file')
     arg_parser.add_argument('--conversion_configuration', dest='conversion_configuration',
                             help='Configuration file describing the expected content of the Excel spreadsheet')
