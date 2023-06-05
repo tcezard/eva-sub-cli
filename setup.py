@@ -25,5 +25,8 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3'
     ],
-    scripts=glob.glob(join(dirname(__file__), 'cli', 'samples_checker.py'))
+    scripts=[
+        join(dirname(__file__), 'cli', 'samples_checker.py'),
+        join(dirname(__file__), 'cli', 'xlsx2json.py')
+    ]
 )

@@ -9,6 +9,7 @@ from cli.samples_checker import check_sample_name_concordance
 class TestSampleChecker(TestCase):
     resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
     output_yaml = os.path.join(resource_dir, 'validation_output', 'sample_checker.yaml')
+    os.makedirs(os.path.join(resource_dir, 'validation_output'), exist_ok=True)
 
     def tearDown(self) -> None:
         if os.path.exists(self.output_yaml):

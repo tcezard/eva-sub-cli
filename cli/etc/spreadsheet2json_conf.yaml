@@ -1,0 +1,126 @@
+#Configuration for defining which fields in which worksheets to be parsed in an Excel file
+#
+#At the top level, "worksheets" defines a list of worksheets (titles) to be parsed.
+#Then for each worksheet, you define which fields to be parsed from this worksheet.
+#These fields are either "required", "optional" and/or header_row. "required" fields must be found
+#in the worksheet so that this worksheet is valid. Otherwise this worksheet is not
+#valid. The field names must match those values in the header row in the worksheet.
+#
+#This is a YAML file
+
+# List of worksheets to be parsed.
+worksheets:
+  Submitter Details: submitterDetails
+  Project: project
+  Analysis: analysis
+  Sample: sample
+  Files: file
+
+Submitter Details:
+  required:
+    Last Name: lastName
+    First Name: firstName
+    Telephone Number: telephone
+    Email Address: email
+    Laboratory: laboratory
+    Center: centre
+    Address: address
+
+# List of field for Projects
+Project:
+  required:
+    Project Title: title
+    Project Alias: projectAlias
+    Description: description
+    Center: centre
+    Tax ID: taxId
+  optional:
+    Publication(s): publications
+    Parent Project(s): parentProject
+    Child Project(s): childProjects
+    Peer Project(s): peerProjects
+    Link(s): links
+    Hold Date: holdDate
+    Collaborator(s): collaborators
+    Strain: strain
+    Breed: breed
+    Broker: broker
+
+Analysis:
+  required:
+    Analysis Title: analysisTitle
+    Analysis Alias: analysisAlias
+    Description: description
+    Project Title: ProjectTitle
+    Experiment Type: experimentType
+    Reference: referenceGenome
+  optional:
+    Platform: platform
+    Software: software
+    Pipeline Description: pipelineDescriptions
+    Imputation: imputation
+    Phasing: phasing
+    Centre: centre
+    Date: date
+    Link(s): links
+    Run Accession(s): runAccessions
+
+Sample:
+  header_row: 3
+  # have to make all the fields optional because the user can fill in either the pre-register or the novel sample part
+  optional:
+    Analysis Alias: analysisAlias
+    Sample Name in VCF: sampleInVCF
+    Sample Accession: BioSampleAccession
+    Sample Name: BioSampleAccession
+    Title: title
+    Description: description
+    Unique Name: uniqueName
+    Prefix: prefix
+    Subject: subject
+    Derived From: derivedFrom
+    Tax Id: taxId
+    Scientific Name: scientificName
+    Common Name: commonName
+    mating_type: matingType
+    sex: sex
+    population: population
+    cell_type: cellType
+    dev_stage: devStage
+    germline: germline
+    tissue_lib: tissueLib
+    tissue_type: tissueType
+    bio_material: BioMaterial
+    culture_collection: cultureCollection
+    specimen_voucher: specimenVoucher
+    collected_by: collectedBy
+    collection_date: collectionDate
+    geographic location (country and/or sea): geographicLocationCountrySea
+    geographic location (region and locality): geographicLocationRegion
+    host: host
+    identified_by: identifiedBy
+    isolation_source: isolationSource
+    lat_lon: latLon
+    lab_host: LabHost
+    environmental_sample: environmentalSample
+    cultivar: cultivar
+    ecotype: ecotype
+    isolate: isolate
+    strain: strain
+    sub_species: subSpecies
+    variety: variety
+    sub_strain: subStrain
+    cell_line: cellType
+    serotype: serotype
+    serovar: serovar
+  cast:
+    Sample ID: string
+    Sample Name: string
+
+
+Files:
+  required:
+    Analysis Alias: analysisAlias
+    File Name: fileName
+    File Type: filetype
+    MD5: md5

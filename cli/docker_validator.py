@@ -5,6 +5,7 @@ import os
 import subprocess
 import time
 
+from cli import ETC_DIR
 from cli.reporter import Reporter
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level='INFO')
@@ -24,7 +25,6 @@ def run_command_with_output(command_description, command, return_process_output=
     stdout = subprocess.PIPE
     # Some utilities output non-error messages to error stream. This is a workaround for that
     stderr = subprocess.STDOUT if log_error_stream_to_output else subprocess.PIPE
-
     with subprocess.Popen(command, stdout=stdout, stderr=stderr, bufsize=1, universal_newlines=True,
                           shell=True) as process:
         for line in iter(process.stdout.readline, ''):
@@ -47,11 +47,14 @@ def run_command_with_output(command_description, command, return_process_output=
 
 class DockerValidator(Reporter):
 
-    def __init__(self, mapping_file, metadata_json, output_dir, container_name=container_image, docker_path='docker'):
+    def __init__(self, mapping_file, output_dir, metadata_json=None,
+                 metadata_xlsx=None, container_name=container_image, docker_path='docker'):
         self.docker_path = docker_path
         self.mapping_file = mapping_file
         self.metadata_json = metadata_json
+        self.metadata_xlsx = metadata_xlsx
         self.container_name = container_name
+        self.spreadsheet2json_conf = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
         super().__init__(self._find_vcf_file(), output_dir)
 
     def _validate(self):
@@ -64,6 +67,24 @@ class DockerValidator(Reporter):
             for row in reader:
                 vcf_files.append(row['vcf'])
         return vcf_files
+
+    def get_docker_validation_cmd(self):
+        if self.metadata_xlsx and not self.metadata_json:
+            docker_cmd = (
+                f"{self.docker_path} exec {self.container_name} nextflow run cli/nextflow/validation.nf "
+                f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
+                f"--metadata_xlsx {container_validation_dir}/{self.metadata_xlsx} "
+                f"--conversion_configuration {container_validation_dir}/{self.spreadsheet2json_conf} "
+                f"--output_dir {container_validation_output_dir}"
+            )
+        else:
+            docker_cmd = (
+                f"{self.docker_path} exec {self.container_name} nextflow run cli/nextflow/validation.nf "
+                f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
+                f"--metadata_json {container_validation_dir}/{self.metadata_json} "
+                f"--output_dir {container_validation_output_dir}"
+            )
+        return docker_cmd
 
     def run_docker_validator(self):
         # verify mapping file exists
@@ -88,13 +109,10 @@ class DockerValidator(Reporter):
 
             # copy all required files to container (mapping file, vcf and fasta)
             self.copy_files_to_container()
-            docker_cmd = (
-                f"{self.docker_path} exec {self.container_name} nextflow run cli/nextflow/validation.nf "
-                f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
-                f"--metadata_json {container_validation_dir}/{self.metadata_json} "
-                f"--output_dir {container_validation_output_dir}"
-            )
+
+            docker_cmd = self.get_docker_validation_cmd()
             # start validation
+            # FIXME: If nextflow fails in the docker exec still exit with error code 0
             run_command_with_output("Run Validation using Nextflow", docker_cmd)
             # copy validation result to user host
             run_command_with_output(
@@ -196,6 +214,7 @@ class DockerValidator(Reporter):
                 "Stop the running container",
                 f"{self.docker_path} stop --name {self.container_name}"
             )
+
     def download_container_image(self):
         logging.info(f"Pulling container ({container_image}) image")
         try:
@@ -219,54 +238,29 @@ class DockerValidator(Reporter):
                     self.download_container_image()
 
     def copy_files_to_container(self):
-        run_command_with_output(
-            "Create directory structure for copying vcf metadata file into container",
-            (f"{self.docker_path} exec {self.container_name} "
-             f"mkdir -p {container_validation_dir}/{os.path.dirname(self.mapping_file)}")
-        )
-        run_command_with_output(
-            "Copy vcf metadata file to container",
-            (f"{self.docker_path} cp {self.mapping_file} "
-             f"{self.container_name}:{container_validation_dir}/{self.mapping_file}")
-        )
-        run_command_with_output(
-            "Copy vcf metadata file to container",
-            (f"{self.docker_path} cp {self.metadata_json} "
-             f"{self.container_name}:{container_validation_dir}/{self.metadata_json}")
-        )
-
+        def _copy(file_description, file_path):
+            run_command_with_output(
+                f"Create directory structure for copying {file_description} into container",
+                (f"{self.docker_path} exec {self.container_name} "
+                 f"mkdir -p {container_validation_dir}/{os.path.dirname(file_path)}")
+            )
+            run_command_with_output(
+                f"Copy {file_description} to container",
+                (f"{self.docker_path} cp {file_path} "
+                 f"{self.container_name}:{container_validation_dir}/{file_path}")
+            )
+        _copy('vcf metadata file', self.mapping_file)
+        if self.metadata_json:
+            _copy('json metadata file', self.metadata_json)
+        if self.metadata_xlsx:
+            _copy('excel metadata file', self.metadata_xlsx)
+            _copy('configuration', self.spreadsheet2json_conf)
         with open(self.mapping_file) as open_file:
             reader = csv.DictReader(open_file, delimiter=',')
             for row in reader:
-                run_command_with_output(
-                    "Create directory structure to copy vcf files into container",
-                    (f"{self.docker_path} exec {self.container_name} "
-                     f"mkdir -p {container_validation_dir}/{os.path.dirname(row['vcf'])}")
-                )
-                run_command_with_output(
-                    "Copy vcf file to container",
-                    f"{self.docker_path} cp {row['vcf']} {self.container_name}:{container_validation_dir}/{row['vcf']}"
-                )
-                run_command_with_output(
-                    "Create directory structure to copy fasta files into container",
-                    (f"{self.docker_path} exec {self.container_name} "
-                     f"mkdir -p {container_validation_dir}/{os.path.dirname(row['fasta'])}")
-                )
-                run_command_with_output(
-                    "Copy fasta file to container",
-                    (f"{self.docker_path} cp {row['fasta']} "
-                     f"{self.container_name}:{container_validation_dir}/{row['fasta']}")
-                )
-                run_command_with_output(
-                    "Create directory structure to copy assembly report files into container",
-                    (f"{self.docker_path} exec {self.container_name} "
-                     f"mkdir -p {container_validation_dir}/{os.path.dirname(row['report'])}")
-                )
-                run_command_with_output(
-                    "Copy assembly report file to container",
-                    (f"{self.docker_path} cp {row['report']} "
-                     f"{self.container_name}:{container_validation_dir}/{row['report']}")
-                )
+                _copy('vcf files', row['vcf'])
+                _copy('fasta files', row['fasta'])
+                _copy('assembly report files', row['report'])
 
 
 if __name__ == "__main__":
@@ -276,15 +270,19 @@ if __name__ == "__main__":
     parser.add_argument("--container_name", help="Name of the docker container", required=False)
     parser.add_argument("--vcf_files_mapping",
                         help="csv file with the mappings for vcf files, fasta and assembly report", required=True)
-    parser.add_argument("--metadata_json",
-                        help="Json file that describe the project, analysis, samples and files", required=True)
     parser.add_argument("--output_dir", help="Directory where the validation output reports will be made available",
                         required=True)
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--metadata_json",
+                       help="Json file that describe the project, analysis, samples and files")
+    group.add_argument("--metadata_xlsx",
+                       help="Excel spreadsheet  that describe the project, analysis, samples and files")
     args = parser.parse_args()
 
     docker_path = args.docker_path if args.docker_path else 'docker'
     docker_container_name = args.container_name if args.container_name else container_image
 
-    validator = DockerValidator(args.vcf_files_mapping, args.metadata_json, args.output_dir, docker_container_name, docker_path)
+    validator = DockerValidator(args.vcf_files_mapping, args.output_dir, args.metadata_json, args.metadata_xlsx,
+                                docker_container_name, docker_path)
     validator.validate()
     validator.create_reports()

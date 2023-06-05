@@ -254,7 +254,7 @@
               "type": "string"
             }
           },
-          "run Accessions": {
+          "runAccessions": {
             "type": "array",
             "items": {
               "type": "string"
