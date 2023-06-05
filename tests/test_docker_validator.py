@@ -20,7 +20,7 @@ class TestDockerValidator(TestCase):
     test_run_dir = os.path.join(resources_folder, 'docker_test_run')
     mapping_file = os.path.join(test_run_dir, 'vcf_files_metadata.csv')
     metadata_json = os.path.join(test_run_dir, 'sub_metadata.json')
-    metadata_xls = os.path.join(test_run_dir, 'sub_metadata.xlsx')
+    metadata_xlsx = os.path.join(test_run_dir, 'sub_metadata.xlsx')
 
     output_dir = os.path.join(test_run_dir, 'validation_output')
 
@@ -62,13 +62,13 @@ class TestDockerValidator(TestCase):
         )
         shutil.copyfile(
             os.path.join(self.resources_folder, 'EVA_Submission_template.V1.1.4.xlsx'),
-            self.metadata_xls
+            self.metadata_xlsx
         )
 
         self.validator_from_excel = DockerValidator(
             mapping_file=self.mapping_file,
             output_dir=self.output_dir,
-            metadata_xls=self.metadata_xls,
+            metadata_xlsx=self.metadata_xlsx,
             container_name='test'
         )
 

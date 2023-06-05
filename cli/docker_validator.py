@@ -48,11 +48,11 @@ def run_command_with_output(command_description, command, return_process_output=
 class DockerValidator(Reporter):
 
     def __init__(self, mapping_file, output_dir, metadata_json=None,
-                 metadata_xls=None, container_name=container_image, docker_path='docker'):
+                 metadata_xlsx=None, container_name=container_image, docker_path='docker'):
         self.docker_path = docker_path
         self.mapping_file = mapping_file
         self.metadata_json = metadata_json
-        self.metadata_xls = metadata_xls
+        self.metadata_xlsx = metadata_xlsx
         self.container_name = container_name
         self.spreadsheet2json_conf = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
         super().__init__(self._find_vcf_file(), output_dir)
@@ -69,11 +69,11 @@ class DockerValidator(Reporter):
         return vcf_files
 
     def get_docker_validation_cmd(self):
-        if self.metadata_xls and not self.metadata_json:
+        if self.metadata_xlsx and not self.metadata_json:
             docker_cmd = (
                 f"{self.docker_path} exec {self.container_name} nextflow run cli/nextflow/validation.nf "
                 f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
-                f"--metadata_xls {container_validation_dir}/{self.metadata_xls} "
+                f"--metadata_xlsx {container_validation_dir}/{self.metadata_xlsx} "
                 f"--conversion_configuration {container_validation_dir}/{self.spreadsheet2json_conf} "
                 f"--output_dir {container_validation_output_dir}"
             )
@@ -252,8 +252,8 @@ class DockerValidator(Reporter):
         _copy('vcf metadata file', self.mapping_file)
         if self.metadata_json:
             _copy('json metadata file', self.metadata_json)
-        if self.metadata_xls:
-            _copy('excel metadata file', self.metadata_xls)
+        if self.metadata_xlsx:
+            _copy('excel metadata file', self.metadata_xlsx)
             _copy('configuration', self.spreadsheet2json_conf)
         with open(self.mapping_file) as open_file:
             reader = csv.DictReader(open_file, delimiter=',')
@@ -275,14 +275,14 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--metadata_json",
                        help="Json file that describe the project, analysis, samples and files")
-    group.add_argument("--metadata_xls",
+    group.add_argument("--metadata_xlsx",
                        help="Excel spreadsheet  that describe the project, analysis, samples and files")
     args = parser.parse_args()
 
     docker_path = args.docker_path if args.docker_path else 'docker'
     docker_container_name = args.container_name if args.container_name else container_image
 
-    validator = DockerValidator(args.vcf_files_mapping, args.output_dir, args.metadata_json, args.metadata_xls,
+    validator = DockerValidator(args.vcf_files_mapping, args.output_dir, args.metadata_json, args.metadata_xlsx,
                                 docker_container_name, docker_path)
     validator.validate()
     validator.create_reports()

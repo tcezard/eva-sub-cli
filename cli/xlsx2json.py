@@ -30,20 +30,20 @@ class XlsxParser:
     It implements the base functionality for opening and validating the spreadsheet.
     """
 
-    def __init__(self, xls_filename, conf_filename):
+    def __init__(self, xlsx_filename, conf_filename):
         """
         Constructor
-        :param xls_filename: Excel file path
-        :type xls_filename: basestring
+        :param xlsx_filename: Excel file path
+        :type xlsx_filename: basestring
         :param conf_filename: configuration file path
         :type conf_filename: basestring
         """
         with open(conf_filename, 'r') as conf_file:
-            self.xls_conf = yaml.safe_load(conf_file)
+            self.xlsx_conf = yaml.safe_load(conf_file)
         try:
-            self.workbook = load_workbook(xls_filename, read_only=True)
+            self.workbook = load_workbook(xlsx_filename, read_only=True)
         except Exception as e:
-            logging.error('Error loading %s', xls_filename)
+            logging.error('Error loading %s', xlsx_filename)
             raise e
         self.worksheets = None
         self._active_worksheet = None
@@ -76,20 +76,20 @@ class XlsxParser:
         self.worksheets = []
         sheet_titles = self.workbook.sheetnames
 
-        for title in self.xls_conf[WORKSHEETS_KEY_NAME]:
+        for title in self.xlsx_conf[WORKSHEETS_KEY_NAME]:
             # Check worksheet exists
             if title not in sheet_titles:
                 continue
 
             # Check number of rows
             worksheet = self.workbook[title]
-            header_row = self.xls_conf[title].get(HEADERS_KEY_ROW, 1)
+            header_row = self.xlsx_conf[title].get(HEADERS_KEY_ROW, 1)
             if worksheet.max_row < header_row + 1:
                 continue
             # Check required headers are present
             self.headers[title] = [cell.value if cell.value is None else cell.value.strip()
                                    for cell in worksheet[header_row]]
-            required_headers = self.xls_conf[title].get(REQUIRED_HEADERS_KEY_NAME, [])
+            required_headers = self.xlsx_conf[title].get(REQUIRED_HEADERS_KEY_NAME, [])
             if set(required_headers) <= set(self.headers[title]):  # issubset
                 self.worksheets.append(title)
             else:
@@ -126,11 +126,8 @@ class XlsxParser:
             return value.strip()
         return value
 
-    def __iter__(self):
-        return self
-
     def base_row_offset(self, worksheet):
-        return self.xls_conf[worksheet].get(HEADERS_KEY_ROW, 1)
+        return self.xlsx_conf[worksheet].get(HEADERS_KEY_ROW, 1)
 
     def get_rows(self):
         """
@@ -148,8 +145,8 @@ class XlsxParser:
             self.row_offset[worksheet] = self.base_row_offset(worksheet)
         self.row_offset[worksheet] += 1
 
-        required_headers = self.xls_conf[worksheet].get(REQUIRED_HEADERS_KEY_NAME, {})
-        optional_headers = self.xls_conf[worksheet].get(OPTIONAL_HEADERS_KEY_NAME, {})
+        required_headers = self.xlsx_conf[worksheet].get(REQUIRED_HEADERS_KEY_NAME, {})
+        optional_headers = self.xlsx_conf[worksheet].get(OPTIONAL_HEADERS_KEY_NAME, {})
 
         rows = []
 
@@ -172,7 +169,7 @@ class XlsxParser:
                 if cell.value is not None:
                     has_notnull = True
                 data[header] = self.trim_value(self.cast_value(
-                    cell.value, self.xls_conf[worksheet].get(CAST_KEY_NAME, {}).get(header)
+                    cell.value, self.xlsx_conf[worksheet].get(CAST_KEY_NAME, {}).get(header)
                 ))
 
             if has_notnull:
@@ -186,14 +183,14 @@ class XlsxParser:
 
     def json(self, output_json_file):
         json_data = {}
-        for title in self.xls_conf[WORKSHEETS_KEY_NAME]:
-            json_data[self.xls_conf[WORKSHEETS_KEY_NAME][title]] = []
+        for title in self.xlsx_conf[WORKSHEETS_KEY_NAME]:
+            json_data[self.xlsx_conf[WORKSHEETS_KEY_NAME][title]] = []
             self.active_worksheet = title
             for row in self.get_rows():
                 # Remove the row number
                 row.pop('row_num')
                 # Remove any None and translate header name
-                json_data[self.xls_conf[WORKSHEETS_KEY_NAME][title]].append(
+                json_data[self.xlsx_conf[WORKSHEETS_KEY_NAME][title]].append(
                     {self.translate_header(title, k): v for k, v in row.items() if v is not None}
                 )
 
@@ -201,48 +198,48 @@ class XlsxParser:
             json.dump(json_data, open_file, cls=DateTimeEncoder)
 
     def translate_header(self, title, header):
-        if header in self.xls_conf[title].get(REQUIRED_HEADERS_KEY_NAME, {}):
-            return self.xls_conf[title][REQUIRED_HEADERS_KEY_NAME][header]
-        if header in self.xls_conf[title].get(OPTIONAL_HEADERS_KEY_NAME, {}):
-            return self.xls_conf[title][OPTIONAL_HEADERS_KEY_NAME][header]
+        if header in self.xlsx_conf[title].get(REQUIRED_HEADERS_KEY_NAME, {}):
+            return self.xlsx_conf[title][REQUIRED_HEADERS_KEY_NAME][header]
+        if header in self.xlsx_conf[title].get(OPTIONAL_HEADERS_KEY_NAME, {}):
+            return self.xlsx_conf[title][OPTIONAL_HEADERS_KEY_NAME][header]
         return header
 
 
-def create_xls_template_from_yaml(xls_filename, conf_filename):
+def create_xls_template_from_yaml(xlsx_filename, conf_filename):
     """
     Create a XLS empty template with the expected worksheet and header based on the configuration provided
     """
     with open(conf_filename, 'r') as conf_file:
-        xls_conf = yaml.full_load(conf_file)
+        xlsx_conf = yaml.safe_load(conf_file)
     workbook = Workbook()
     workbook.remove(workbook.active)
 
-    for title in xls_conf[WORKSHEETS_KEY_NAME]:
+    for title in xlsx_conf[WORKSHEETS_KEY_NAME]:
         # Create worksheet
         workbook.create_sheet(title)
         # For each Worksheet create the header row
-        header_row = xls_conf[title].get(HEADERS_KEY_ROW, 1)
+        header_row = xlsx_conf[title].get(HEADERS_KEY_ROW, 1)
         header_col_index = 0
-        for header_name in xls_conf[title].get(REQUIRED_HEADERS_KEY_NAME, []):
+        for header_name in xlsx_conf[title].get(REQUIRED_HEADERS_KEY_NAME, []):
             header_col_index += 1
             cell = workbook[title].cell(column=header_col_index, row=header_row, value=header_name)
             cell.font = openpyxl.styles.Font(bold=True)
-        for header_name in xls_conf[title].get(OPTIONAL_HEADERS_KEY_NAME, []):
+        for header_name in xlsx_conf[title].get(OPTIONAL_HEADERS_KEY_NAME, []):
             header_col_index += 1
             workbook[title].cell(column=header_col_index, row=header_row, value=header_name)
-    workbook.save(xls_filename)
+    workbook.save(xlsx_filename)
 
 
 def main():
     arg_parser = argparse.ArgumentParser(
-        description='Compare the sample name in the VCF file and the one specified in the metadata.')
+        description='Convert an xlsx spreadsheet containing expected sheets to json prior to validation')
     arg_parser.add_argument('--metadata_json', required=True, dest='metadata_json', help='Path to output EVA metadata json file')
-    arg_parser.add_argument('--metadata_xls', required=True, dest='metadata_xls', help='EVA metadata Excel file')
+    arg_parser.add_argument('--metadata_xlsx', required=True, dest='metadata_xlsx', help='EVA metadata Excel file')
     arg_parser.add_argument('--conversion_configuration', dest='conversion_configuration',
                             help='Configuration file describing the expected content of the Excel spreadsheet')
 
     args = arg_parser.parse_args()
-    parser = XlsxParser(args.metadata_xls, args.conversion_configuration)
+    parser = XlsxParser(args.metadata_xlsx, args.conversion_configuration)
     parser.json(args.metadata_json)
 
 

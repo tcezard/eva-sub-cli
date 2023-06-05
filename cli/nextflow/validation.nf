@@ -10,21 +10,21 @@ def helpMessage() {
             --vcf_files_mapping     csv file with the mappings for vcf files, fasta and assembly report
             --output_dir            output_directory where the reports will be output
             --metadata_json         Json file describing the project, analysis, samples and files
-            --metadata_xls          Excel file describing the project, analysis, samples and files
+            --metadata_xlsx          Excel file describing the project, analysis, samples and files
     """
 }
 
 params.vcf_files_mapping = null
 params.output_dir = null
 params.metadata_json = null
-params.metadata_xls = null
+params.metadata_xlsx = null
 
 // executables
 params.executable = [
     "vcf_validator": "vcf_validator",
     "vcf_assembly_checker": "vcf_assembly_checker",
     "samples_checker": "samples_checker.py",
-    "xls2json": "xlsx2json.py"
+    "xlsx2json": "xlsx2json.py"
 ]
 // validation tasks
 params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check"]
@@ -38,11 +38,11 @@ if (params.help) exit 0, helpMessage()
 
 
 // Test input files
-if (!params.vcf_files_mapping || !params.output_dir || (!params.metadata_json && !params.metadata_xls)) {
+if (!params.vcf_files_mapping || !params.output_dir || (!params.metadata_json && !params.metadata_xlsx)) {
     if (!params.vcf_files_mapping)      log.warn('Provide a csv file with the mappings (vcf, fasta, assembly report) --vcf_files_mapping')
-    if (!params.metadata_xls)           log.warn('Provide a json file with the metadata description of the project and analysis --metadata_json')
+    if (!params.metadata_xlsx)           log.warn('Provide a json file with the metadata description of the project and analysis --metadata_json')
     if (!params.output_dir)             log.warn('Provide an output directory where the reports will be copied using --output_dir')
-    if (!params.metadata_json && !params.metadata_xls)   log.warn('Provide a json or Excel file with the metadata description of the project and analysis --metadata_json or --metadata_xls')
+    if (!params.metadata_json && !params.metadata_xlsx)   log.warn('Provide a json or Excel file with the metadata description of the project and analysis --metadata_json or --metadata_xlsx')
     exit 1, helpMessage()
 }
 
@@ -62,9 +62,9 @@ workflow {
     if ("assembly_check" in params.validation_tasks) {
         check_vcf_reference(vcf_channel)
     }
-    if (params.metadata_xls && !params.metadata_json){
-        convert_xls_2_json(params.metadata_xls, params.conversion_configuration)
-        metadata_json = convert_xls_2_json.out.metadata_json
+    if (params.metadata_xlsx && !params.metadata_json){
+        convert_xlsx_2_json(params.metadata_xlsx, params.conversion_configuration)
+        metadata_json = convert_xlsx_2_json.out.metadata_json
     } else{
         metadata_json = params.metadata_json
     }
@@ -125,23 +125,23 @@ process check_vcf_reference {
 }
 
 
-process convert_xls_2_json {
+process convert_xlsx_2_json {
     publishDir "$params.output_dir",
             overwrite: true,
             mode: "copy"
 
     input:
-    path(metadata_xls)
+    path(metadata_xlsx)
     path(conversion_configuration)
 
     output:
     path "metadata.json", emit: metadata_json
 
     script:
-    metadata_json = metadata_xls.getBaseName() + '.json'
+    metadata_json = metadata_xlsx.getBaseName() + '.json'
 
     """
-    $params.executable.xls2json --metadata_xls $metadata_xls --metadata_json metadata.json --conversion_configuration $conversion_configuration
+    $params.executable.xlsx2json --metadata_xlsx $metadata_xlsx --metadata_json metadata.json --conversion_configuration $conversion_configuration
     """
 }
 
