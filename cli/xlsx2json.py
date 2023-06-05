@@ -202,6 +202,7 @@ class XlsxParser:
             return self.xlsx_conf[title][REQUIRED_HEADERS_KEY_NAME][header]
         if header in self.xlsx_conf[title].get(OPTIONAL_HEADERS_KEY_NAME, {}):
             return self.xlsx_conf[title][OPTIONAL_HEADERS_KEY_NAME][header]
+        logging.warning(f'Header {header} in {title} sheet does not have translation in the config file. Leave it as is')
         return header
 
 
