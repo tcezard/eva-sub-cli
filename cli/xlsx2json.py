@@ -15,7 +15,11 @@ REQUIRED_HEADERS_KEY_NAME = 'required'
 OPTIONAL_HEADERS_KEY_NAME = 'optional'
 HEADERS_KEY_ROW = 'header_row'
 CAST_KEY_NAME = 'cast'
-
+PROJECT = 'Project'
+SAMPLE = 'Sample'
+ANALYSIS_ALIAS_KEY = 'Analysis Alias'
+SAMPLE_NAME_IN_VCF_KEY = 'Sample Name in VCF'
+SAMPLE_ACCESSION_KEY = 'Sample Accession'
 
 class DateTimeEncoder(JSONEncoder):
     # Override the default method
@@ -181,18 +185,70 @@ class XlsxParser:
 
         return rows
 
+    def get_project_json_data(self):
+        project_data = self.get_rows()
+        if len(project_data) > 1:
+            logging.warning(f"{PROJECT} worksheet expects a single row of info but more than one found in the file. "
+                            f"Only the first row's data will be taken into consideration")
+
+        first_row = project_data[0]
+        first_row.pop('row_num')
+
+        json_key = self.xlsx_conf[WORKSHEETS_KEY_NAME][PROJECT]
+        json_value = {self.translate_header(PROJECT, k): v for k, v in first_row.items() if v is not None}
+        return {json_key: json_value}
+
+    def get_sample_json_data(self):
+        json_key = self.xlsx_conf[WORKSHEETS_KEY_NAME][SAMPLE]
+        sample_json = {json_key: []}
+        for row in self.get_rows():
+            row.pop('row_num')
+            json_value = {self.translate_header(SAMPLE, k): v for k, v in row.items() if v is not None}
+            bio_sample_acc = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_ACCESSION_KEY]
+            analysis_alias = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][ANALYSIS_ALIAS_KEY]
+            sample_name_in_vcf = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_NAME_IN_VCF_KEY]
+
+            if analysis_alias not in json_value or sample_name_in_vcf not in json_value:
+                raise ValueError(
+                    f'Worksheet {SAMPLE} does not have required field {ANALYSIS_ALIAS_KEY} or {SAMPLE_NAME_IN_VCF_KEY}')
+
+            analysis_alias_list = json_value[analysis_alias].split(',')
+            sample_in_vcf_val = json_value[sample_name_in_vcf]
+
+            if bio_sample_acc in json_value and json_value[bio_sample_acc]:
+                for aa in analysis_alias_list:
+                    sample_data = {analysis_alias: aa,
+                                    sample_name_in_vcf: sample_in_vcf_val,
+                                    bio_sample_acc: json_value[bio_sample_acc]}
+                    sample_json[json_key].append(sample_data)
+            else:
+                json_value.pop(sample_name_in_vcf)
+                json_value.pop(analysis_alias)
+                for aa in analysis_alias_list:
+                    sample_data = {analysis_alias: aa,
+                                   sample_name_in_vcf: sample_in_vcf_val,
+                                   'bioSampleObject': json_value}
+                    sample_json[json_key].append(sample_data)
+
+        return sample_json
+
     def json(self, output_json_file):
         json_data = {}
         for title in self.xlsx_conf[WORKSHEETS_KEY_NAME]:
-            json_data[self.xlsx_conf[WORKSHEETS_KEY_NAME][title]] = []
             self.active_worksheet = title
-            for row in self.get_rows():
-                # Remove the row number
-                row.pop('row_num')
-                # Remove any None and translate header name
-                json_data[self.xlsx_conf[WORKSHEETS_KEY_NAME][title]].append(
-                    {self.translate_header(title, k): v for k, v in row.items() if v is not None}
-                )
+            if title == PROJECT:
+                json_data.update(self.get_project_json_data())
+            elif title == SAMPLE:
+                json_data.update(self.get_sample_json_data())
+            else:
+                json_data[self.xlsx_conf[WORKSHEETS_KEY_NAME][title]] = []
+                for row in self.get_rows():
+                    # Remove the row number
+                    row.pop('row_num')
+                    # Remove any None and translate header name
+                    json_data[self.xlsx_conf[WORKSHEETS_KEY_NAME][title]].append(
+                        {self.translate_header(title, k): v for k, v in row.items() if v is not None}
+                    )
 
         with open(output_json_file, 'w') as open_file:
             json.dump(json_data, open_file, cls=DateTimeEncoder)

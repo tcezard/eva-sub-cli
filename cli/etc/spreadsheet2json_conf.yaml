@@ -14,7 +14,7 @@ worksheets:
   Project: project
   Analysis: analysis
   Sample: sample
-  Files: file
+  Files: files
 
 Submitter Details:
   required:
@@ -71,8 +71,8 @@ Sample:
   optional:
     Analysis Alias: analysisAlias
     Sample Name in VCF: sampleInVCF
-    Sample Accession: BioSampleAccession
-    Sample Name: BioSampleAccession
+    Sample Accession: bioSampleAccession
+    Sample Name: bioSampleName
     Title: title
     Description: description
     Unique Name: uniqueName
@@ -122,5 +122,5 @@ Files:
   required:
     Analysis Alias: analysisAlias
     File Name: fileName
-    File Type: filetype
+    File Type: fileType
     MD5: md5
