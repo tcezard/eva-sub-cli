@@ -2,6 +2,8 @@ import json
 import os
 from unittest import TestCase
 
+import jsonschema
+
 from cli import ETC_DIR
 from cli.xlsx2json import XlsxParser, create_xls_template_from_yaml
 
@@ -20,9 +22,23 @@ class TestXlsReader(TestCase):
 
         with open(output_json) as open_file:
             json_data = json.load(open_file)
-            # assert expected json file is created
+            # assert json file is created with expected data
             assert sorted(json_data.keys()) == ['analysis', 'files', 'project', 'sample', 'submitterDetails']
             self.assertTrue(self.get_expected_json() == json_data)
+
+        # assert json schema
+        with open(self.eva_schema) as eva_schema_file:
+            eva_json_schema = json.load(eva_schema_file)
+        with open(self.biosample_schema) as biosample_schema_file:
+            biosample_json_schema = json.load(biosample_schema_file)
+
+        # assert created json file sample field conforms to eva-biosamples schema
+        jsonschema.validate(json_data['sample'][7]['bioSampleObject'], biosample_json_schema)
+
+        # assert created json file conform to eva_schema
+        resolver = jsonschema.RefResolver.from_schema(eva_json_schema)
+        resolver.store['eva-biosamples.json'] = biosample_json_schema
+        jsonschema.validate(json_data, eva_json_schema, resolver=resolver)
 
     def test_create_xls_template(self):
         metadata_file = os.path.join(self.resource_dir, 'metadata_not_existing.xlsx')
@@ -128,24 +144,54 @@ class TestXlsReader(TestCase):
                     "analysisAlias": "VD4",
                     "sampleInVCF": "sample4",
                     "bioSampleObject": {
+                      "name": "Lm_17_S8",
+                      "characteristics": {
                         "bioSampleName": "Lm_17_S8",
-                        "title": "Bastet normal sample",
-                        "taxId": 9447,
-                        "scientificName": "Lemur catta",
+                        "title": [
+                          "Bastet normal sample"
+                        ],
+                        "description": [
+                          "Test Description"
+                        ],
+                        "taxId": [
+                          9447
+                        ],
+                        "scientificName": [
+                          "Lemur catta"
+                        ],
                         "sex": "Female",
-                        "tissueType": "skin"
+                        "tissueType": "skin",
+                        "species": [
+                          "Lemur catta"
+                        ]
+                      }
                     }
-                },
+                 },
                 {
                     "analysisAlias": "VD5",
                     "sampleInVCF": "sample4",
                     "bioSampleObject": {
+                      "name": "Lm_17_S8",
+                      "characteristics": {
                         "bioSampleName": "Lm_17_S8",
-                        "title": "Bastet normal sample",
-                        "taxId": 9447,
-                        "scientificName": "Lemur catta",
+                        "title": [
+                          "Bastet normal sample"
+                        ],
+                        "description": [
+                          "Test Description"
+                        ],
+                        "taxId": [
+                          9447
+                        ],
+                        "scientificName": [
+                          "Lemur catta"
+                        ],
                         "sex": "Female",
-                        "tissueType": "skin"
+                        "tissueType": "skin",
+                        "species": [
+                          "Lemur catta"
+                        ]
+                      }
                     }
                 }
             ],

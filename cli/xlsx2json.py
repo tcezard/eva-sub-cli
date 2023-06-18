@@ -20,6 +20,10 @@ SAMPLE = 'Sample'
 ANALYSIS_ALIAS_KEY = 'Analysis Alias'
 SAMPLE_NAME_IN_VCF_KEY = 'Sample Name in VCF'
 SAMPLE_ACCESSION_KEY = 'Sample Accession'
+SAMPLE_NAME_KEY = 'Sample Name'
+SCIENTIFIC_NAME_KEY = 'Scientific Name'
+SPECIES = 'species'
+
 
 class DateTimeEncoder(JSONEncoder):
     # Override the default method
@@ -99,7 +103,8 @@ class XlsxParser:
             else:
                 missing_headers = set(required_headers) - set(self.headers[title])
                 self.valid = False
-                raise ValueError('Worksheet '+title+' does not have all the required headers!: '+ ','.join(missing_headers) )
+                raise ValueError(
+                    'Worksheet ' + title + ' does not have all the required headers!: ' + ','.join(missing_headers))
 
         return self.worksheets
 
@@ -198,6 +203,39 @@ class XlsxParser:
         json_value = {self.translate_header(PROJECT, k): v for k, v in first_row.items() if v is not None}
         return {json_key: json_value}
 
+    def get_biosample_object(self, data):
+        sample_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_NAME_KEY]
+        scientific_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SCIENTIFIC_NAME_KEY]
+        if sample_name not in data or scientific_name not in data:
+            raise ValueError(f'If BioSample Accession is not provided, '
+                             f'The {SAMPLE} worksheet should have {SAMPLE_NAME_KEY} and {SCIENTIFIC_NAME_KEY} populated')
+
+        # BioSample expects any of organism or species field
+        data[SPECIES] = data[scientific_name]
+        # For some of the fields, BioSample expects value in arrays
+        data = {k: [v] if k in ['title', 'description', 'taxId', 'scientificName', 'commonName', SPECIES] else v
+                for k, v in data.items()}
+
+        biosample_object = {
+            "name": data[sample_name],
+            "characteristics": data
+        }
+
+        return biosample_object
+
+    def get_sample_data_with_split_aa(self, data, analysis_alias, sample_name_in_vcf):
+        if analysis_alias not in data or sample_name_in_vcf not in data:
+            raise ValueError(
+                f'Worksheet {SAMPLE} does not have required field {ANALYSIS_ALIAS_KEY} or {SAMPLE_NAME_IN_VCF_KEY}')
+
+        analysis_alias_list = data[analysis_alias].split(',')
+        sample_in_vcf_val = data[sample_name_in_vcf]
+        sample_data = []
+        for aa in analysis_alias_list:
+            sample_data.append({analysis_alias: aa, sample_name_in_vcf: sample_in_vcf_val})
+
+        return sample_data
+
     def get_sample_json_data(self):
         json_key = self.xlsx_conf[WORKSHEETS_KEY_NAME][SAMPLE]
         sample_json = {json_key: []}
@@ -205,30 +243,23 @@ class XlsxParser:
             row.pop('row_num')
             json_value = {self.translate_header(SAMPLE, k): v for k, v in row.items() if v is not None}
             bio_sample_acc = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_ACCESSION_KEY]
-            analysis_alias = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][ANALYSIS_ALIAS_KEY]
-            sample_name_in_vcf = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_NAME_IN_VCF_KEY]
 
-            if analysis_alias not in json_value or sample_name_in_vcf not in json_value:
-                raise ValueError(
-                    f'Worksheet {SAMPLE} does not have required field {ANALYSIS_ALIAS_KEY} or {SAMPLE_NAME_IN_VCF_KEY}')
-
-            analysis_alias_list = json_value[analysis_alias].split(',')
-            sample_in_vcf_val = json_value[sample_name_in_vcf]
+            analysis_alias = self.xlsx_conf[SAMPLE][REQUIRED_HEADERS_KEY_NAME][ANALYSIS_ALIAS_KEY]
+            sample_name_in_vcf = self.xlsx_conf[SAMPLE][REQUIRED_HEADERS_KEY_NAME][SAMPLE_NAME_IN_VCF_KEY]
+            sample_data_with_split_aa = self.get_sample_data_with_split_aa(json_value, analysis_alias, sample_name_in_vcf)
 
             if bio_sample_acc in json_value and json_value[bio_sample_acc]:
-                for aa in analysis_alias_list:
-                    sample_data = {analysis_alias: aa,
-                                    sample_name_in_vcf: sample_in_vcf_val,
-                                    bio_sample_acc: json_value[bio_sample_acc]}
-                    sample_json[json_key].append(sample_data)
+                sample_data_with_biosample_acc = [dict(item, bioSampleAccession=json_value[bio_sample_acc]) for item in
+                                                  sample_data_with_split_aa]
+                sample_json[json_key].extend(sample_data_with_biosample_acc)
             else:
-                json_value.pop(sample_name_in_vcf)
                 json_value.pop(analysis_alias)
-                for aa in analysis_alias_list:
-                    sample_data = {analysis_alias: aa,
-                                   sample_name_in_vcf: sample_in_vcf_val,
-                                   'bioSampleObject': json_value}
-                    sample_json[json_key].append(sample_data)
+                json_value.pop(sample_name_in_vcf)
+
+                biosample_obj = self.get_biosample_object(json_value)
+                sample_data_with_biosample_obj = [dict(item, bioSampleObject=biosample_obj) for item in
+                                                  sample_data_with_split_aa]
+                sample_json[json_key].extend(sample_data_with_biosample_obj)
 
         return sample_json
 
@@ -258,7 +289,8 @@ class XlsxParser:
             return self.xlsx_conf[title][REQUIRED_HEADERS_KEY_NAME][header]
         if header in self.xlsx_conf[title].get(OPTIONAL_HEADERS_KEY_NAME, {}):
             return self.xlsx_conf[title][OPTIONAL_HEADERS_KEY_NAME][header]
-        logging.warning(f'Header {header} in {title} sheet does not have translation in the config file. Leave it as is')
+        logging.warning(
+            f'Header {header} in {title} sheet does not have translation in the config file. Leave it as is')
         return header
 
 
@@ -290,7 +322,8 @@ def create_xls_template_from_yaml(xlsx_filename, conf_filename):
 def main():
     arg_parser = argparse.ArgumentParser(
         description='Convert an xlsx spreadsheet containing expected sheets to json prior to validation')
-    arg_parser.add_argument('--metadata_json', required=True, dest='metadata_json', help='Path to output EVA metadata json file')
+    arg_parser.add_argument('--metadata_json', required=True, dest='metadata_json',
+                            help='Path to output EVA metadata json file')
     arg_parser.add_argument('--metadata_xlsx', required=True, dest='metadata_xlsx', help='EVA metadata Excel file')
     arg_parser.add_argument('--conversion_configuration', dest='conversion_configuration',
                             help='Configuration file describing the expected content of the Excel spreadsheet')

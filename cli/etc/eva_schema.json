@@ -302,12 +302,6 @@
             "type": "object",
             "oneOf": [
               {
-                "$ref": "https://www.ebi.ac.uk/biosamples/schemas/certification/biosamples-minimal.json"
-              },
-              {
-                "$ref": "https://www.ebi.ac.uk/biosamples/schemas/certification/plant-miappe.json"
-              },
-              {
                 "$ref": "eva-biosamples.json"
               }
             ]
