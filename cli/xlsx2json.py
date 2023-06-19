@@ -223,7 +223,7 @@ class XlsxParser:
 
         return biosample_object
 
-    def get_sample_data_with_split_aa(self, data, analysis_alias, sample_name_in_vcf):
+    def get_sample_data_with_split_analysis_alias(self, data, analysis_alias, sample_name_in_vcf):
         if analysis_alias not in data or sample_name_in_vcf not in data:
             raise ValueError(
                 f'Worksheet {SAMPLE} does not have required field {ANALYSIS_ALIAS_KEY} or {SAMPLE_NAME_IN_VCF_KEY}')
@@ -246,7 +246,7 @@ class XlsxParser:
 
             analysis_alias = self.xlsx_conf[SAMPLE][REQUIRED_HEADERS_KEY_NAME][ANALYSIS_ALIAS_KEY]
             sample_name_in_vcf = self.xlsx_conf[SAMPLE][REQUIRED_HEADERS_KEY_NAME][SAMPLE_NAME_IN_VCF_KEY]
-            sample_data_with_split_aa = self.get_sample_data_with_split_aa(json_value, analysis_alias, sample_name_in_vcf)
+            sample_data_with_split_aa = self.get_sample_data_with_split_analysis_alias(json_value, analysis_alias, sample_name_in_vcf)
 
             if bio_sample_acc in json_value and json_value[bio_sample_acc]:
                 sample_data_with_biosample_acc = [dict(item, bioSampleAccession=json_value[bio_sample_acc]) for item in

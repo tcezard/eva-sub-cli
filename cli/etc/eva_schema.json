@@ -288,7 +288,7 @@
         "properties": {
           "analysisAlias": {
             "type": "string",
-            "description": "Alias of the analyses performed on this sample."
+            "description": "Alias of the analysis performed on this sample."
           },
           "sampleInVCF": {
             "type": "string",
