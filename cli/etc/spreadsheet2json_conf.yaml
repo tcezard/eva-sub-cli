@@ -14,7 +14,7 @@ worksheets:
   Project: project
   Analysis: analysis
   Sample: sample
-  Files: file
+  Files: files
 
 Submitter Details:
   required:
@@ -67,12 +67,12 @@ Analysis:
 
 Sample:
   header_row: 3
-  # have to make all the fields optional because the user can fill in either the pre-register or the novel sample part
-  optional:
+  required:
     Analysis Alias: analysisAlias
     Sample Name in VCF: sampleInVCF
-    Sample Accession: BioSampleAccession
-    Sample Name: BioSampleAccession
+  optional:
+    Sample Accession: bioSampleAccession
+    Sample Name: bioSampleName
     Title: title
     Description: description
     Unique Name: uniqueName
@@ -122,5 +122,5 @@ Files:
   required:
     Analysis Alias: analysisAlias
     File Name: fileName
-    File Type: filetype
+    File Type: fileType
     MD5: md5

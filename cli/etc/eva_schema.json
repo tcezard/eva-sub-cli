@@ -274,24 +274,21 @@
             "required": [
               "analysisAlias",
               "sampleInVCF",
-              "BioSampleAccession"
+              "bioSampleAccession"
             ]
           },
           {
             "required": [
               "analysisAlias",
               "sampleInVCF",
-              "BioSampleObject"
+              "bioSampleObject"
             ]
           }
         ],
         "properties": {
           "analysisAlias": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Array of Aliases of the analyses performed on this sample."
+            "type": "string",
+            "description": "Alias of the analysis performed on this sample."
           },
           "sampleInVCF": {
             "type": "string",
@@ -301,15 +298,9 @@
             "type": "string",
             "description": "Accession of the sample (BioSamples, ENA or EGA)"
           },
-          "BioSampleObject": {
+          "bioSampleObject": {
             "type": "object",
             "oneOf": [
-              {
-                "$ref": "https://www.ebi.ac.uk/biosamples/schemas/certification/biosamples-minimal.json"
-              },
-              {
-                "$ref": "https://www.ebi.ac.uk/biosamples/schemas/certification/plant-miappe.json"
-              },
               {
                 "$ref": "eva-biosamples.json"
               }
@@ -326,8 +317,7 @@
         "required": [
           "analysisAlias",
           "fileName",
-          "fileType",
-          "md5"
+          "fileType"
         ],
         "properties": {
           "analysisAlias": {
