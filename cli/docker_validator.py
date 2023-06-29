@@ -13,6 +13,7 @@ logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S
 container_image = 'eva_sub_cli'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = '/opt/vcf_validation/vcf_validation_output'
+container_etc_dir = '/opt/cli/etc'
 
 
 def run_command_with_output(command_description, command, return_process_output=True,
@@ -75,6 +76,7 @@ class DockerValidator(Reporter):
                 f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
                 f"--metadata_xlsx {container_validation_dir}/{self.metadata_xlsx} "
                 f"--conversion_configuration {container_validation_dir}/{self.spreadsheet2json_conf} "
+                f"--schema_dir {container_etc_dir} "
                 f"--output_dir {container_validation_output_dir}"
             )
         else:
@@ -82,6 +84,7 @@ class DockerValidator(Reporter):
                 f"{self.docker_path} exec {self.container_name} nextflow run cli/nextflow/validation.nf "
                 f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
                 f"--metadata_json {container_validation_dir}/{self.metadata_json} "
+                f"--schema_dir {container_etc_dir} "
                 f"--output_dir {container_validation_output_dir}"
             )
         return docker_cmd

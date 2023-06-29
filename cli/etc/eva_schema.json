@@ -300,9 +300,9 @@
           },
           "bioSampleObject": {
             "type": "object",
-            "oneOf": [
+            "anyOf": [
               {
-                "$ref": "https://raw.githubusercontent.com/EBIvariation/eva-sub-cli/main/cli/etc/eva-biosamples.json"
+                "$ref": "eva-biosamples.json"
               },
               {
                  "$ref": "https://www.ebi.ac.uk/biosamples/schemas/certification/biosamples-minimal.json"

@@ -4,13 +4,14 @@ nextflow.enable.dsl=2
 
 def helpMessage() {
     log.info"""
-    Validate a set of VCF files to check if they are valid to be submitted to EVA.
+    Validate a set of VCF files and metadata to check if they are valid to be submitted to EVA.
 
     Inputs:
             --vcf_files_mapping     csv file with the mappings for vcf files, fasta and assembly report
             --output_dir            output_directory where the reports will be output
             --metadata_json         Json file describing the project, analysis, samples and files
-            --metadata_xlsx          Excel file describing the project, analysis, samples and files
+            --metadata_xlsx         Excel file describing the project, analysis, samples and files
+            --schema_dir            Directory containing the JSON schemas used for validation
     """
 }
 
@@ -24,10 +25,11 @@ params.executable = [
     "vcf_validator": "vcf_validator",
     "vcf_assembly_checker": "vcf_assembly_checker",
     "samples_checker": "samples_checker.py",
-    "xlsx2json": "xlsx2json.py"
+    "xlsx2json": "xlsx2json.py",
+    "biovalidator": "biovalidator"
 ]
 // validation tasks
-params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check"]
+params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check", "metadata_check"]
 // container validation dir (prefix for vcf files)
 params.container_validation_dir = "/opt/vcf_validation"
 // help
@@ -67,6 +69,9 @@ workflow {
         metadata_json = convert_xlsx_2_json.out.metadata_json
     } else{
         metadata_json = params.metadata_json
+    }
+    if ("metadata_check" in params.validation_tasks){
+        metadata_json_validation(metadata_json)
     }
     if ("samples_check" in params.validation_tasks) {
         sample_name_concordance(metadata_json, params.container_validation_dir)
@@ -145,6 +150,23 @@ process convert_xlsx_2_json {
     """
 }
 
+process metadata_json_validation {
+    publishDir "$params.output_dir",
+            overwrite: true,
+            mode: "copy"
+
+    input:
+    path(metadata_json)
+
+    output:
+    path "metadata_validation.txt", emit: metadata_validation
+
+    script:
+    """
+    $params.executable.biovalidator --schema $params.schema_dir/eva_schema.json --ref $params.schema_dir/eva-biosamples.json --data $metadata_json > metadata_validation.txt
+    """
+}
+
 process sample_name_concordance {
     publishDir "$params.output_dir",
             overwrite: true,
@@ -161,5 +183,4 @@ process sample_name_concordance {
     """
     $params.executable.samples_checker --metadata_json $metadata_json --vcf_dir_prefix $vcf_dir --output_yaml sample_checker.yml
     """
-
 }
