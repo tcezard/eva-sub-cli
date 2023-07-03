@@ -1,0 +1,25 @@
+2023-06-29T10:03:44.411Z [info] Custom keywords successfully added. Number of custom keywords: 5
+2023-06-29T10:03:44.418Z [info] Compiling local schema from: /opt/cli/etc/eva-biosamples.json
+2023-06-29T10:03:44.423Z [info] Adding compiled local schema to cache: eva-biosamples.json
+2023-06-29T10:03:44.426Z [info] Saving compiled schema in cache, $id: EVA_metadata_schema
+2023-06-29T10:03:44.451Z [info] Returning referenced schema from cache: eva-biosamples.json
+2023-06-29T10:03:44.799Z [info] Returning referenced schema from network : https://www.ebi.ac.uk/biosamples/schemas/certification/biosamples-minimal.json
+2023-06-29T10:03:44.953Z [info] Returning referenced schema from network : https://www.ebi.ac.uk/biosamples/schemas/certification/plant-miappe.json
+2023-06-29T10:03:45.008Z [info] Validation failed with errors: data should have required property 'files', data/project should have required property 'title', data/project should have required property 'description', data/project should have required property 'taxId', data/project should have required property 'centre', data/analysis/0 should have required property 'analysisTitle', data/analysis/0 should have required property 'description', data/analysis/0 should have required property 'experimentType', data/analysis/0 should have required property 'referenceGenome', data/sample/0 should have required property 'bioSampleAccession', data/sample/0 should have required property 'bioSampleObject', data/sample/0 should match exactly one schema in oneOf
+[1m[31m[40m Validation failed with following error(s):
+ [0m
+[1m[31m[40m .files
+	should have required property 'files'
+/project.title
+	should have required property 'title'
+/analysis/0.description
+	should have required property 'description'
+/analysis/0.referenceGenome
+	should have required property 'referenceGenome'
+/sample/0.bioSampleAccession
+	should have required property 'bioSampleAccession'
+/sample/0.bioSampleObject
+	should have required property 'bioSampleObject'
+/sample/0
+	should match exactly one schema in oneOf
+ [0m

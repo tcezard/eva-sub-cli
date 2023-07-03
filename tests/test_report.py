@@ -58,7 +58,21 @@ validation_results = {
                 'more_submitted_files_metadata': ['1Sample']
             }
         }
-    }
+    },
+    'metadata_check': {'json_errors': [
+        {'property': '.files', 'description': "should have required property 'files'"},
+        {'property': '/project.title', 'description': "should have required property 'title'"},
+        {'property': '/project.description', 'description': "should have required property 'description'"},
+        {'property': '/project.taxId', 'description': "should have required property 'taxId'"},
+        {'property': '/project.centre', 'description': "should have required property 'centre'"},
+        {'property': '/analysis/0.analysisTitle', 'description': "should have required property 'analysisTitle'"},
+        {'property': '/analysis/0.description', 'description': "should have required property 'description'"},
+        {'property': '/analysis/0.experimentType', 'description': "should have required property 'experimentType'"},
+        {'property': '/analysis/0.referenceGenome', 'description': "should have required property 'referenceGenome'"},
+        {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
+        {'property': '/sample/0.bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
+        {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
+    ]}
 }
 
 

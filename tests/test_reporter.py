@@ -25,7 +25,28 @@ class TestReporter(TestCase):
             'assembly_check': {
                 'input_passed.vcf': {'error_list': [], 'mismatch_list': [], 'nb_mismatch': 0, 'nb_error': 0, 'match': 247, 'total': 247}
             },
-            'sample_check': {'overall_differences': False, 'results_per_analysis': {'AA': {'difference': False, 'more_metadata_submitted_files': [], 'more_per_submitted_files_metadata': {}, 'more_submitted_files_metadata': []}}}
+            'sample_check': {
+                'overall_differences': False,
+                'results_per_analysis': {
+                    'AA': {
+                        'difference': False,
+                        'more_metadata_submitted_files': [],
+                        'more_per_submitted_files_metadata': {},
+                        'more_submitted_files_metadata': []
+                    }
+                }
+            },
+            'metadata_check': {
+                'json_errors': [
+                    {'property': '.files', 'description': "should have required property 'files'"},
+                    {'property': '/project.title', 'description': "should have required property 'title'"},
+                    {'property': '/analysis/0.description', 'description': "should have required property 'description'"},
+                    {'property': '/analysis/0.referenceGenome', 'description': "should have required property 'referenceGenome'"},
+                    {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
+                    {'property': '/sample/0.bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
+                    {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
+                ]
+            }
         }
         self.reporter._collect_validation_workflow_results()
         assert self.reporter.results == expected_results
@@ -45,4 +66,15 @@ class TestReporter(TestCase):
         for i, error in enumerate(errors):
             assert self.reporter.vcf_check_errors_is_critical(error) == expected_return[i]
 
+    def test_parse_metadata_validation_results(self):
+        self.reporter._parse_metadata_validation_results()
+        assert self.reporter.results['metadata_check']['json_errors'] == [
+            {'property': '.files', 'description': "should have required property 'files'"},
+            {'property': '/project.title', 'description': "should have required property 'title'"},
+            {'property': '/analysis/0.description', 'description': "should have required property 'description'"},
+            {'property': '/analysis/0.referenceGenome', 'description': "should have required property 'referenceGenome'"},
+            {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
+            {'property': '/sample/0.bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
+            {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
+        ]
 

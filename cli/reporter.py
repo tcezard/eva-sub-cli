@@ -121,6 +121,7 @@ class Reporter:
         self._collect_vcf_check_results()
         self._collect_assembly_check_results()
         self._load_sample_check_results()
+        self._parse_metadata_validation_results()
 
     def _collect_vcf_check_results(self,):
         # detect output files for vcf check
@@ -190,6 +191,37 @@ class Reporter:
         sample_check_yaml = resolve_single_file_path(os.path.join(self.output_dir, 'sample_checker.yml'))
         with open(sample_check_yaml) as open_yaml:
             self.results['sample_check'] = yaml.safe_load(open_yaml)
+
+    def _parse_metadata_validation_results(self):
+        """
+        Read the biovalidator's report and extract the list of validation errors
+        """
+        metadata_check_file = resolve_single_file_path(os.path.join(self.output_dir, 'metadata_validation.txt'))
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+        def clean_read(ifile):
+            l = ifile.readline()
+            if l:
+                return ansi_escape.sub('', l).strip()
+
+        with open(metadata_check_file) as open_file:
+            errors = []
+            collect = False
+            while True:
+                line = clean_read(open_file)
+                if line is None:
+                    break  # EOF
+                elif not line:
+                    continue # Empty line
+                if not collect:
+                    if line.startswith('Validation failed with following error(s):'):
+                        collect = True
+                else:
+                    line2 = clean_read(open_file)
+                    if line is None or line2 is None:
+                        break  # EOF
+                    errors.append({'property': line, 'description': line2})
+        self.results['metadata_check'] = {'json_errors': errors}
 
     def create_reports(self):
         report_html = generate_html_report(self.results)
