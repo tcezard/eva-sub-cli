@@ -4,6 +4,8 @@ import datetime
 from unittest import TestCase
 
 from cli.report import generate_html_report
+from cli.reporter import Reporter
+
 validation_results = {
     "assembly_check": {
         "input_passed.vcf": {
@@ -90,6 +92,11 @@ class TestReport(TestCase):
     expected_report = os.path.join(resource_dir, 'validation_reports', 'expected_report.html')
 
     def test_generate_html_report(self):
+        reporter = Reporter(['input_passed.vcf'], '')
+        global validation_results
+        reporter.results = validation_results
+        reporter.convert_metadata_validation_results()
+        validation_results = reporter.results
         report = generate_html_report(validation_results, datetime.datetime(2023, 8, 31, 12, 34, 56), "My cool project")
         with open(self.expected_report) as open_html:
             assert report == open_html.read()

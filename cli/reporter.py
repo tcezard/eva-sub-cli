@@ -6,8 +6,12 @@ import re
 
 import yaml
 
+from cli import ETC_DIR
 from cli.report import generate_html_report
+from ebi_eva_common_pyutils.logger import logging_config
 
+
+logger = logging_config.get_logger(__name__)
 
 def resolve_single_file_path(file_path):
     files = glob.glob(file_path)
@@ -226,9 +230,82 @@ class Reporter:
                         break  # EOF
                     errors.append({'property': line, 'description': line2})
         self.results['metadata_check'] = {
-            'report_path': metadata_check_file,
+            'json_report_path': metadata_check_file,
             'json_errors': errors
         }
+        self.convert_metadata_validation_results()
+        self.write_converted_metadata_reslts()
+
+
+
+    def _parse_metadata_property(self, property_str):
+        if property_str.startswith('.'):
+            return property_str.strip('.'), None, None
+        match = re.match(r'/(\w+)(/(\d+))?(\.(\w+))?', property_str)
+        if match:
+            return match.group(1), match.group(3), match.group(5)
+        else:
+            logger.error(f'Cannot parse {property_str} in JSON metadata error')
+            return None, None, None
+
+    def convert_metadata_validation_results(self):
+        config_file = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
+        with open(config_file) as open_file:
+            xls2json_conf = yaml.safe_load(open_file)
+
+        self.results['metadata_check']['spreadsheet_errors'] = []
+        for error in self.results['metadata_check']['json_errors']:
+            sheet_json, row_json, attribute_json = self._parse_metadata_property(error['property'])
+            sheet = self._convert_metadata_sheet(sheet_json, xls2json_conf)
+            row = self._convert_metadata_row(sheet, row_json, xls2json_conf)
+            column = self._convert_metadata_attribute(sheet, attribute_json, xls2json_conf)
+            if row_json is None and attribute_json is None:
+                new_description = f'Sheet "{sheet}" is missing'
+            elif row_json is None:
+                new_description = f'In sheet "{sheet}", column "{column}" is not populated'
+            elif attribute_json and column:
+                new_description = f'In sheet "{sheet}", row "{row}", column "{column}" is not populated'
+            else:
+                new_description = error["description"].replace(sheet_json, sheet)
+            self.results['metadata_check']['spreadsheet_errors'].append({
+                'sheet': sheet, 'row': row, 'column': column,
+                'description': new_description
+            })
+
+    def write_converted_metadata_reslts(self):
+        if 'spreadsheet_errors' in self.results['metadata_check']:
+            spreadsheet_report_file = os.path.join(os.path.dirname(self.results['metadata_check']['json_report_path']),
+                                                   'metadata_spreadsheet_validation.txt')
+            with open(spreadsheet_report_file, 'w') as open_file:
+                for error_dict in self.results['metadata_check']['spreadsheet_errors']:
+                    open_file.write(error_dict.get('description') + '\n')
+            self.results['metadata_check']['spreadsheet_report_path'] = spreadsheet_report_file
+
+    def _convert_metadata_sheet(self, json_attribute, xls2json_conf):
+        if json_attribute is None:
+            return None
+        for sheet_name in xls2json_conf['worksheets']:
+            if xls2json_conf['worksheets'][sheet_name] == json_attribute:
+                return sheet_name
+
+    def _convert_metadata_row(self, sheet, json_row, xls2json_conf):
+        if json_row is None:
+            # This is for Sheet that can only have a single entry (Project)
+            json_row = 0
+        if 'header_row' in xls2json_conf[sheet]:
+            return int(json_row) + xls2json_conf[sheet]['header_row']
+        else:
+            return int(json_row) + 2
+
+    def _convert_metadata_attribute(self, sheet, json_attribute, xls2json_conf):
+        if json_attribute is None:
+            return None
+        attributes_dict = {}
+        attributes_dict.update(xls2json_conf[sheet].get('required', {}))
+        attributes_dict.update(xls2json_conf[sheet].get('optional', {}))
+        for attribute in attributes_dict:
+            if attributes_dict[attribute] == json_attribute:
+                return attribute
 
     def create_reports(self):
         report_html = generate_html_report(self.results, self.validation_date, self.project_title)

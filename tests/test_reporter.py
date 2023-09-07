@@ -87,3 +87,31 @@ class TestReporter(TestCase):
             {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
         ]
 
+    def test_convert_metadata_validation_results(self):
+        self.reporter.results['metadata_check'] = {
+            'json_errors': [
+                {'property': '.files', 'description': "should have required property 'files'"},
+                {'property': '/project.title', 'description': "should have required property 'title'"},
+                {'property': '/analysis/0.description',
+                 'description': "should have required property 'description'"},
+                {'property': '/analysis/0.referenceGenome',
+                 'description': "should have required property 'referenceGenome'"},
+                {'property': '/sample/0.bioSampleAccession',
+                 'description': "should have required property 'bioSampleAccession'"},
+                {'property': '/sample/0.bioSampleObject',
+                 'description': "should have required property 'bioSampleObject'"},
+                {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
+            ]
+        }
+        self.reporter.convert_metadata_validation_results()
+        for error in self.reporter.results['metadata_check']['spreadsheet_errors']:
+            print(error)
+
+        self.reporter.results['metadata_check']['spreadsheet_errors'] = {
+            "required sheet 'Files' is missing",
+            "In Sheet 'Project', required column 'Project Title' is missing.",
+            "In Sheet 'Analysis', in row number 3 required column 'Description' is missing.",
+            "In Sheet 'Analysis', in row number 3 required column 'Reference' is missing.",
+
+        }
+
