@@ -45,13 +45,30 @@ class TestReporter(TestCase):
                     {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
                     {'property': '/sample/0.bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
                     {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
+                ],
+                'spreadsheet_errors': [
+                    {'sheet': 'Files', 'row': 2, 'column': None, 'description': 'Sheet "Files" is missing'},
+                    {'sheet': 'Project', 'row': 2, 'column': 'Project Title',
+                     'description': 'In sheet "Project", column "Project Title" is not populated'},
+                    {'sheet': 'Analysis', 'row': 2, 'column': 'Description',
+                     'description': 'In sheet "Analysis", row "2", column "Description" is not populated'},
+                    {'sheet': 'Analysis', 'row': 2, 'column': 'Reference',
+                     'description': 'In sheet "Analysis", row "2", column "Reference" is not populated'},
+                    {'sheet': 'Sample', 'row': 3, 'column': 'Sample Accession',
+                     'description': 'In sheet "Sample", row "3", column "Sample Accession" is not populated'},
+                    {'sheet': 'Sample', 'row': 3, 'column': None,
+                     'description': "should have required property 'bioSampleObject'"},
+                    {'sheet': 'Sample', 'row': 3, 'column': None,
+                     'description': 'should match exactly one schema in oneOf'}
                 ]
             }
         }
-        self.reporter._collect_validation_workflow_results()
 
+        self.reporter._collect_validation_workflow_results()
+        print(self.reporter.results)
         # Drop report paths from comparison (test will fail if missing)
-        del self.reporter.results['metadata_check']['report_path']
+        del self.reporter.results['metadata_check']['json_report_path']
+        del self.reporter.results['metadata_check']['spreadsheet_report_path']
         del self.reporter.results['sample_check']['report_path']
         for file in self.reporter.results['vcf_check'].values():
             del file['report_path']
