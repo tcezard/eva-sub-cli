@@ -78,9 +78,7 @@ validation_results = {
             {'property': '/analysis/0.description', 'description': "should have required property 'description'"},
             {'property': '/analysis/0.experimentType', 'description': "should have required property 'experimentType'"},
             {'property': '/analysis/0.referenceGenome', 'description': "should have required property 'referenceGenome'"},
-            {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
-            {'property': '/sample/0.bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
-            {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
+            {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"}
         ],
         'report_path': '/path/to/metadata/report'
     }
@@ -98,5 +96,7 @@ class TestReport(TestCase):
         reporter.convert_metadata_validation_results()
         validation_results = reporter.results
         report = generate_html_report(validation_results, datetime.datetime(2023, 8, 31, 12, 34, 56), "My cool project")
+        with open('report.html', 'w') as open_html:
+            assert open_html.write(report)
         with open(self.expected_report) as open_html:
             assert report == open_html.read()

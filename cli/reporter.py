@@ -267,6 +267,12 @@ class Reporter:
                 new_description = f'In sheet "{sheet}", row "{row}", column "{column}" is not populated'
             else:
                 new_description = error["description"].replace(sheet_json, sheet)
+            if column is None:
+                # We do not know this attribute. It's most likely about bioSampleObject
+                continue
+            if 'schema' in new_description:
+                # This is an error specific to json schema
+                continue
             self.results['metadata_check']['spreadsheet_errors'].append({
                 'sheet': sheet, 'row': row, 'column': column,
                 'description': new_description
@@ -290,8 +296,7 @@ class Reporter:
 
     def _convert_metadata_row(self, sheet, json_row, xls2json_conf):
         if json_row is None:
-            # This is for Sheet that can only have a single entry (Project)
-            json_row = 0
+            return ''
         if 'header_row' in xls2json_conf[sheet]:
             return int(json_row) + xls2json_conf[sheet]['header_row']
         else:
@@ -299,7 +304,7 @@ class Reporter:
 
     def _convert_metadata_attribute(self, sheet, json_attribute, xls2json_conf):
         if json_attribute is None:
-            return None
+            return ''
         attributes_dict = {}
         attributes_dict.update(xls2json_conf[sheet].get('required', {}))
         attributes_dict.update(xls2json_conf[sheet].get('optional', {}))

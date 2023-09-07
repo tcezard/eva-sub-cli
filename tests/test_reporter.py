@@ -47,8 +47,8 @@ class TestReporter(TestCase):
                     {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
                 ],
                 'spreadsheet_errors': [
-                    {'sheet': 'Files', 'row': 2, 'column': None, 'description': 'Sheet "Files" is missing'},
-                    {'sheet': 'Project', 'row': 2, 'column': 'Project Title',
+                    {'sheet': 'Files', 'row': '', 'column': '', 'description': 'Sheet "Files" is missing'},
+                    {'sheet': 'Project', 'row': '', 'column': 'Project Title',
                      'description': 'In sheet "Project", column "Project Title" is not populated'},
                     {'sheet': 'Analysis', 'row': 2, 'column': 'Description',
                      'description': 'In sheet "Analysis", row "2", column "Description" is not populated'},
@@ -56,10 +56,6 @@ class TestReporter(TestCase):
                      'description': 'In sheet "Analysis", row "2", column "Reference" is not populated'},
                     {'sheet': 'Sample', 'row': 3, 'column': 'Sample Accession',
                      'description': 'In sheet "Sample", row "3", column "Sample Accession" is not populated'},
-                    {'sheet': 'Sample', 'row': 3, 'column': None,
-                     'description': "should have required property 'bioSampleObject'"},
-                    {'sheet': 'Sample', 'row': 3, 'column': None,
-                     'description': 'should match exactly one schema in oneOf'}
                 ]
             }
         }
