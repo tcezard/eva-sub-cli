@@ -4,6 +4,8 @@ import datetime
 from unittest import TestCase
 
 from cli.report import generate_html_report
+from cli.reporter import Reporter
+
 validation_results = {
     "assembly_check": {
         "input_passed.vcf": {
@@ -80,9 +82,24 @@ validation_results = {
             {'property': '/sample/0.bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
             {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
         ],
-        'report_path': '/path/to/metadata/report'
+        'json_report_path': '/path/to/metadata/report',
+        'spreadsheet_errors': [
+            {'sheet': 'Files', 'row': '', 'column': '', 'description': 'Sheet "Files" is missing'},
+            {'sheet': 'Project', 'row': '', 'column': 'Project Title', 'description': 'In sheet "Project", column "Project Title" is not populated'},
+            {'sheet': 'Project', 'row': '', 'column': 'Description', 'description': 'In sheet "Project", column "Description" is not populated'},
+            {'sheet': 'Project', 'row': '', 'column': 'Tax ID', 'description': 'In sheet "Project", column "Tax ID" is not populated'},
+            {'sheet': 'Project', 'row': '', 'column': 'Center', 'description': 'In sheet "Project", column "Center" is not populated'},
+            {'sheet': 'Analysis', 'row': 2, 'column': 'Analysis Title', 'description': 'In sheet "Analysis", row "2", column "Analysis Title" is not populated'},
+            {'sheet': 'Analysis', 'row': 2, 'column': 'Description', 'description': 'In sheet "Analysis", row "2", column "Description" is not populated'},
+            {'sheet': 'Analysis', 'row': 2, 'column': 'Experiment Type', 'description': 'In sheet "Analysis", row "2", column "Experiment Type" is not populated'},
+            {'sheet': 'Analysis', 'row': 2, 'column': 'Reference', 'description': 'In sheet "Analysis", row "2", column "Reference" is not populated'},
+            {'sheet': 'Sample', 'row': 3, 'column': 'Sample Accession', 'description': 'In sheet "Sample", row "3", column "Sample Accession" is not populated'}
+        ],
+        'spreadsheet_report_path': '/path/to/metadata/metadata_spreadsheet_validation.txt',
     }
 }
+
+
 
 
 class TestReport(TestCase):

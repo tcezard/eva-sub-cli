@@ -45,13 +45,25 @@ class TestReporter(TestCase):
                     {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
                     {'property': '/sample/0.bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
                     {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
+                ],
+                'spreadsheet_errors': [
+                    {'sheet': 'Files', 'row': '', 'column': '', 'description': 'Sheet "Files" is missing'},
+                    {'sheet': 'Project', 'row': '', 'column': 'Project Title',
+                     'description': 'In sheet "Project", column "Project Title" is not populated'},
+                    {'sheet': 'Analysis', 'row': 2, 'column': 'Description',
+                     'description': 'In sheet "Analysis", row "2", column "Description" is not populated'},
+                    {'sheet': 'Analysis', 'row': 2, 'column': 'Reference',
+                     'description': 'In sheet "Analysis", row "2", column "Reference" is not populated'},
+                    {'sheet': 'Sample', 'row': 3, 'column': 'Sample Accession',
+                     'description': 'In sheet "Sample", row "3", column "Sample Accession" is not populated'},
                 ]
             }
         }
-        self.reporter._collect_validation_workflow_results()
 
+        self.reporter._collect_validation_workflow_results()
         # Drop report paths from comparison (test will fail if missing)
-        del self.reporter.results['metadata_check']['report_path']
+        del self.reporter.results['metadata_check']['json_report_path']
+        del self.reporter.results['metadata_check']['spreadsheet_report_path']
         del self.reporter.results['sample_check']['report_path']
         for file in self.reporter.results['vcf_check'].values():
             del file['report_path']
@@ -75,8 +87,8 @@ class TestReporter(TestCase):
         for i, error in enumerate(errors):
             assert self.reporter.vcf_check_errors_is_critical(error) == expected_return[i]
 
-    def test_parse_metadata_validation_results(self):
-        self.reporter._parse_metadata_validation_results()
+    def test_parse_biovalidator_validation_results(self):
+        self.reporter._parse_biovalidator_validation_results()
         assert self.reporter.results['metadata_check']['json_errors'] == [
             {'property': '.files', 'description': "should have required property 'files'"},
             {'property': '/project.title', 'description': "should have required property 'title'"},
@@ -87,3 +99,28 @@ class TestReporter(TestCase):
             {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
         ]
 
+    def test_convert_biovalidator_validation_to_spreadsheet(self):
+        self.reporter.results['metadata_check'] = {
+            'json_errors': [
+                {'property': '.files', 'description': "should have required property 'files'"},
+                {'property': '/project.title', 'description': "should have required property 'title'"},
+                {'property': '/analysis/0.description',
+                 'description': "should have required property 'description'"},
+                {'property': '/analysis/0.referenceGenome',
+                 'description': "should have required property 'referenceGenome'"},
+                {'property': '/sample/0.bioSampleAccession',
+                 'description': "should have required property 'bioSampleAccession'"},
+                {'property': '/sample/0.bioSampleObject',
+                 'description': "should have required property 'bioSampleObject'"},
+                {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
+            ]
+        }
+        self.reporter._convert_biovalidator_validation_to_spreadsheet()
+
+        assert self.reporter.results['metadata_check']['spreadsheet_errors'] == [
+            {'sheet': 'Files', 'row': '', 'column': '', 'description': 'Sheet "Files" is missing'},
+            {'sheet': 'Project', 'row': '', 'column': 'Project Title', 'description': 'In sheet "Project", column "Project Title" is not populated'},
+            {'sheet': 'Analysis', 'row': 2, 'column': 'Description', 'description': 'In sheet "Analysis", row "2", column "Description" is not populated'},
+            {'sheet': 'Analysis', 'row': 2, 'column': 'Reference', 'description': 'In sheet "Analysis", row "2", column "Reference" is not populated'},
+            {'sheet': 'Sample', 'row': 3, 'column': 'Sample Accession', 'description': 'In sheet "Sample", row "3", column "Sample Accession" is not populated'}
+        ]
