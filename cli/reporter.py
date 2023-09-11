@@ -127,7 +127,9 @@ class Reporter:
         self._collect_vcf_check_results()
         self._collect_assembly_check_results()
         self._load_sample_check_results()
-        self._parse_metadata_validation_results()
+        self._parse_biovalidator_validation_results()
+        self._convert_biovalidator_validation_to_spreadsheet()
+        self._write_spreadsheet_validation_results()
 
     def _collect_vcf_check_results(self,):
         # detect output files for vcf check
@@ -200,7 +202,7 @@ class Reporter:
             self.results['sample_check'] = yaml.safe_load(open_yaml)
         self.results['sample_check']['report_path'] = sample_check_yaml
 
-    def _parse_metadata_validation_results(self):
+    def _parse_biovalidator_validation_results(self):
         """
         Read the biovalidator's report and extract the list of validation errors
         """
@@ -233,10 +235,6 @@ class Reporter:
             'json_report_path': metadata_check_file,
             'json_errors': errors
         }
-        self.convert_metadata_validation_results()
-        self.write_converted_metadata_reslts()
-
-
 
     def _parse_metadata_property(self, property_str):
         if property_str.startswith('.'):
@@ -248,7 +246,7 @@ class Reporter:
             logger.error(f'Cannot parse {property_str} in JSON metadata error')
             return None, None, None
 
-    def convert_metadata_validation_results(self):
+    def _convert_biovalidator_validation_to_spreadsheet(self):
         config_file = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
         with open(config_file) as open_file:
             xls2json_conf = yaml.safe_load(open_file)
@@ -278,7 +276,7 @@ class Reporter:
                 'description': new_description
             })
 
-    def write_converted_metadata_reslts(self):
+    def _write_spreadsheet_validation_results(self):
         if 'spreadsheet_errors' in self.results['metadata_check']:
             spreadsheet_report_file = os.path.join(os.path.dirname(self.results['metadata_check']['json_report_path']),
                                                    'metadata_spreadsheet_validation.txt')
