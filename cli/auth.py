@@ -55,7 +55,7 @@ class WebinAuth(AppLogger):
     @lru_cache
     def token(self):
         self.info("Proceeding with ENA Webin authentication...")
-        self._get_webin_username_password()
+        username, password = self._get_webin_username_password()
         headers = {"accept": "*/*", "Content-Type": "application/json"}
         data = {"authRealms": ["ENA"], "username": username, "password": password}
         response = requests.post(self.ena_auth_url, headers=headers, data=json.dumps(data))
