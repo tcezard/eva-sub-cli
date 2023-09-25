@@ -1,6 +1,6 @@
 import json
 import unittest
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import MagicMock, patch, Mock, PropertyMock
 
 from cli import LSRI_CLIENT_ID
 from cli.auth import WebinAuth, LSRIAuth
@@ -11,7 +11,7 @@ class TestSubmit(unittest.TestCase):
 
     def setUp(self) -> None:
         self.token = 'a token'
-        with patch('cli.submit.get_auth', return_value=Mock(token=Mock(return_value=self.token))):
+        with patch('cli.submit.get_auth', return_value=Mock(token=self.token)):
             self.submitter = StudySubmitter()
 
     def test_submit(self):

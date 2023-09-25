@@ -19,7 +19,7 @@ class TestWebinAuth(unittest.TestCase):
         # Call the submit_with_webin_auth method
         with patch.object(WebinAuth, '_get_webin_username_password', return_value=("mock_username", "mock_password")), \
              patch("cli.auth.requests.post", return_value=mock_auth_response) as mock_post:
-            token = self.auth.token()
+            token = self.auth.token
 
         # Check if the ENA_AUTH_URL was called with the correct parameters
         mock_post.assert_any_call(
@@ -49,7 +49,7 @@ class TestLSRIAuth(unittest.TestCase):
 
         # Set the side_effect attribute to return different responses
         mock_post.side_effect = [mock_device_response, mock_auth_response]
-        token = self.auth.token()
+        token = self.auth.token
 
         # Check if the device initiation flow was called with the correct parameters
         device_authorization_url = "https://login.elixir-czech.org/oidc/devicecode"

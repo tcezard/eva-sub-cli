@@ -21,8 +21,9 @@ class StudySubmitter:
     def submit(self):
         response = requests.post(self.submission_initiate_url,
                                  headers={'Accept': 'application/hal+json',
-                                          'Authorization': 'Bearer ' + self.auth.token()})
-        response_json = json.loads(response.text)
+                                          'Authorization': 'Bearer ' + self.auth.token})
+        response.raise_for_status()
+        response_json = response.json()
         logger.info("Submission ID {} received!!".format(response_json["submissionId"]))
         self.upload_submission(response_json["submissionId"], response_json["uploadUrl"])
 

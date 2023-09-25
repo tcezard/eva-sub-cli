@@ -1,5 +1,5 @@
 import json
-from functools import lru_cache
+from functools import cached_property
 from getpass import getpass
 
 import requests
@@ -19,6 +19,7 @@ class LSRIAuth(AppLogger):
         self.device_authorization_url = device_authorization_url
         self.auth_url = auth_url
 
+    @cached_property
     def token(self):
         # Step 1: Get device code using device auth url
         payload = {
@@ -52,7 +53,7 @@ class WebinAuth(AppLogger):
     def __init__(self, ena_auth_url=ENA_AUTH_URL):
         self.ena_auth_url = ena_auth_url
 
-    @lru_cache
+    @cached_property
     def token(self):
         self.info("Proceeding with ENA Webin authentication...")
         username, password = self._get_webin_username_password()
@@ -70,6 +71,7 @@ class WebinAuth(AppLogger):
         username = input("Enter your ENA Webin username: ")
         password = getpass("Enter your ENA Webin password: ")
         return username, password
+
 
 # Global auth for the session
 auth = None
