@@ -64,7 +64,7 @@ class WebinAuth(AppLogger):
             self.info("Webin authentication successful!")
             return response.text
         else:
-            raise ResponseError('Webin Authentication Error: Username or password not recognised')
+            raise ResponseError('Webin Authentication Error')
 
     def _get_webin_username_password(self):
         username = input("Enter your ENA Webin username: ")
