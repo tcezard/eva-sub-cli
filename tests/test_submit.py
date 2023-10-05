@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 import unittest
-from unittest.mock import MagicMock, patch, Mock, PropertyMock
+from unittest.mock import MagicMock, patch, Mock
 
 import yaml
 
@@ -13,12 +13,15 @@ from cli.submit import StudySubmitter, SUB_CLI_CONFIG_FILE, SUB_CLI_CONFIG_KEY_S
 
 
 class TestSubmit(unittest.TestCase):
+    resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
 
     def setUp(self) -> None:
         self.token = 'a token'
         with patch('cli.submit.get_auth', return_value=Mock(token=self.token)):
-            self.submitter = StudySubmitter()
-        self.test_sub_dir = os.path.join(os.path.dirname(__file__), 'resources', 'test_sub_dir')
+            vcf_files = [os.path.join(self.resource_dir, 'vcf_files', 'example2.vcf.gz')]
+            metadata_file = [os.path.join(self.resource_dir, 'EVA_Submission_template.V1.1.4.xlsx')]
+            self.submitter = StudySubmitter(vcf_files=vcf_files, metadata_file=metadata_file)
+            self.test_sub_dir = os.path.join(os.path.dirname(__file__), 'resources', 'test_sub_dir')
         shutil.rmtree(self.test_sub_dir, ignore_errors=True)
 
     def tearDown(self) -> None:
@@ -86,5 +89,11 @@ class TestSubmit(unittest.TestCase):
             assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_ID] == "mock_submission_id"
             assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL] == "directory to use for upload"
 
+    def test_upload_file(self):
+        resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
+
+        file_to_upload = os.path.join(resource_dir, 'EVA_Submission_template.V1.1.4.xlsx')
+        self.submitter.upload_file(submission_upload_url='',
+                                   input_file=file_to_upload)
 
 
