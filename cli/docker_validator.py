@@ -4,16 +4,21 @@ import os
 import subprocess
 import time
 
-from cli import ETC_DIR
+from cli import ETC_DIR, SUB_CLI_CONFIG_FILE
 from cli.reporter import Reporter
 from ebi_eva_common_pyutils.logger import logging_config
 
+from cli.writable_config import WritableConfig
+
 logger = logging_config.get_logger(__name__)
 
+docker_path = 'docker'
 container_image = 'eva_sub_cli'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = '/opt/vcf_validation/vcf_validation_output'
 container_etc_dir = '/opt/cli/etc'
+VALIDATION_RESULTS = 'validation_results'
+READY_FOR_SUBMISSION_TO_EVA = 'ready_for_submission_to_eva'
 
 
 def run_command_with_output(command_description, command, return_process_output=True,
@@ -48,18 +53,32 @@ def run_command_with_output(command_description, command, return_process_output=
 
 class DockerValidator(Reporter):
 
-    def __init__(self, mapping_file, output_dir, metadata_json=None,
-                 metadata_xlsx=None, container_name=container_image, docker_path='docker'):
+    def __init__(self, mapping_file, output_dir, metadata_json=None, metadata_xlsx=None,
+                 container_name=container_image, docker_path='docker', submission_config=None):
         self.docker_path = docker_path
         self.mapping_file = mapping_file
         self.metadata_json = metadata_json
         self.metadata_xlsx = metadata_xlsx
         self.container_name = container_name
         self.spreadsheet2json_conf = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
+        if submission_config:
+            self.sub_config = submission_config
+        else:
+            config_file = os.path.join(output_dir, SUB_CLI_CONFIG_FILE)
+            self.sub_config = WritableConfig(config_file)
         super().__init__(self._find_vcf_file(), output_dir)
 
     def _validate(self):
         self.run_docker_validator()
+
+    def update_config_with_validation_result(self):
+        self.sub_config.set(VALIDATION_RESULTS, value=self.results)
+        self.sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=self.verify_ready_for_submission_to_eva())
+        self.sub_config.write()
+
+    def verify_ready_for_submission_to_eva(self):
+        # TODO:  check validation results and confirm if they are good enough for submitting to EVA
+        return True
 
     def _find_vcf_file(self):
         vcf_files = []
