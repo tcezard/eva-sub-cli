@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import MagicMock, patch, Mock
 
 import yaml
-from ebi_eva_common_pyutils.WritableConfig import WritableConfig
+from ebi_eva_common_pyutils.config import WritableConfig
 
 from cli import LSRI_CLIENT_ID
 from cli.auth import WebinAuth, LSRIAuth

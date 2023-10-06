@@ -3,7 +3,7 @@ import os
 from urllib.parse import urljoin
 
 import requests
-from ebi_eva_common_pyutils.WritableConfig import WritableConfig
+from ebi_eva_common_pyutils.config import WritableConfig
 from ebi_eva_common_pyutils.logger import logging_config
 
 from cli import SUB_CLI_CONFIG_FILE, __version__

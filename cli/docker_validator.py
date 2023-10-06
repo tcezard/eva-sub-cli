@@ -4,7 +4,7 @@ import os
 import subprocess
 import time
 
-from ebi_eva_common_pyutils.WritableConfig import WritableConfig
+from ebi_eva_common_pyutils.config import WritableConfig
 
 from cli import ETC_DIR, SUB_CLI_CONFIG_FILE, __version__
 from cli.reporter import Reporter
