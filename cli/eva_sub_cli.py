@@ -1,12 +1,12 @@
 import os
 from argparse import ArgumentParser
 
+from ebi_eva_common_pyutils.WritableConfig import WritableConfig
 from ebi_eva_common_pyutils.logger import logging_config
 
-from cli import SUB_CLI_CONFIG_FILE
+from cli import SUB_CLI_CONFIG_FILE, __version__
 from cli.docker_validator import DockerValidator, docker_path, container_image
 from cli.submit import StudySubmitter
-from cli.writable_config import WritableConfig
 
 VALIDATION_OUTPUT_DIR = "validation_output"
 VALIDATE = 'validate'
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     # load config
     config_file_path = os.path.join(args.submission_dir, SUB_CLI_CONFIG_FILE)
-    sub_config = WritableConfig(config_file_path)
+    sub_config = WritableConfig(config_file_path, version=__version__)
 
     if args.task == RESUME:
         submitter = StudySubmitter(args.submission_dir, submission_config=sub_config)

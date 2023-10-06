@@ -5,13 +5,13 @@ import unittest
 from unittest.mock import MagicMock, patch, Mock
 
 import yaml
+from ebi_eva_common_pyutils.WritableConfig import WritableConfig
 
 from cli import LSRI_CLIENT_ID
 from cli.auth import WebinAuth, LSRIAuth
 from cli.docker_validator import READY_FOR_SUBMISSION_TO_EVA
 from cli.eva_sub_cli import SUB_CLI_CONFIG_FILE
 from cli.submit import StudySubmitter, SUB_CLI_CONFIG_KEY_SUBMISSION_ID, SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL
-from cli.writable_config import WritableConfig
 
 
 class TestSubmit(unittest.TestCase):
@@ -100,7 +100,7 @@ class TestSubmit(unittest.TestCase):
             "submissionId": "mock_submission_id",
             "uploadUrl": "directory to use for upload",
         }
-        sub_config = WritableConfig(self.config_file)
+        sub_config = WritableConfig(self.config_file, version='version1.0')
         sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=True)
         sub_config.write()
 

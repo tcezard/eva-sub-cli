@@ -3,12 +3,12 @@ import os
 from urllib.parse import urljoin
 
 import requests
+from ebi_eva_common_pyutils.WritableConfig import WritableConfig
 from ebi_eva_common_pyutils.logger import logging_config
 
-from cli import SUB_CLI_CONFIG_FILE
+from cli import SUB_CLI_CONFIG_FILE, __version__
 from cli.auth import get_auth
 from cli.docker_validator import READY_FOR_SUBMISSION_TO_EVA
-from cli.writable_config import WritableConfig
 
 logger = logging_config.get_logger(__name__)
 SUB_CLI_CONFIG_KEY_SUBMISSION_ID = "submission_id"
@@ -26,7 +26,7 @@ class StudySubmitter(AppLogger):
             self.sub_config = submission_config
         else:
             config_file = os.path.join(submission_dir, SUB_CLI_CONFIG_FILE)
-            self.sub_config = WritableConfig(config_file)
+            self.sub_config = WritableConfig(config_file, version=__version__)
 
     def update_config_with_submission_id_and_upload_url(self, submission_id, upload_url):
         self.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_ID, value=submission_id)

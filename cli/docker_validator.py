@@ -4,11 +4,11 @@ import os
 import subprocess
 import time
 
-from cli import ETC_DIR, SUB_CLI_CONFIG_FILE
+from ebi_eva_common_pyutils.WritableConfig import WritableConfig
+
+from cli import ETC_DIR, SUB_CLI_CONFIG_FILE, __version__
 from cli.reporter import Reporter
 from ebi_eva_common_pyutils.logger import logging_config
-
-from cli.writable_config import WritableConfig
 
 logger = logging_config.get_logger(__name__)
 
@@ -65,7 +65,7 @@ class DockerValidator(Reporter):
             self.sub_config = submission_config
         else:
             config_file = os.path.join(output_dir, SUB_CLI_CONFIG_FILE)
-            self.sub_config = WritableConfig(config_file)
+            self.sub_config = WritableConfig(config_file, version=__version__)
         super().__init__(self._find_vcf_file(), output_dir)
 
     def _validate(self):
