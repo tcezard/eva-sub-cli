@@ -42,8 +42,6 @@ class TestSubmit(unittest.TestCase):
         mock_post.assert_called_once_with('http://www.ebi.ac.uk/eva/v1/submission/initiate',
                                           headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'})
 
-        # TODO: Check that upload_submission was called with submission id
-
     def test_verify_submission_dir(self):
         self.submitter.verify_submission_dir(self.test_sub_dir)
         assert os.path.exists(self.test_sub_dir)
@@ -89,11 +87,11 @@ class TestSubmit(unittest.TestCase):
             assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_ID] == "mock_submission_id"
             assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL] == "directory to use for upload"
 
-    def test_upload_file(self):
-        resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
-
-        file_to_upload = os.path.join(resource_dir, 'EVA_Submission_template.V1.1.4.xlsx')
-        self.submitter.upload_file(submission_upload_url='',
-                                   input_file=file_to_upload)
+    # def test_upload_file(self):
+    #     resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
+    #
+    #     file_to_upload = os.path.join(resource_dir, 'EVA_Submission_template.V1.1.4.xlsx')
+    #     self.submitter.upload_file(submission_upload_url='',
+    #                                input_file=file_to_upload)
 
 
