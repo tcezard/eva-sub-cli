@@ -93,8 +93,6 @@ class TestSubmit(unittest.TestCase):
         test_url = 'http://example.com/'
         with patch.object(StudySubmitter, 'upload_file') as mock_upload_file:
             self.submitter.upload_submission(submission_upload_url=test_url, submission_dir=self.test_sub_dir)
-
-        print(mock_upload_file.mock_calls)
         for vcf_file in self.submitter.vcf_files:
             mock_upload_file.assert_any_call(test_url, vcf_file)
         mock_upload_file.assert_called_with(test_url, self.submitter.metadata_file)
