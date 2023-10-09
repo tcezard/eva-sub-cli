@@ -36,11 +36,31 @@ class TestSubmit(unittest.TestCase):
                                                 'uploadUrl': 'directory to use for upload'})
 
         # Set the side_effect attribute to return different responses
-        with patch('cli.submit.requests.post', return_value=mock_submit_response) as mock_post:
-            with patch('cli.submit.StudySubmitter.create_submission_config_file'):
+        with patch('cli.submit.requests.post', return_value=mock_submit_response) as mock_post,\
+                patch.object(StudySubmitter, 'create_submission_config_file'), \
+                patch.object(StudySubmitter, 'upload_submission'):
                 self.submitter.submit('test_submission_directory')
         mock_post.assert_called_once_with('http://www.ebi.ac.uk/eva/v1/submission/initiate',
                                           headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'})
+
+    def test_submit_with_config(self):
+        mock_submit_response = MagicMock()
+        mock_submit_response.status_code = 200
+        mock_submit_response.json.return_value = {
+            "submissionId": "mock_submission_id",
+            "uploadUrl": "directory to use for upload",
+        }
+        with patch('cli.submit.requests.post', return_value=mock_submit_response) as mock_post,\
+                patch.object(StudySubmitter, 'upload_submission'):
+            self.submitter.submit(self.test_sub_dir)
+
+        assert os.path.exists(self.test_sub_dir)
+        sub_config_file = os.path.join(self.test_sub_dir, SUB_CLI_CONFIG_FILE)
+        assert os.path.exists(sub_config_file)
+        with (open(sub_config_file, 'r') as f):
+            sub_config_data = yaml.safe_load(f)
+            assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_ID] == "mock_submission_id"
+            assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL] == "directory to use for upload"
 
     def test_verify_submission_dir(self):
         self.submitter.verify_submission_dir(self.test_sub_dir)
@@ -66,24 +86,6 @@ class TestSubmit(unittest.TestCase):
 
         assert submission_id == 1234
         assert upload_url == "/sub/upload/url"
-
-    def test_submit(self):
-        mock_submit_response = MagicMock()
-        mock_submit_response.status_code = 200
-        mock_submit_response.json.return_value = {
-            "submissionId": "mock_submission_id",
-            "uploadUrl": "directory to use for upload",
-        }
-        with patch('cli.submit.requests.post', return_value=mock_submit_response) as mock_post:
-            self.submitter.submit(self.test_sub_dir)
-
-        assert os.path.exists(self.test_sub_dir)
-        sub_config_file = os.path.join(self.test_sub_dir, SUB_CLI_CONFIG_FILE)
-        assert os.path.exists(sub_config_file)
-        with (open(sub_config_file, 'r') as f):
-            sub_config_data = yaml.safe_load(f)
-            assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_ID] == "mock_submission_id"
-            assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL] == "directory to use for upload"
 
     def test_upload_submission(self):
         mock_submit_response = MagicMock()
