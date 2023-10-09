@@ -26,13 +26,13 @@ def get_docker_validator(vcf_files_mapping, output_dir, metadata_json, metadata_
 
 
 if __name__ == "__main__":
-    argparser = ArgumentParser(description='EVA SUB CLI - to validate and submit a submission')
+    argparser = ArgumentParser(description='EVA Submission CLI - validate and submit data to EVA')
     argparser.add_argument('--task', required=True, choices=[VALIDATE, SUBMIT, RESUME],
                            help='Select a task to perform')
     argparser.add_argument('--submission_dir', required=True, type=str,
                            help='Full path to the directory where all processing will be done and submission info is/will be stored')
-    argparser.add_argument("--docker_path", help="Full path to the docker installation, "
-                                                 "not required if docker is available on path", required=False)
+    argparser.add_argument("--docker_path", required=False, help="Full path to the docker installation, "
+                                                "not required if docker is available in the PATH environment variable")
     argparser.add_argument("--container_name", help="Name of the docker container", required=False)
     argparser.add_argument("--vcf_files_mapping", required=False,
                            help="csv file with the mappings for vcf files, fasta and assembly report")
@@ -54,7 +54,8 @@ if __name__ == "__main__":
 
     if args.task == VALIDATE or args.task == SUBMIT:
         if not args.vcf_files_mapping:
-            raise Exception(f"Please provide csv file with the mappings of vcf files using --vcf_files_mapping")
+            raise Exception(f"Please provide a CSV file which provides VCF and corresponding assembly information "
+                            f"(use the --vcf_files_mapping switch)")
         if not args.metadata_json and not args.metadata_xlsx:
             raise Exception(f"Please provide the file that describes the project, analysis, samples and files "
                             f"using either --metadata_json or --metadata_xlsx")

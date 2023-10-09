@@ -100,6 +100,8 @@ class TestSubmit(unittest.TestCase):
             "submissionId": "mock_submission_id",
             "uploadUrl": "directory to use for upload",
         }
+
+        self.submitter.verify_submission_dir(self.test_sub_dir)
         sub_config = WritableConfig(self.config_file, version='version1.0')
         sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=True)
         sub_config.write()
@@ -109,6 +111,8 @@ class TestSubmit(unittest.TestCase):
 
         assert os.path.exists(self.test_sub_dir)
         assert os.path.exists(self.config_file)
+        # assert backup file is created
+        assert os.path.exists(f"{self.config_file}.1")
         with (open(self.config_file, 'r') as f):
             sub_config_data = yaml.safe_load(f)
             assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_ID] == "mock_submission_id"

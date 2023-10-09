@@ -31,6 +31,7 @@ class StudySubmitter(AppLogger):
     def update_config_with_submission_id_and_upload_url(self, submission_id, upload_url):
         self.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_ID, value=submission_id)
         self.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL, value=upload_url)
+        self.sub_config.backup()
         self.sub_config.write()
 
     # TODO
@@ -39,7 +40,8 @@ class StudySubmitter(AppLogger):
             raise Exception(f'Cannot resume submission. Config file is empty')
 
         if not self.sub_config[READY_FOR_SUBMISSION_TO_EVA]:
-            raise Exception(f'There are still validation errors that needs to be fixed. Please fix them before uploading')
+            raise Exception(f'There are still validation errors that needs to be addressed. '
+                            f'Please review, address and re-validate before uploading.')
 
         if not submission_id or not submission_upload_url:
             submission_id = self.sub_config[SUB_CLI_CONFIG_KEY_SUBMISSION_ID]
@@ -68,7 +70,8 @@ class StudySubmitter(AppLogger):
 
     def submit(self, submission_dir):
         if not self.sub_config[READY_FOR_SUBMISSION_TO_EVA]:
-            raise Exception(f'There are still validation errors that needs to be fixed. Please fix them before submitting.')
+            raise Exception(f'There are still validation errors that need to be addressed. '
+                            f'Please review, address and re-validate before submitting.')
 
         self.verify_submission_dir(submission_dir)
         response = requests.post(self.submission_initiate_url,
