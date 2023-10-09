@@ -46,7 +46,6 @@ class StudySubmitter:
     def upload_submission(self, submission_upload_url, submission_dir):
         if not submission_upload_url:
             submission_id, submission_upload_url = self.get_submission_id_and_upload_url(submission_dir)
-
         for f in self.vcf_files:
             self.upload_file(submission_upload_url, f)
         self.upload_file(submission_upload_url, self.metadata_file)
@@ -72,4 +71,4 @@ class StudySubmitter:
         response_json = response.json()
         logger.info("Submission ID {} received!!".format(response_json["submissionId"]))
         self.create_submission_config_file(submission_dir, response_json["submissionId"], response_json["uploadUrl"])
-        self.upload_submission(submission_dir, response_json["submissionId"], response_json["uploadUrl"])
+        self.upload_submission(submission_dir, response_json["submissionId"])
