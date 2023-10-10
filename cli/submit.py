@@ -43,7 +43,7 @@ class StudySubmitter:
         else:
             raise FileNotFoundError(f'Could not upload. No config file found for the submission in {submission_dir}.')
 
-    def upload_submission(self, submission_upload_url, submission_dir):
+    def upload_submission(self, submission_dir, submission_upload_url=None):
         if not submission_upload_url:
             submission_id, submission_upload_url = self.get_submission_id_and_upload_url(submission_dir)
         for f in self.vcf_files:
@@ -71,4 +71,4 @@ class StudySubmitter:
         response_json = response.json()
         logger.info("Submission ID {} received!!".format(response_json["submissionId"]))
         self.create_submission_config_file(submission_dir, response_json["submissionId"], response_json["uploadUrl"])
-        self.upload_submission(submission_dir, response_json["submissionId"])
+        self.upload_submission(submission_dir, response_json["uploadUrl"])
