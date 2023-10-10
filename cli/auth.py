@@ -27,8 +27,9 @@ class LSRIAuth(AppLogger):
             'scope': 'openid'
         }
         response = requests.post(self.device_authorization_url, data=payload)
-        response_json = response.json()
+        response.raise_for_status()
 
+        response_json = response.json()
         device_code = response_json['device_code']
         user_code = response_json['user_code']
         verification_uri = response_json['verification_uri']
