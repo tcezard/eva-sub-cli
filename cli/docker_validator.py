@@ -11,7 +11,7 @@ from ebi_eva_common_pyutils.logger import logging_config
 logger = logging_config.get_logger(__name__)
 
 docker_path = 'docker'
-container_image = 'docker pull ebivariation/eva-sub-cli:v0.0.1.dev0'
+container_image = 'ebivariation/eva-sub-cli:v0.0.1.dev0'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = '/opt/vcf_validation/vcf_validation_output'
 container_etc_dir = '/opt/cli/etc'
