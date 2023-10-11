@@ -227,6 +227,8 @@ class DockerValidator(Reporter):
         logger.info(f"Pulling container ({container_image}) image")
         try:
             run_command_with_output("pull container image", f"{self.docker_path} pull {container_image}:{container_tag}")
+            # Give the pull command some time to complete
+            time.sleep(5)
             if not self.run_container():
                 raise RuntimeError(f"Container ({self.container_name}) could not be started")
         except subprocess.CalledProcessError as ex:
