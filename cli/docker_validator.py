@@ -11,10 +11,11 @@ from ebi_eva_common_pyutils.logger import logging_config
 logger = logging_config.get_logger(__name__)
 
 docker_path = 'docker'
-container_image = 'eva_sub_cli'
+container_image = 'docker pull ebivariation/eva-sub-cli:v0.0.1.dev0'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = '/opt/vcf_validation/vcf_validation_output'
 container_etc_dir = '/opt/cli/etc'
+
 
 def run_command_with_output(command_description, command, return_process_output=True,
                             log_error_stream_to_output=False):
