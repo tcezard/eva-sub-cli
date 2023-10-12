@@ -5,11 +5,14 @@ import os
 import re
 
 import yaml
+from ebi_eva_common_pyutils.config import WritableConfig
 
-from cli import ETC_DIR
+from cli import ETC_DIR, SUB_CLI_CONFIG_FILE, __version__
 from cli.report import generate_html_report
 from ebi_eva_common_pyutils.logger import logging_config
 
+VALIDATION_RESULTS = 'validation_results'
+READY_FOR_SUBMISSION_TO_EVA = 'ready_for_submission_to_eva'
 
 logger = logging_config.get_logger(__name__)
 
@@ -23,12 +26,24 @@ def resolve_single_file_path(file_path):
 
 class Reporter:
 
-    def __init__(self, vcf_files, output_dir):
+    def __init__(self, vcf_files, output_dir, submission_config: WritableConfig =None):
         self.output_dir = output_dir
         self.vcf_files = vcf_files
         self.results = {}
         self.project_title = None  # TODO fill this from metadata?
         self.validation_date = datetime.datetime.now()
+        if submission_config:
+            self.sub_config = submission_config
+        else:
+            config_file = os.path.join(output_dir, SUB_CLI_CONFIG_FILE)
+            self.sub_config = WritableConfig(config_file, version=__version__)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.sub_config.backup()
+        self.sub_config.write()
 
     def validate(self):
         self._validate()
@@ -36,6 +51,14 @@ class Reporter:
 
     def _validate(self):
         raise NotImplementedError
+
+    def update_config_with_validation_result(self):
+        self.sub_config.set(VALIDATION_RESULTS, value=self.results)
+        self.sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=self.verify_ready_for_submission_to_eva())
+
+    def verify_ready_for_submission_to_eva(self):
+        # TODO:  check validation results and confirm if they are good enough for submitting to EVA
+        return True
 
     def parse_assembly_check_log(self, assembly_check_log):
         error_list = []
