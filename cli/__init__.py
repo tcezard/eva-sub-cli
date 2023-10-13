@@ -9,3 +9,5 @@ ETC_DIR = os.path.join(os.path.dirname(os.path.abspath(cli.__file__)), 'etc')
 LSRI_CLIENT_ID = "aa0fcc42-096a-4f9d-b871-aceb1a97d174"
 
 __version__ = open(os.path.join(os.path.dirname(os.path.abspath(cli.__file__)), 'VERSION')).read().strip()
+
+SUB_CLI_CONFIG_FILE = ".eva_sub_cli_config.yml"

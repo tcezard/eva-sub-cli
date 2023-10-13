@@ -3,48 +3,52 @@ import os
 from urllib.parse import urljoin
 
 import requests
-import yaml
-
+from ebi_eva_common_pyutils.config import WritableConfig
 from ebi_eva_common_pyutils.logger import AppLogger
 from retry import retry
 
+from cli import SUB_CLI_CONFIG_FILE, __version__
 from cli.auth import get_auth
+from cli.reporter import READY_FOR_SUBMISSION_TO_EVA
 
-SUB_CLI_CONFIG_FILE = ".eva-sub-cli-config.yml"
 SUB_CLI_CONFIG_KEY_SUBMISSION_ID = "submission_id"
 SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL = "submission_upload_url"
 SUBMISSION_INITIATE_URL = "http://www.ebi.ac.uk/eva/v1/submission/initiate"
 
 
 class StudySubmitter(AppLogger):
-    def __init__(self, vcf_files, metadata_file, submission_initiate_url=SUBMISSION_INITIATE_URL):
+    def __init__(self, submission_dir, vcf_files, metadata_file, submission_initiate_url=SUBMISSION_INITIATE_URL,
+                 submission_config: WritableConfig = None):
         self.auth = get_auth()
         self.submission_initiate_url = submission_initiate_url
+        self.submission_dir = submission_dir
         self.vcf_files = vcf_files
         self.metadata_file = metadata_file
-
-    def create_submission_config_file(self, submission_dir, submission_id, submission_upload_url):
-        submission_config_file = os.path.join(submission_dir, SUB_CLI_CONFIG_FILE)
-        config_data = {
-            SUB_CLI_CONFIG_KEY_SUBMISSION_ID: submission_id,
-            SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL: submission_upload_url
-        }
-        with open(submission_config_file, 'w') as open_file:
-            yaml.safe_dump(config_data, open_file)
-
-    def get_submission_id_and_upload_url(self, submission_dir):
-        submission_config_file = os.path.join(submission_dir, SUB_CLI_CONFIG_FILE)
-        if submission_config_file:
-            with (open(submission_config_file, 'r') as f):
-                submission_config_data = yaml.safe_load(f)
-                return submission_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_ID], submission_config_data[
-                    SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL]
+        if submission_config:
+            self.sub_config = submission_config
         else:
-            raise FileNotFoundError(f'Could not upload. No config file found for the submission in {submission_dir}.')
+            config_file = os.path.join(submission_dir, SUB_CLI_CONFIG_FILE)
+            self.sub_config = WritableConfig(config_file, version=__version__)
 
-    def upload_submission(self, submission_dir, submission_upload_url=None):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.sub_config.backup()
+        self.sub_config.write()
+
+    def update_config_with_submission_id_and_upload_url(self, submission_id, upload_url):
+        self.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_ID, value=submission_id)
+        self.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL, value=upload_url)
+
+    def upload_submission(self, submission_upload_url=None):
+        if READY_FOR_SUBMISSION_TO_EVA not in self.sub_config or not self.sub_config[READY_FOR_SUBMISSION_TO_EVA]:
+            raise Exception(f'There are still validation errors that needs to be addressed. '
+                            f'Please review, address and re-validate before uploading.')
+
         if not submission_upload_url:
-            submission_id, submission_upload_url = self.get_submission_id_and_upload_url(submission_dir)
+            submission_upload_url = self.sub_config[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL]
+
         for f in self.vcf_files:
             self.upload_file(submission_upload_url, f)
         self.upload_file(submission_upload_url, self.metadata_file)
@@ -63,13 +67,21 @@ class StudySubmitter(AppLogger):
         if not os.access(submission_dir, os.W_OK):
             raise Exception(f"The directory '{submission_dir}' does not have write permissions.")
 
-    def submit(self, submission_dir):
-        self.verify_submission_dir(submission_dir)
+    def submit(self):
+        if READY_FOR_SUBMISSION_TO_EVA not in self.sub_config or not self.sub_config[READY_FOR_SUBMISSION_TO_EVA]:
+            raise Exception(f'There are still validation errors that need to be addressed. '
+                            f'Please review, address and re-validate before submitting.')
+
+        self.verify_submission_dir(self.submission_dir)
         response = requests.post(self.submission_initiate_url,
                                  headers={'Accept': 'application/hal+json',
                                           'Authorization': 'Bearer ' + self.auth.token})
         response.raise_for_status()
         response_json = response.json()
         self.info("Submission ID {} received!!".format(response_json["submissionId"]))
-        self.create_submission_config_file(submission_dir, response_json["submissionId"], response_json["uploadUrl"])
-        self.upload_submission(submission_dir, response_json["uploadUrl"])
+
+        # update config with submission id and upload url
+        self.update_config_with_submission_id_and_upload_url(response_json["submissionId"], response_json["uploadUrl"])
+
+        # upload submission
+        self.upload_submission(response_json["uploadUrl"])

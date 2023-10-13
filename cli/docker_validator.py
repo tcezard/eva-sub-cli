@@ -10,11 +10,11 @@ from ebi_eva_common_pyutils.logger import logging_config
 
 logger = logging_config.get_logger(__name__)
 
+docker_path = 'docker'
 container_image = 'eva_sub_cli'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = '/opt/vcf_validation/vcf_validation_output'
 container_etc_dir = '/opt/cli/etc'
-
 
 def run_command_with_output(command_description, command, return_process_output=True,
                             log_error_stream_to_output=False):
@@ -48,15 +48,15 @@ def run_command_with_output(command_description, command, return_process_output=
 
 class DockerValidator(Reporter):
 
-    def __init__(self, mapping_file, output_dir, metadata_json=None,
-                 metadata_xlsx=None, container_name=container_image, docker_path='docker'):
+    def __init__(self, mapping_file, output_dir, metadata_json=None, metadata_xlsx=None,
+                 container_name=container_image, docker_path='docker', submission_config=None):
         self.docker_path = docker_path
         self.mapping_file = mapping_file
         self.metadata_json = metadata_json
         self.metadata_xlsx = metadata_xlsx
         self.container_name = container_name
         self.spreadsheet2json_conf = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
-        super().__init__(self._find_vcf_file(), output_dir)
+        super().__init__(self._find_vcf_file(), output_dir, submission_config=submission_config)
 
     def _validate(self):
         self.run_docker_validator()
