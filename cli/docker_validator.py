@@ -1,8 +1,11 @@
 import argparse
 import csv
 import os
+import re
 import subprocess
 import time
+
+from ebi_eva_common_pyutils.command_utils import run_command_with_output
 
 from cli import ETC_DIR
 from cli.reporter import Reporter
@@ -11,50 +14,24 @@ from ebi_eva_common_pyutils.logger import logging_config
 logger = logging_config.get_logger(__name__)
 
 docker_path = 'docker'
-container_image = 'eva_sub_cli'
+container_image = 'ebivariation/eva-sub-cli'
+container_tag = 'v0.0.1.dev0'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = '/opt/vcf_validation/vcf_validation_output'
 container_etc_dir = '/opt/cli/etc'
 
-def run_command_with_output(command_description, command, return_process_output=True,
-                            log_error_stream_to_output=False):
-    process_output = ""
-
-    logger.info(f"Starting process: {command_description}")
-    logger.info(f"Running command: {command}")
-
-    stdout = subprocess.PIPE
-    # Some utilities output non-error messages to error stream. This is a workaround for that
-    stderr = subprocess.STDOUT if log_error_stream_to_output else subprocess.PIPE
-    with subprocess.Popen(command, stdout=stdout, stderr=stderr, bufsize=1, universal_newlines=True,
-                          shell=True) as process:
-        for line in iter(process.stdout.readline, ''):
-            line = str(line).rstrip()
-            logger.info(line)
-            if return_process_output:
-                process_output += line + "\n"
-        if not log_error_stream_to_output:
-            for line in iter(process.stderr.readline, ''):
-                line = str(line).rstrip()
-                logger.error(line)
-    if process.returncode != 0:
-        logger.error(f"{command_description} - failed! Refer to the error messages for details.")
-        raise subprocess.CalledProcessError(process.returncode, process.args)
-    else:
-        logger.info(f"{command_description} - completed successfully")
-    if return_process_output:
-        return process_output
-
 
 class DockerValidator(Reporter):
 
-    def __init__(self, mapping_file, output_dir, metadata_json=None, metadata_xlsx=None,
-                 container_name=container_image, docker_path='docker', submission_config=None):
+    def __init__(self, mapping_file, output_dir, metadata_json=None,
+                 metadata_xlsx=None, container_name=None, docker_path='docker', submission_config=None):
         self.docker_path = docker_path
         self.mapping_file = mapping_file
         self.metadata_json = metadata_json
         self.metadata_xlsx = metadata_xlsx
         self.container_name = container_name
+        if self.container_name is None:
+            self.container_name = container_image.split('/')[1] + '.' + container_tag
         self.spreadsheet2json_conf = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
         super().__init__(self._find_vcf_file(), output_dir, submission_config=submission_config)
 
@@ -154,7 +131,7 @@ class DockerValidator(Reporter):
             raise RuntimeError(f"Please make sure docker ({self.docker_path}) is installed and available on the path")
 
     def verify_container_is_running(self):
-        container_run_cmd_ouptut = run_command_with_output("check if container is running", f"{self.docker_path} ps")
+        container_run_cmd_ouptut = run_command_with_output("check if container is running", f"{self.docker_path} ps", return_process_output=True)
         if container_run_cmd_ouptut is not None and self.container_name in container_run_cmd_ouptut:
             logger.info(f"Container ({self.container_name}) is running")
             return True
@@ -166,6 +143,7 @@ class DockerValidator(Reporter):
         container_stop_cmd_output = run_command_with_output(
             "check if container is stopped",
             f"{self.docker_path} ps -a"
+            , return_process_output=True
         )
         if container_stop_cmd_output is not None and self.container_name in container_stop_cmd_output:
             logger.info(f"Container ({self.container_name}) is in stop state")
@@ -187,9 +165,10 @@ class DockerValidator(Reporter):
     def verify_image_available_locally(self):
         container_images_cmd_ouptut = run_command_with_output(
             "Check if validator image is present",
-            f"{self.docker_path} images"
+            f"{self.docker_path} images",
+            return_process_output=True
         )
-        if container_images_cmd_ouptut is not None and container_image in container_images_cmd_ouptut:
+        if container_images_cmd_ouptut is not None and re.search(container_image + r'\s+' + container_tag, container_images_cmd_ouptut):
             logger.info(f"Container ({container_image}) image is available locally")
             return True
         else:
@@ -201,7 +180,7 @@ class DockerValidator(Reporter):
         try:
             run_command_with_output(
                 "Try running container",
-                f"{self.docker_path} run -it --rm -d --name {self.container_name} {container_image}"
+                f"{self.docker_path} run -it --rm -d --name {self.container_name} {container_image}:{container_tag}"
             )
             # stopping execution to give some time to container to get up and running
             time.sleep(5)
@@ -215,18 +194,19 @@ class DockerValidator(Reporter):
         if not self.verify_container_is_stopped():
             run_command_with_output(
                 "Stop the running container",
-                f"{self.docker_path} stop --name {self.container_name}"
+                f"{self.docker_path} stop {self.container_name}"
             )
 
     def download_container_image(self):
         logger.info(f"Pulling container ({container_image}) image")
         try:
-            run_command_with_output("pull container image", f"{self.docker_path} pull {container_image}")
-            if not self.run_container():
-                raise RuntimeError(f"Container ({self.container_name}) could not be started")
+            run_command_with_output("pull container image", f"{self.docker_path} pull {container_image}:{container_tag}")
         except subprocess.CalledProcessError as ex:
             logger.error(ex)
             raise RuntimeError(f"Cannot pull container ({container_image}) image")
+        # Give the pull command some time to complete
+        time.sleep(5)
+        self.run_container()
 
     def verify_docker_env(self):
         self.verify_docker_is_installed()
