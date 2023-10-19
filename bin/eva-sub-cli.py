@@ -21,8 +21,8 @@ logging_config.add_stdout_handler()
 
 def get_docker_validator(vcf_files_mapping, output_dir, metadata_json, metadata_xlsx, sub_config):
     validation_output_dir = os.path.join(output_dir, VALIDATION_OUTPUT_DIR)
-        return DockerValidator(vcf_files_mapping, validation_output_dir, metadata_json, metadata_xlsx,
-                           submission_config=sub_config)
+    return DockerValidator(vcf_files_mapping, validation_output_dir, metadata_json, metadata_xlsx,
+                            submission_config=sub_config)
 
 
 def get_vcf_files(mapping_file):
