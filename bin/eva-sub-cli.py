@@ -19,13 +19,10 @@ RESUME_SUBMISSION = 'resume_submission'
 logging_config.add_stdout_handler()
 
 
-def get_docker_validator(vcf_files_mapping, output_dir, metadata_json, metadata_xlsx,
-                         arg_container, arg_docker, sub_config):
-    docker = arg_docker or docker_path
-    container = arg_container or container_image
+def get_docker_validator(vcf_files_mapping, output_dir, metadata_json, metadata_xlsx, sub_config):
     validation_output_dir = os.path.join(output_dir, VALIDATION_OUTPUT_DIR)
-    return DockerValidator(vcf_files_mapping, validation_output_dir, metadata_json, metadata_xlsx,
-                           container, docker, sub_config)
+        return DockerValidator(vcf_files_mapping, validation_output_dir, metadata_json, metadata_xlsx,
+                           submission_config=sub_config)
 
 
 def get_vcf_files(mapping_file):
@@ -51,9 +48,6 @@ if __name__ == "__main__":
                        help="Json file that describe the project, analysis, samples and files")
     group.add_argument("--metadata_xlsx",
                        help="Excel spreadsheet  that describe the project, analysis, samples and files")
-    argparser.add_argument("--docker_path", required=False, help="Full path to the docker installation, "
-                                                                 "not required if docker is available in the PATH environment variable")
-    argparser.add_argument("--container_name", required=False, help="Name of the docker container")
 
     args = argparser.parse_args()
 
@@ -75,7 +69,7 @@ if __name__ == "__main__":
 
     if args.task == VALIDATE or args.task == SUBMIT:
         docker_validator = get_docker_validator(args.vcf_files_mapping, args.submission_dir, args.metadata_json,
-                                                args.metadata_xlsx, args.container_name, args.docker_path, sub_config)
+                                                args.metadata_xlsx, sub_config)
         docker_validator.validate()
         docker_validator.create_reports()
         docker_validator.update_config_with_validation_result()
