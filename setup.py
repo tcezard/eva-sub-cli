@@ -11,7 +11,7 @@ version = open(join(base_dir, 'eva_sub_cli', 'VERSION')).read().strip()
 setup(
     name='eva_sub_cli',
     packages=['eva_sub_cli'],
-    package_data={'eva_sub_cli': ['nextflow/*', 'etc/*', 'VERSION']},
+    package_data={'eva_sub_cli': ['nextflow/*', 'etc/*', 'VERSION', 'jinja_templates/*']},
     version=version,
     license='Apache',
     description='EBI EVA - validation and submission command line tool',
