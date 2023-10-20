@@ -8,7 +8,7 @@ from urllib3.exceptions import ResponseError
 
 from eva_sub_cli import LSRI_CLIENT_ID
 
-ENA_AUTH_URL = "https://www.ebi.ac.uk/ena/submit/webin/auth/token",
+ENA_AUTH_URL = "https://www.ebi.ac.uk/ena/submit/webin/auth/token"
 LSRI_AUTH_URL = "http://www.ebi.ac.uk/eva/v1/submission/auth/lsri"
 DEVICE_AUTHORISATION_URL ="https://login.elixir-czech.org/oidc/devicecode"
 
