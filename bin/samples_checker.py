@@ -3,7 +3,6 @@ import argparse
 import gzip
 import json
 import os
-import pathlib
 
 from collections import defaultdict
 from ebi_eva_common_pyutils.logger import logging_config
@@ -47,8 +46,8 @@ def compare_names_in_files_and_samples(sample_name_in_analysis, sample_name_per_
         for sample_name_list in sample_name_per_file.values()
         for sample_name in sample_name_list
     )
-    more_metadata_submitted_files = list(sample_name_in_analysis - sample_names_in_vcf)
-    more_submitted_files_metadata = list(sample_names_in_vcf - sample_name_in_analysis)
+    more_metadata_submitted_files = list(set(sample_name_in_analysis) - sample_names_in_vcf)
+    more_submitted_files_metadata = list(sample_names_in_vcf - set(sample_name_in_analysis))
     more_per_submitted_files_metadata = {}
     if more_submitted_files_metadata:
         for file_name in sample_name_per_file:
@@ -65,11 +64,12 @@ def compare_names_in_files_and_samples(sample_name_in_analysis, sample_name_per_
 def compare_all_analysis(samples_per_analysis, files_per_analysis):
     overall_differences = False
     results_per_analysis_alias = {}
-    for analysis_alias in samples_per_analysis:
-        sample_name_in_analysis = samples_per_analysis[analysis_alias]
+    all_analysis_alias = set(samples_per_analysis) | set(files_per_analysis)
+    for analysis_alias in all_analysis_alias:
+        sample_name_in_analysis = samples_per_analysis.get(analysis_alias, [])
         sample_name_per_file = {
             file_path: get_samples_from_vcf(file_path)
-            for file_path in files_per_analysis[analysis_alias]
+            for file_path in files_per_analysis.get(analysis_alias, [])
         }
         (
             has_difference, more_per_submitted_files_metadata,
@@ -92,7 +92,7 @@ def read_metadata_json(json_file):
         files_per_analysis = defaultdict(list)
         for sample_info in metadata['sample']:
             samples_per_analysis[sample_info.get('analysisAlias')].append(sample_info.get('sampleInVCF'))
-        for file_info in metadata['file']:
+        for file_info in metadata['files']:
             if file_info.get('fileType') == 'vcf':
                 files_per_analysis[file_info.get('analysisAlias')].append(file_info.get('fileName'))
         return (
@@ -101,24 +101,25 @@ def read_metadata_json(json_file):
         )
 
 
-def resolve_vcf_file_location(vcf_dir_prefix, files_per_analysis):
-    result_files_per_analysis = {}
-    for analysis_alias in files_per_analysis:
-        result_files_per_analysis[analysis_alias] = []
-        for f in files_per_analysis[analysis_alias]:
-            if vcf_dir_prefix:
-                # Remove leading / to ensure Join concatenate the path
-                if os.path.isabs(f):
-                    file_path = os.path.join(vcf_dir_prefix, *pathlib.Path(f).parts[1:])
-                else:
-                    file_path = os.path.join(vcf_dir_prefix, f)
-            else:
-                file_path = os.path.abspath(f)
-            print(f, vcf_dir_prefix, file_path)
-            if os.path.exists(file_path):
-                result_files_per_analysis[analysis_alias].append(file_path)
-            else:
-                raise FileNotFoundError(f'{file_path} cannot be resolved')
+def resolve_vcf_file_location(vcf_files, files_per_analysis):
+    result_files_per_analysis = dict()
+    for analysis in files_per_analysis:
+        result_files_per_analysis[analysis] = []
+    for vcf_file in vcf_files:
+        if not os.path.exists(vcf_file):
+            raise FileNotFoundError(f'{vcf_file} cannot be resolved')
+        analysis_aliases = [analysis_alias for analysis_alias in files_per_analysis
+                            if os.path.basename(vcf_file) in files_per_analysis[analysis_alias]]
+        if len(analysis_aliases) == 1:
+            result_files_per_analysis[analysis_aliases[0]].append(vcf_file)
+        elif len(analysis_aliases) == 0:
+            logger.error(f'No analysis found for vcf {vcf_file}')
+            if 'No analysis' not in result_files_per_analysis:
+                result_files_per_analysis['No analysis'] = []
+            result_files_per_analysis['No analysis'].append(vcf_file)
+        else:
+            logger.error(f'More than one analysis were match to vcf {vcf_file}')
+
     return result_files_per_analysis
 
 
@@ -130,13 +131,13 @@ def write_result_yaml(output_yaml, overall_differences, results_per_analysis_ali
         }, stream=open_yaml)
 
 
-def check_sample_name_concordance(metadata_json, vcf_dir_prefix, output_yaml):
+def check_sample_name_concordance(metadata_json, vcf_files, output_yaml):
     """
     Take the metadata following EVA standard and  formatted in JSON then compare the sample names in it to the ones
     found in the VCF files
     """
     samples_per_analysis, files_per_analysis = read_metadata_json(metadata_json)
-    files_per_analysis = resolve_vcf_file_location(vcf_dir_prefix, files_per_analysis)
+    files_per_analysis = resolve_vcf_file_location(vcf_files, files_per_analysis)
     overall_differences, results_per_analysis_alias = compare_all_analysis(samples_per_analysis, files_per_analysis)
     write_result_yaml(output_yaml, overall_differences, results_per_analysis_alias)
 
@@ -146,15 +147,14 @@ def main():
         description='Compare the sample name in the VCF file and the one specified in the metadata.')
     arg_parser.add_argument('--metadata_json', required=True, dest='metadata_json',
                             help='EVA metadata json file')
-    arg_parser.add_argument('--vcf_dir_prefix', dest='vcf_dir_prefix',
-                            help='Path to the directory which prefix the path provided in the metadata. concatenation '
-                                 'of the two is where the submitted files can be found')
+    arg_parser.add_argument('--vcf_files', dest='vcf_files', nargs='+',
+                            help='Path to the vcf files to compare to the metadata')
     arg_parser.add_argument('--output_yaml', required=True, dest='output_yaml',
                             help='Path to the location of the results')
 
     args = arg_parser.parse_args()
     logging_config.add_stdout_handler()
-    check_sample_name_concordance(args.metadata_json, args.vcf_dir_prefix, args.output_yaml)
+    check_sample_name_concordance(args.metadata_json, args.vcf_files, args.output_yaml)
 
 
 if __name__ == "__main__":

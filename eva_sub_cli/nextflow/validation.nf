@@ -57,6 +57,9 @@ workflow {
             file(params.container_validation_dir+row.fasta),
             file(params.container_validation_dir+row.report)
         )}
+    vcf_files = Channel.fromPath(params.vcf_files_mapping)
+        .splitCsv(header:true)
+        .map{row -> file(params.container_validation_dir+row.vcf)}
 
     if ("vcf_check" in params.validation_tasks) {
         check_vcf_valid(vcf_channel)
@@ -74,7 +77,7 @@ workflow {
         metadata_json_validation(metadata_json)
     }
     if ("samples_check" in params.validation_tasks) {
-        sample_name_concordance(metadata_json, params.container_validation_dir)
+        sample_name_concordance(metadata_json, vcf_files.collect())
     }
 }
 
@@ -174,13 +177,13 @@ process sample_name_concordance {
 
     input:
     path(metadata_json)
-    path(vcf_dir)
+    path(vcf_files)
 
     output:
     path "sample_checker.yml", emit: sample_checker_yml
 
     script:
     """
-    $params.executable.samples_checker --metadata_json $metadata_json --vcf_dir_prefix $vcf_dir --output_yaml sample_checker.yml
+    $params.executable.samples_checker --metadata_json $metadata_json --vcf_files $vcf_files --output_yaml sample_checker.yml
     """
 }

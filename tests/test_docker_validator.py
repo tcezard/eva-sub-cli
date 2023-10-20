@@ -1,4 +1,5 @@
 import csv
+import glob
 import json
 import os
 import shutil
@@ -14,7 +15,7 @@ class TestDockerValidator(TestCase):
     resources_folder = os.path.join(os.path.dirname(__file__), 'resources')
 
     vcf_files = os.path.join(resources_folder, 'vcf_files')
-    fasts_files = os.path.join(resources_folder, 'fasta_files')
+    fasta_files = os.path.join(resources_folder, 'fasta_files')
     assembly_reports = os.path.join(resources_folder, 'assembly_reports')
 
     test_run_dir = os.path.join(resources_folder, 'docker_test_run')
@@ -32,7 +33,7 @@ class TestDockerValidator(TestCase):
         data = [
             ['vcf', 'fasta', 'report'],
             [os.path.join(self.vcf_files, 'input_passed.vcf'),
-             os.path.join(self.fasts_files, 'input_passed.fa'),
+             os.path.join(self.fasta_files, 'input_passed.fa'),
              os.path.join(self.assembly_reports, 'input_passed.txt')]
         ]
         with open(self.mapping_file, 'w', encoding='UTF8') as f:
@@ -48,8 +49,8 @@ class TestDockerValidator(TestCase):
             "analysis": [
                 {"analysisAlias": "AA"}
             ],
-            "file": [
-                {"analysisAlias": "AA", "fileName": os.path.join(self.vcf_files, 'input_passed.vcf'), "fileType": "vcf"}
+            "files": [
+                {"analysisAlias": "AA", "fileName": 'input_passed.vcf', "fileType": "vcf"}
             ]
         }
         with open(self.metadata_json, 'w') as open_metadata:
@@ -73,10 +74,16 @@ class TestDockerValidator(TestCase):
         )
 
     def tearDown(self):
-        if os.path.exists(self.test_run_dir):
-            shutil.rmtree(self.test_run_dir)
+        # if os.path.exists(self.test_run_dir):
+        #     shutil.rmtree(self.test_run_dir)
         self.validator.stop_running_container()
         self.validator_from_excel.stop_running_container()
+
+    def assert_sample_checker(self, expected_checker):
+        sample_checker_yaml = os.path.join(self.output_dir, 'sample_checker.yml')
+        self.assertTrue(os.path.isfile(sample_checker_yaml))
+        with open(sample_checker_yaml) as open_yaml:
+            assert yaml.safe_load(open_yaml) == expected_checker
 
     def test_validate(self):
         # run validation in docker
@@ -124,15 +131,11 @@ class TestDockerValidator(TestCase):
                 }
             }
         }
-        sample_checker_yaml = os.path.join(self.output_dir, 'sample_checker.yml')
-        self.assertTrue(os.path.isfile(sample_checker_yaml))
-        with open(sample_checker_yaml) as open_yaml:
-            assert yaml.safe_load(open_yaml) == expected_checker
+        self.assert_sample_checker(expected_checker)
 
     def test_validate_from_excel(self):
         # FIXME: The Sample check fails because the json file generated does not currently match the expected one
         # Need to skip the file collection
-        with patch.object(DockerValidator, '_collect_validation_workflow_results'):
-            self.validator_from_excel.validate()
-            sample_checker_yaml = os.path.join(self.output_dir, 'sample_checker.yml')
-            self.assertFalse(os.path.isfile(sample_checker_yaml))
+        self.validator_from_excel.validate()
+        sample_checker_yaml = os.path.join(self.output_dir, 'sample_checker.yml')
+        self.assertTrue(os.path.isfile(sample_checker_yaml))

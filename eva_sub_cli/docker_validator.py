@@ -15,7 +15,7 @@ logger = logging_config.get_logger(__name__)
 
 docker_path = 'docker'
 container_image = 'ebivariation/eva-sub-cli'
-container_tag = 'v0.0.1.dev1'
+container_tag = 'v0.0.1.dev2'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = '/opt/vcf_validation/vcf_validation_output'
 container_etc_dir = '/opt/eva_sub_cli/etc'
@@ -64,6 +64,7 @@ class DockerValidator(Reporter):
                 f"--schema_dir {container_etc_dir} "
                 f"--output_dir {container_validation_output_dir}"
             )
+        print(docker_cmd)
         return docker_cmd
 
     def run_docker_validator(self):
@@ -92,7 +93,6 @@ class DockerValidator(Reporter):
 
             docker_cmd = self.get_docker_validation_cmd()
             # start validation
-            print(docker_cmd)
             # FIXME: If nextflow fails in the docker exec still exit with error code 0
             run_command_with_output("Run Validation using Nextflow", docker_cmd)
             # copy validation result to user host
