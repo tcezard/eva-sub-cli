@@ -3,6 +3,7 @@ import datetime
 import glob
 import os
 import re
+from functools import lru_cache, cached_property
 
 import yaml
 from ebi_eva_common_pyutils.config import WritableConfig
@@ -26,7 +27,7 @@ def resolve_single_file_path(file_path):
 
 class Reporter:
 
-    def __init__(self, vcf_files, output_dir, submission_config: WritableConfig =None):
+    def __init__(self, vcf_files, output_dir, submission_config: WritableConfig = None):
         self.output_dir = output_dir
         self.vcf_files = vcf_files
         self.results = {}
@@ -154,21 +155,36 @@ class Reporter:
         self._convert_biovalidator_validation_to_spreadsheet()
         self._write_spreadsheet_validation_results()
 
+    @lru_cache
+    def _vcf_check_log(self, vcf_file):
+        vcf_name = os.path.basename(vcf_file)
+        return resolve_single_file_path(
+            os.path.join(self.output_dir, 'vcf_format', vcf_name + '.vcf_format.log')
+        )
+
+    @lru_cache
+    def _vcf_check_text_report(self, vcf_file):
+        vcf_name = os.path.basename(vcf_file)
+        return resolve_single_file_path(
+            os.path.join(self.output_dir, 'vcf_format', vcf_name + '.*.txt')
+        )
+
+    @lru_cache
+    def _vcf_check_db_report(self, vcf_file):
+        vcf_name = os.path.basename(vcf_file)
+        return resolve_single_file_path(
+            os.path.join(self.output_dir, 'vcf_format', vcf_name + '.*.db')
+        )
+
     def _collect_vcf_check_results(self,):
         # detect output files for vcf check
         self.results['vcf_check'] = {}
         for vcf_file in self.vcf_files:
             vcf_name = os.path.basename(vcf_file)
 
-            vcf_check_log = resolve_single_file_path(
-                os.path.join(self.output_dir, 'vcf_format', vcf_name + '.vcf_format.log')
-            )
-            vcf_check_text_report = resolve_single_file_path(
-                os.path.join(self.output_dir, 'vcf_format', vcf_name + '.*.txt')
-            )
-            vcf_check_db_report = resolve_single_file_path(
-                os.path.join(self.output_dir, 'vcf_format', vcf_name + '.*.db')
-            )
+            vcf_check_log = self._vcf_check_log(vcf_file)
+            vcf_check_text_report = self._vcf_check_text_report(vcf_file)
+            vcf_check_db_report = self._vcf_check_db_report(vcf_file)
 
             if vcf_check_log and vcf_check_text_report and vcf_check_db_report:
                 valid, warning_count, error_count, critical_count, error_list, critical_list = self.parse_vcf_check_report(vcf_check_text_report)
@@ -184,21 +200,35 @@ class Reporter:
                 'critical_list': critical_list
             }
 
+    @lru_cache
+    def _assembly_check_log(self, vcf_file):
+        vcf_name = os.path.basename(vcf_file)
+        return resolve_single_file_path(
+            os.path.join(self.output_dir, 'assembly_check', vcf_name + '.assembly_check.log')
+        )
+    @lru_cache
+    def _assembly_check_valid_vcf(self, vcf_file):
+        vcf_name = os.path.basename(vcf_file)
+        return resolve_single_file_path(
+            os.path.join(self.output_dir, 'assembly_check', vcf_name + '.valid_assembly_report*')
+        )
+
+    @lru_cache
+    def _assembly_check_text_report(self, vcf_file):
+        vcf_name = os.path.basename(vcf_file)
+        return  resolve_single_file_path(
+            os.path.join(self.output_dir, 'assembly_check', vcf_name + '*text_assembly_report*')
+        )
+
     def _collect_assembly_check_results(self):
         # detect output files for assembly check
         self.results['assembly_check'] = {}
         for vcf_file in self.vcf_files:
             vcf_name = os.path.basename(vcf_file)
 
-            assembly_check_log = resolve_single_file_path(
-                os.path.join(self.output_dir, 'assembly_check',  vcf_name + '.assembly_check.log')
-            )
-            assembly_check_valid_vcf = resolve_single_file_path(
-                os.path.join(self.output_dir, 'assembly_check', vcf_name + '.valid_assembly_report*')
-            )
-            assembly_check_text_report = resolve_single_file_path(
-                os.path.join(self.output_dir, 'assembly_check', vcf_name + '*text_assembly_report*')
-            )
+            assembly_check_log = self._assembly_check_log(vcf_file)
+            assembly_check_valid_vcf = self._assembly_check_valid_vcf(vcf_file)
+            assembly_check_text_report = self._assembly_check_text_report(vcf_file)
 
             if assembly_check_log and assembly_check_valid_vcf and assembly_check_text_report:
                 error_list_from_log, nb_error_from_log, match, total = \
@@ -219,11 +249,14 @@ class Reporter:
                 'total': total
             }
 
+    @cached_property
+    def _sample_check_yaml(self):
+        return resolve_single_file_path(os.path.join(self.output_dir, 'sample_checker.yml'))
+
     def _load_sample_check_results(self):
-        sample_check_yaml = resolve_single_file_path(os.path.join(self.output_dir, 'sample_checker.yml'))
-        with open(sample_check_yaml) as open_yaml:
+        with open(self._sample_check_yaml) as open_yaml:
             self.results['sample_check'] = yaml.safe_load(open_yaml)
-        self.results['sample_check']['report_path'] = sample_check_yaml
+        self.results['sample_check']['report_path'] = self._sample_check_yaml
 
     def _parse_biovalidator_validation_results(self):
         """

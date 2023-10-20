@@ -11,18 +11,11 @@ from eva_sub_cli.docker_validator import DockerValidator, docker_path, container
 from eva_sub_cli.reporter import READY_FOR_SUBMISSION_TO_EVA
 from eva_sub_cli.submit import StudySubmitter
 
-VALIDATION_OUTPUT_DIR = "validation_output"
 VALIDATE = 'validate'
 SUBMIT = 'submit'
 RESUME_SUBMISSION = 'resume_submission'
 
 logging_config.add_stdout_handler()
-
-
-def get_docker_validator(vcf_files_mapping, output_dir, metadata_json, metadata_xlsx, sub_config):
-    validation_output_dir = os.path.join(output_dir, VALIDATION_OUTPUT_DIR)
-    return DockerValidator(vcf_files_mapping, validation_output_dir, metadata_json, metadata_xlsx,
-                            submission_config=sub_config)
 
 
 def get_vcf_files(mapping_file):
@@ -68,11 +61,11 @@ if __name__ == "__main__":
                 submitter.upload_submission()
 
     if args.task == VALIDATE or args.task == SUBMIT:
-        docker_validator = get_docker_validator(args.vcf_files_mapping, args.submission_dir, args.metadata_json,
-                                                args.metadata_xlsx, sub_config)
-        docker_validator.validate()
-        docker_validator.create_reports()
-        docker_validator.update_config_with_validation_result()
+        with DockerValidator(args.vcf_files_mapping, args.submission_dir, args.metadata_json, args.metadata_xlsx,
+                             submission_config=sub_config) as validator:
+            validator.validate()
+            validator.create_reports()
+            validator.update_config_with_validation_result()
 
     if args.task == SUBMIT:
         with StudySubmitter(args.submission_dir, vcf_files, metadata_file, submission_config=sub_config) as submitter:

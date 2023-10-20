@@ -20,6 +20,8 @@ container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = '/opt/vcf_validation/vcf_validation_output'
 container_etc_dir = '/opt/eva_sub_cli/etc'
 
+VALIDATION_OUTPUT_DIR = "validation_output"
+
 
 class DockerValidator(Reporter):
 
@@ -33,7 +35,10 @@ class DockerValidator(Reporter):
         if self.container_name is None:
             self.container_name = container_image.split('/')[1] + '.' + container_tag
         self.spreadsheet2json_conf = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
-        super().__init__(self._find_vcf_file(), output_dir, submission_config=submission_config)
+        # validator write to the validation output directory
+        # If the submission_config is not set it will also be written to the VALIDATION_OUTPUT_DIR
+        super().__init__(self._find_vcf_file(), os.path.join(output_dir, VALIDATION_OUTPUT_DIR),
+                         submission_config=submission_config)
 
     def _validate(self):
         self.run_docker_validator()

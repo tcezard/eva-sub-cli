@@ -23,7 +23,7 @@ class TestDockerValidator(TestCase):
     metadata_json = os.path.join(test_run_dir, 'sub_metadata.json')
     metadata_xlsx = os.path.join(test_run_dir, 'sub_metadata.xlsx')
 
-    output_dir = os.path.join(test_run_dir, 'validation_output')
+    output_dir = test_run_dir
 
     def setUp(self):
         if not os.path.exists(self.test_run_dir):
@@ -74,15 +74,14 @@ class TestDockerValidator(TestCase):
         )
 
     def tearDown(self):
-        # if os.path.exists(self.test_run_dir):
-        #     shutil.rmtree(self.test_run_dir)
+        if os.path.exists(self.test_run_dir):
+            shutil.rmtree(self.test_run_dir)
         self.validator.stop_running_container()
         self.validator_from_excel.stop_running_container()
 
-    def assert_sample_checker(self, expected_checker):
-        sample_checker_yaml = os.path.join(self.output_dir, 'sample_checker.yml')
-        self.assertTrue(os.path.isfile(sample_checker_yaml))
-        with open(sample_checker_yaml) as open_yaml:
+    def assert_sample_checker(self, sample_checker_file, expected_checker):
+        self.assertTrue(os.path.isfile(sample_checker_file))
+        with open(sample_checker_file) as open_yaml:
             assert yaml.safe_load(open_yaml) == expected_checker
 
     def test_validate(self):
@@ -90,7 +89,7 @@ class TestDockerValidator(TestCase):
         self.validator.validate()
 
         # assert vcf checks
-        vcf_format_dir = os.path.join(self.output_dir, 'vcf_format')
+        vcf_format_dir = os.path.join(self.validator.output_dir, 'vcf_format')
         self.assertTrue(os.path.exists(vcf_format_dir))
 
         vcf_format_log_file = os.path.join(vcf_format_dir, 'input_passed.vcf.vcf_format.log')
@@ -102,13 +101,13 @@ class TestDockerValidator(TestCase):
                              vcf_format_logs[3])
 
             text_report = vcf_format_logs[2].split(':')[1].strip()
-            with open(os.path.join(self.output_dir, text_report)) as text_report:
+            with open(os.path.join(self.validator.output_dir, text_report)) as text_report:
                 text_report_content = text_report.readlines()
                 self.assertEqual('According to the VCF specification, the input file is valid\n',
                                  text_report_content[0])
 
         # assert assembly report
-        assembly_check_dir = os.path.join(self.output_dir, 'assembly_check')
+        assembly_check_dir = os.path.join(self.validator.output_dir, 'assembly_check')
         self.assertTrue(os.path.exists(assembly_check_dir))
 
         assembly_check_log_file = os.path.join(assembly_check_dir, 'input_passed.vcf.assembly_check.log')
@@ -131,11 +130,8 @@ class TestDockerValidator(TestCase):
                 }
             }
         }
-        self.assert_sample_checker(expected_checker)
+        self.assert_sample_checker(self.validator._sample_check_yaml, expected_checker)
 
     def test_validate_from_excel(self):
-        # FIXME: The Sample check fails because the json file generated does not currently match the expected one
-        # Need to skip the file collection
         self.validator_from_excel.validate()
-        sample_checker_yaml = os.path.join(self.output_dir, 'sample_checker.yml')
-        self.assertTrue(os.path.isfile(sample_checker_yaml))
+        self.assertTrue(os.path.isfile(self.validator_from_excel._sample_check_yaml))
