@@ -335,7 +335,7 @@ class Reporter:
 
     def create_reports(self):
         report_html = generate_html_report(self.results, self.validation_date, self.project_title)
-        file_path = 'report.html'
+        file_path = os.path.join(self.output_dir, 'report.html')
         with open(file_path, "w") as f:
             f.write(report_html)
         return file_path
