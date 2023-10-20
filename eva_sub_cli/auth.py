@@ -38,7 +38,7 @@ class LSRIAuth(AppLogger):
         # Display the user code and verification URI to the user
         print(f'Please visit {verification_uri} and enter this user code: {user_code}')
         # Delegate subsequent post-authentication processing (which requires LSRI client secret) to eva-submission-ws
-        # so that we can avoid storing that client secret in eva-sub-eva_sub_cli
+        # so that we can avoid storing that client secret in eva-sub-eva
         response = requests.post(self.auth_url, timeout=expires_in,
                                  headers={'Accept': 'application/hal+json'},
                                  params={"deviceCode": device_code, "expiresIn": expires_in})
