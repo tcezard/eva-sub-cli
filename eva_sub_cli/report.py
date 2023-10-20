@@ -8,7 +8,7 @@ current_dir = os.path.dirname(__file__)
 
 
 def get_logo_data():
-    with open(os.path.join(current_dir, "eva_logo.png"), "rb") as f:
+    with open(os.path.join(current_dir, "etc/eva_logo.png"), "rb") as f:
         logo_data = base64.b64encode(f.read()).decode("utf-8")
         return logo_data
 
