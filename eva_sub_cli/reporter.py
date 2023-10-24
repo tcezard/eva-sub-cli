@@ -156,22 +156,19 @@ class Reporter:
         self._write_spreadsheet_validation_results()
 
     @lru_cache
-    def _vcf_check_log(self, vcf_file):
-        vcf_name = os.path.basename(vcf_file)
+    def _vcf_check_log(self, vcf_name):
         return resolve_single_file_path(
             os.path.join(self.output_dir, 'vcf_format', vcf_name + '.vcf_format.log')
         )
 
     @lru_cache
-    def _vcf_check_text_report(self, vcf_file):
-        vcf_name = os.path.basename(vcf_file)
+    def _vcf_check_text_report(self, vcf_name):
         return resolve_single_file_path(
             os.path.join(self.output_dir, 'vcf_format', vcf_name + '.*.txt')
         )
 
     @lru_cache
-    def _vcf_check_db_report(self, vcf_file):
-        vcf_name = os.path.basename(vcf_file)
+    def _vcf_check_db_report(self, vcf_name):
         return resolve_single_file_path(
             os.path.join(self.output_dir, 'vcf_format', vcf_name + '.*.db')
         )
@@ -182,9 +179,9 @@ class Reporter:
         for vcf_file in self.vcf_files:
             vcf_name = os.path.basename(vcf_file)
 
-            vcf_check_log = self._vcf_check_log(vcf_file)
-            vcf_check_text_report = self._vcf_check_text_report(vcf_file)
-            vcf_check_db_report = self._vcf_check_db_report(vcf_file)
+            vcf_check_log = self._vcf_check_log(vcf_name)
+            vcf_check_text_report = self._vcf_check_text_report(vcf_name)
+            vcf_check_db_report = self._vcf_check_db_report(vcf_name)
 
             if vcf_check_log and vcf_check_text_report and vcf_check_db_report:
                 valid, warning_count, error_count, critical_count, error_list, critical_list = self.parse_vcf_check_report(vcf_check_text_report)
@@ -201,22 +198,19 @@ class Reporter:
             }
 
     @lru_cache
-    def _assembly_check_log(self, vcf_file):
-        vcf_name = os.path.basename(vcf_file)
+    def _assembly_check_log(self, vcf_name):
         return resolve_single_file_path(
             os.path.join(self.output_dir, 'assembly_check', vcf_name + '.assembly_check.log')
         )
     @lru_cache
-    def _assembly_check_valid_vcf(self, vcf_file):
-        vcf_name = os.path.basename(vcf_file)
+    def _assembly_check_valid_vcf(self, vcf_name):
         return resolve_single_file_path(
             os.path.join(self.output_dir, 'assembly_check', vcf_name + '.valid_assembly_report*')
         )
 
     @lru_cache
-    def _assembly_check_text_report(self, vcf_file):
-        vcf_name = os.path.basename(vcf_file)
-        return  resolve_single_file_path(
+    def _assembly_check_text_report(self, vcf_name):
+        return resolve_single_file_path(
             os.path.join(self.output_dir, 'assembly_check', vcf_name + '*text_assembly_report*')
         )
 
@@ -226,9 +220,9 @@ class Reporter:
         for vcf_file in self.vcf_files:
             vcf_name = os.path.basename(vcf_file)
 
-            assembly_check_log = self._assembly_check_log(vcf_file)
-            assembly_check_valid_vcf = self._assembly_check_valid_vcf(vcf_file)
-            assembly_check_text_report = self._assembly_check_text_report(vcf_file)
+            assembly_check_log = self._assembly_check_log(vcf_name)
+            assembly_check_valid_vcf = self._assembly_check_valid_vcf(vcf_name)
+            assembly_check_text_report = self._assembly_check_text_report(vcf_name)
 
             if assembly_check_log and assembly_check_valid_vcf and assembly_check_text_report:
                 error_list_from_log, nb_error_from_log, match, total = \

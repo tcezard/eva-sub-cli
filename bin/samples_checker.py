@@ -101,7 +101,14 @@ def read_metadata_json(json_file):
         )
 
 
-def resolve_vcf_file_location(vcf_files, files_per_analysis):
+def associate_vcf_path_with_analysis(vcf_files, files_per_analysis):
+    """
+    Match the files names associated with analysis provided in the metadata with the file path given on the command
+    line.
+    :param vcf_files the list of full path to the vcf files
+    :param files_per_analysis: dictionary of the analysis and their associated VCF file names
+    :returns dictionary of analysis and their associated vcf file path
+    """
     result_files_per_analysis = dict()
     for analysis in files_per_analysis:
         result_files_per_analysis[analysis] = []
@@ -137,8 +144,8 @@ def check_sample_name_concordance(metadata_json, vcf_files, output_yaml):
     found in the VCF files
     """
     samples_per_analysis, files_per_analysis = read_metadata_json(metadata_json)
-    files_per_analysis = resolve_vcf_file_location(vcf_files, files_per_analysis)
-    overall_differences, results_per_analysis_alias = compare_all_analysis(samples_per_analysis, files_per_analysis)
+    file_path_per_analysis = associate_vcf_path_with_analysis(vcf_files, files_per_analysis)
+    overall_differences, results_per_analysis_alias = compare_all_analysis(samples_per_analysis, file_path_per_analysis)
     write_result_yaml(output_yaml, overall_differences, results_per_analysis_alias)
 
 
