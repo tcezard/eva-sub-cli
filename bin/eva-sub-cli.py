@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import csv
 import os
 from argparse import ArgumentParser
@@ -5,26 +6,17 @@ from argparse import ArgumentParser
 from ebi_eva_common_pyutils.config import WritableConfig
 from ebi_eva_common_pyutils.logger import logging_config
 
-from cli import SUB_CLI_CONFIG_FILE, __version__
-from cli.docker_validator import DockerValidator, docker_path, container_image
-from cli.reporter import READY_FOR_SUBMISSION_TO_EVA
-from cli.submit import StudySubmitter
+from eva_sub_cli import SUB_CLI_CONFIG_FILE, __version__
+from eva_sub_cli.docker_validator import DockerValidator, docker_path, container_image
+from eva_sub_cli.reporter import READY_FOR_SUBMISSION_TO_EVA
+from eva_sub_cli.submit import StudySubmitter
 
-VALIDATION_OUTPUT_DIR = "validation_output"
 VALIDATE = 'validate'
 SUBMIT = 'submit'
 RESUME_SUBMISSION = 'resume_submission'
 
 logging_config.add_stdout_handler()
 
-
-def get_docker_validator(vcf_files_mapping, output_dir, metadata_json, metadata_xlsx,
-                         arg_container, arg_docker, sub_config):
-    docker = arg_docker or docker_path
-    container = arg_container or container_image
-    validation_output_dir = os.path.join(output_dir, VALIDATION_OUTPUT_DIR)
-    return DockerValidator(vcf_files_mapping, validation_output_dir, metadata_json, metadata_xlsx,
-                           container, docker, sub_config)
 
 def get_vcf_files(mapping_file):
     vcf_files = []
@@ -33,6 +25,7 @@ def get_vcf_files(mapping_file):
         for row in reader:
             vcf_files.append(row['vcf'])
     return vcf_files
+
 
 if __name__ == "__main__":
     argparser = ArgumentParser(description='EVA Submission CLI - validate and submit data to EVA')
@@ -48,9 +41,6 @@ if __name__ == "__main__":
                        help="Json file that describe the project, analysis, samples and files")
     group.add_argument("--metadata_xlsx",
                        help="Excel spreadsheet  that describe the project, analysis, samples and files")
-    argparser.add_argument("--docker_path", required=False, help="Full path to the docker installation, "
-                                                                 "not required if docker is available in the PATH environment variable")
-    argparser.add_argument("--container_name", required=False, help="Name of the docker container")
 
     args = argparser.parse_args()
 
@@ -71,11 +61,11 @@ if __name__ == "__main__":
                 submitter.upload_submission()
 
     if args.task == VALIDATE or args.task == SUBMIT:
-        docker_validator = get_docker_validator(args.vcf_files_mapping, args.submission_dir, args.metadata_json,
-                                                args.metadata_xlsx, args.container_name, args.docker_path, sub_config)
-        docker_validator.validate()
-        docker_validator.create_reports()
-        docker_validator.update_config_with_validation_result()
+        with DockerValidator(args.vcf_files_mapping, args.submission_dir, args.metadata_json, args.metadata_xlsx,
+                             submission_config=sub_config) as validator:
+            validator.validate()
+            validator.create_reports()
+            validator.update_config_with_validation_result()
 
     if args.task == SUBMIT:
         with StudySubmitter(args.submission_dir, vcf_files, metadata_file, submission_config=sub_config) as submitter:

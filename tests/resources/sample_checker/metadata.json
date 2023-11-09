@@ -81,7 +81,7 @@
       "referenceGenome": "GCA_000001405.27"
     }
   ],
-  "file": [
+  "files": [
     {
       "analysisAlias": "VD1",
       "fileName": "example1.vcf.gz",

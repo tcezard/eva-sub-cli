@@ -1,9 +1,10 @@
+import glob
 import os
 from unittest import TestCase
 
 import yaml
 
-from cli.samples_checker import check_sample_name_concordance
+from bin.samples_checker import check_sample_name_concordance
 
 
 class TestSampleChecker(TestCase):
@@ -17,9 +18,12 @@ class TestSampleChecker(TestCase):
 
     def test_check_sample_name_concordance(self):
         metadata_json = os.path.join(self.resource_dir, 'sample_checker', 'metadata.json')
-        vcf_dir = os.path.join(self.resource_dir, 'sample_checker')
+        vcf_files = [
+            os.path.join(self.resource_dir, 'sample_checker', file_name)
+            for file_name in ['example1.vcf.gz', 'example2.vcf', 'example3.vcf']
+        ]
 
-        check_sample_name_concordance(metadata_json, vcf_dir, self.output_yaml)
+        check_sample_name_concordance(metadata_json, vcf_files, self.output_yaml)
         expected_results = {
             'overall_differences': True,
             'results_per_analysis': {
