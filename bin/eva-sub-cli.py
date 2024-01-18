@@ -41,6 +41,10 @@ if __name__ == "__main__":
                        help="Json file that describe the project, analysis, samples and files")
     group.add_argument("--metadata_xlsx",
                        help="Excel spreadsheet  that describe the project, analysis, samples and files")
+    group.add_argument("--username",
+                       help="Username used for connecting to the ENA webin account")
+    group.add_argument("--password",
+                       help="Password used for connecting to the ENA webin account")
 
     args = argparser.parse_args()
 
@@ -57,7 +61,8 @@ if __name__ == "__main__":
             args.task = SUBMIT
         else:
             # if validation is passed, upload files without validating again
-            with StudySubmitter(args.submission_dir, vcf_files, metadata_file, submission_config=sub_config) as submitter:
+            with StudySubmitter(args.submission_dir, vcf_files, metadata_file, submission_config=sub_config,
+                                username=args.username, password=args.password) as submitter:
                 submitter.upload_submission()
 
     if args.task == VALIDATE or args.task == SUBMIT:
@@ -68,5 +73,6 @@ if __name__ == "__main__":
             validator.update_config_with_validation_result()
 
     if args.task == SUBMIT:
-        with StudySubmitter(args.submission_dir, vcf_files, metadata_file, submission_config=sub_config) as submitter:
+        with StudySubmitter(args.submission_dir, vcf_files, metadata_file, submission_config=sub_config,
+                            username=args.username, password=args.password) as submitter:
             submitter.submit()

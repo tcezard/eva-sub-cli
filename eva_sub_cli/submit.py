@@ -18,8 +18,8 @@ SUBMISSION_INITIATE_URL = "http://www.ebi.ac.uk/eva/v1/submission/initiate"
 
 class StudySubmitter(AppLogger):
     def __init__(self, submission_dir, vcf_files, metadata_file, submission_initiate_url=SUBMISSION_INITIATE_URL,
-                 submission_config: WritableConfig = None):
-        self.auth = get_auth()
+                 submission_config: WritableConfig = None, username=None, password=None):
+        self.auth = get_auth(username, password)
         self.submission_initiate_url = submission_initiate_url
         self.submission_dir = submission_dir
         self.vcf_files = vcf_files

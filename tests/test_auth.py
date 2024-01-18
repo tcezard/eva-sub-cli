@@ -1,4 +1,5 @@
 import json
+import os
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -7,10 +8,9 @@ from eva_sub_cli.auth import WebinAuth, LSRIAuth
 
 
 class TestWebinAuth(unittest.TestCase):
-    def setUp(self):
-        self.auth = WebinAuth()
 
     def test_webin_auth(self):
+        auth = WebinAuth()
         # Mock the response for ENA authentication
         mock_auth_response = MagicMock()
         mock_auth_response.status_code = 200
@@ -19,15 +19,38 @@ class TestWebinAuth(unittest.TestCase):
         # Call the submit_with_webin_auth method
         with patch.object(WebinAuth, '_get_webin_username_password', return_value=("mock_username", "mock_password")), \
              patch("eva_sub_cli.auth.requests.post", return_value=mock_auth_response) as mock_post:
-            token = self.auth.token
+            token = auth.token
 
         # Check if the ENA_AUTH_URL was called with the correct parameters
         mock_post.assert_any_call(
-            self.auth.ena_auth_url,
+            auth.ena_auth_url,
             headers={"accept": "*/*", "Content-Type": "application/json"},
             data=json.dumps({"authRealms": ["ENA"], "username": "mock_username", "password": "mock_password"}),
         )
         assert token == 'mock_webin_token'
+
+    def test_get_webin_username_password_cmd_line(self):
+        auth = WebinAuth(username='username', password='password')
+        username, password = auth._get_webin_username_password()
+        assert username == 'username'
+        assert password == 'password'
+
+    def test_get_webin_username_password_environ(self):
+        os.environ['ENAWEBINACCOUNT'] = 'username'
+        os.environ['ENAWEBINPASSWORD'] = 'password'
+        auth = WebinAuth()
+        username, password = auth._get_webin_username_password()
+        assert username == 'username'
+        assert password == 'password'
+
+    def test_get_webin_username_password_stdin(self):
+        auth = WebinAuth()
+        with patch("builtins.input", return_value="username"), \
+             patch("eva_sub_cli.auth.getpass", return_value="password"):
+            username, password = auth._get_webin_username_password()
+        assert username == 'username'
+        assert password == 'password'
+
 
 class TestLSRIAuth(unittest.TestCase):
 
