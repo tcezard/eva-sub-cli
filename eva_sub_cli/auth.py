@@ -1,4 +1,5 @@
 import json
+import os
 from functools import cached_property
 from getpass import getpass
 
@@ -9,12 +10,13 @@ from urllib3.exceptions import ResponseError
 from eva_sub_cli import LSRI_CLIENT_ID
 
 ENA_AUTH_URL = "https://www.ebi.ac.uk/ena/submit/webin/auth/token"
-LSRI_AUTH_URL = "http://www.ebi.ac.uk/eva/v1/submission/auth/lsri"
-DEVICE_AUTHORISATION_URL ="https://login.elixir-czech.org/oidc/devicecode"
+LSRI_AUTH_URL = "https://www.ebi.ac.uk/eva/v1/submission/auth/lsri"
+DEVICE_AUTHORISATION_URL = "https://login.elixir-czech.org/oidc/devicecode"
 
 
 class LSRIAuth(AppLogger):
-    def __init__(self, client_id=LSRI_CLIENT_ID, device_authorization_url=DEVICE_AUTHORISATION_URL, auth_url=LSRI_AUTH_URL):
+    def __init__(self, client_id=LSRI_CLIENT_ID, device_authorization_url=DEVICE_AUTHORISATION_URL,
+                 auth_url=LSRI_AUTH_URL):
         self.client_id = client_id
         self.device_authorization_url = device_authorization_url
         self.auth_url = auth_url
@@ -51,12 +53,14 @@ class LSRIAuth(AppLogger):
 
 class WebinAuth(AppLogger):
 
-    def __init__(self, ena_auth_url=ENA_AUTH_URL):
+    def __init__(self, ena_auth_url=ENA_AUTH_URL, username=None, password=None):
         self.ena_auth_url = ena_auth_url
+        self.cmd_line_username = username
+        self.cmd_line_password = password
 
     @cached_property
     def token(self):
-        self.info("Proceeding with ENA Webin authentication...")
+        self.info("ENA Webin authentication")
         username, password = self._get_webin_username_password()
         headers = {"accept": "*/*", "Content-Type": "application/json"}
         data = {"authRealms": ["ENA"], "username": username, "password": password}
@@ -69,6 +73,22 @@ class WebinAuth(AppLogger):
             raise ResponseError('Webin Authentication Error')
 
     def _get_webin_username_password(self):
+        username = self.cmd_line_username
+        password = self.cmd_line_password
+        if not username or not password:
+            self.debug('No username and password provided on the command line')
+            username, password = self._get_webin_username_password_from_env()
+        if not username or not password:
+            self.debug('No username and password provided in environment variables')
+            username, password = self._get_webin_username_password_from_stdin()
+        return username, password
+
+    def _get_webin_username_password_from_env(self):
+        username = os.environ.get('ENAWEBINACCOUNT')
+        password = os.environ.get('ENAWEBINPASSWORD')
+        return username, password
+
+    def _get_webin_username_password_from_stdin(self):
         username = input("Enter your ENA Webin username: ")
         password = getpass("Enter your ENA Webin password: ")
         return username, password
@@ -78,21 +98,9 @@ class WebinAuth(AppLogger):
 auth = None
 
 
-def get_auth():
+def get_auth(username=None, password=None):
     global auth
     if auth:
         return auth
-    print("Choose an authentication method:")
-    print("1. ENA Webin")
-    print("2. LSRI")
-
-    choice = int(input("Enter the number corresponding to your choice: "))
-
-    if choice == 1:
-        auth = WebinAuth()
-    elif choice == 2:
-        auth = LSRIAuth()
-    else:
-        print("Invalid choice! Try again!")
-        get_auth()
+    auth = WebinAuth(username, password)
     return auth
