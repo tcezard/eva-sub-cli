@@ -40,7 +40,7 @@ class TestSubmit(unittest.TestCase):
 
         # Set the side_effect attribute to return different responses
         with patch('eva_sub_cli.submit.requests.post', return_value=mock_submit_response) as mock_post, \
-                patch.object(StudySubmitter, 'upload_submission'), \
+                patch.object(StudySubmitter, '_upload_submission'), \
                 patch.object(StudySubmitter, 'verify_submission_dir'), \
                 patch.object(StudySubmitter, 'update_config_with_submission_id_and_upload_url'), \
                 patch.object(self.submitter, 'sub_config', {READY_FOR_SUBMISSION_TO_EVA: True}), \
@@ -63,7 +63,7 @@ class TestSubmit(unittest.TestCase):
         sub_config.write()
 
         with patch('eva_sub_cli.submit.requests.post', return_value=mock_submit_response) as mock_post, \
-                patch.object(StudySubmitter, 'upload_submission'):
+                patch.object(StudySubmitter, '_upload_submission'):
             with self.submitter as submitter:
                 submitter.submit()
 
@@ -104,8 +104,8 @@ class TestSubmit(unittest.TestCase):
         test_url = 'http://example.com/'
         with patch.object(StudySubmitter, 'upload_file') as mock_upload_file, \
             patch.object(self.submitter, 'sub_config', {READY_FOR_SUBMISSION_TO_EVA: True}):
-
-            self.submitter.upload_submission(submission_upload_url=test_url)
+            self.submitter.sub_config[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL] = test_url
+            self.submitter._upload_submission()
         for vcf_file in self.submitter.vcf_files:
             mock_upload_file.assert_any_call(test_url, vcf_file)
         mock_upload_file.assert_called_with(test_url, self.submitter.metadata_file)
@@ -114,6 +114,6 @@ class TestSubmit(unittest.TestCase):
         test_url = 'http://example.com/'
         with patch('eva_sub_cli.submit.requests.put') as mock_put:
             file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_template.V1.1.4.xlsx')
-            self.submitter.upload_file(submission_upload_url=test_url, input_file=file_to_upload)
+            self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.mock_calls[0][1][0] == test_url + os.path.basename(file_to_upload)
             # Cannot test the content of the upload as opening the same file twice give different object
