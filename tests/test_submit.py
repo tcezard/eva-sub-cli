@@ -21,7 +21,7 @@ class TestSubmit(unittest.TestCase):
         self.token = 'a token'
         with patch('eva_sub_cli.submit.get_auth', return_value=Mock(token=self.token)):
             vcf_files = [os.path.join(self.resource_dir, 'vcf_files', 'example2.vcf.gz')]
-            metadata_file = os.path.join(self.resource_dir, 'EVA_Submission_template.V1.1.4.xlsx')
+            metadata_file = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
             self.submitter = StudySubmitter(submission_dir=self.test_sub_dir, vcf_files=vcf_files,
                                             metadata_file=metadata_file)
 
@@ -102,7 +102,7 @@ class TestSubmit(unittest.TestCase):
         mock_submit_response = MagicMock()
         mock_submit_response.status_code = 200
         test_url = 'http://example.com/'
-        with patch.object(StudySubmitter, 'upload_file') as mock_upload_file, \
+        with patch.object(StudySubmitter, '_upload_file') as mock_upload_file, \
             patch.object(self.submitter, 'sub_config', {READY_FOR_SUBMISSION_TO_EVA: True}):
             self.submitter.sub_config[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL] = test_url
             self.submitter._upload_submission()
@@ -113,7 +113,7 @@ class TestSubmit(unittest.TestCase):
     def test_upload_file(self):
         test_url = 'http://example.com/'
         with patch('eva_sub_cli.submit.requests.put') as mock_put:
-            file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_template.V1.1.4.xlsx')
+            file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
             self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.mock_calls[0][1][0] == test_url + os.path.basename(file_to_upload)
             # Cannot test the content of the upload as opening the same file twice give different object
