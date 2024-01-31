@@ -12,10 +12,6 @@ from eva_sub_cli.submit import StudySubmitter
 VALIDATE = 'validate'
 SUBMIT = 'submit'
 
-
-logging_config.add_stdout_handler()
-
-
 def get_vcf_files(mapping_file):
     vcf_files = []
     with open(mapping_file) as open_file:

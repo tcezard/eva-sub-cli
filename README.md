@@ -6,6 +6,7 @@ EVA Submission Command Line Interface for Validation
 
 ## Installation
 
+TBD
 
 ## Input files for the validation and submission tool
 
@@ -32,6 +33,13 @@ vcf,fasta,report
 The metadata template can be found within the etc folder at `eva_sub_cli/etc/EVA_Submission_template.xlsx`
 It should be populated following the instruction provided within the template
 
+### The metadata JSON
+
+The metadata can also be provided via a JSON file which should conform to the schema located  at 
+`eva_sub_cli/etc/eva_schema.json` 
+
+More detail documentation to follow 
+
 ## Execution
 
 ### Validate and submit your dataset
@@ -54,4 +62,15 @@ eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx \
 ```
 ### Submit only
 
-All submission must have been validated. You cannot run the submission without validation 
+All submission must have been validated. You cannot run the submission without validation. Once validated running 
+
+```shell
+eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx \
+               --vcf_files_mapping vcf_mapping.csv --submission_dir submission_dir
+```
+or 
+```shell
+eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx \
+               --vcf_files_mapping vcf_mapping.csv --submission_dir submission_dir --tasks SUBMIT
+```
+Will only submit the data and not validate.

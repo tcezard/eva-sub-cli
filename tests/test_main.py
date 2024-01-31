@@ -70,7 +70,7 @@ class TestMain(unittest.TestCase):
             with m_submitter() as submitter:
                 submitter.submit.assert_called_once_with(resume=False)
 
-    def test_orchestrate_validate_no_submit(self):
+    def test_orchestrate_submit_no_validate(self):
         with patch('eva_sub_cli.main.get_vcf_files') as m_get_vcf, \
                 patch('eva_sub_cli.main.WritableConfig') as m_config, \
                 patch('eva_sub_cli.main.DockerValidator') as m_docker_validator, \

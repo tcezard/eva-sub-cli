@@ -29,8 +29,8 @@ if __name__ == "__main__":
     argparser.add_argument("--password",
                            help="Password used for connecting to the ENA webin account")
     argparser.add_argument("--resume", default=False, action='store_true',
-                           help="Resume the process execution from where it left of. This is only supported for a "
-                                "subset of the tasks")
+                           help="Resume the process execution from where it left of. This is currently only supported "
+                                "for the upload part of the SUBMIT task.")
 
     args = argparser.parse_args()
 
