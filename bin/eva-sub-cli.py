@@ -11,9 +11,9 @@ from eva_sub_cli.main import VALIDATE, SUBMIT
 if __name__ == "__main__":
     argparser = ArgumentParser(description='EVA Submission CLI - validate and submit data to EVA')
     argparser.add_argument('--tasks', nargs='*', choices=[VALIDATE, SUBMIT], default=[SUBMIT],
-                           help='Select a task to perform. Stating VALIDATE run the validation regardless of the '
-                                'previous runs, Stating SUBMIT run validate only if the validation was not performed '
-                                'successfully before and run the submission.')
+                           help='Select a task to perform. Selecting VALIDATE will run the validation regardless of the outcome of '
+                                'previous runs. Selecting SUBMIT will run validate only if the validation was not performed '
+                                'successfully before and then run the submission.')
     argparser.add_argument('--submission_dir', required=True, type=str,
                            help='Full path to the directory where all processing will be done '
                                 'and submission info is/will be stored')

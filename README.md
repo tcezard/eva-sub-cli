@@ -7,14 +7,14 @@ EVA Submission Command Line Interface for Validation
 ## Installation
 
 
-## input file for the validation and submission tool
+## Input files for the validation and submission tool
 
 ### The VCF file and association with reference genome
 
 The path to the VCF files are provided via CSV file that links the VCF to their respective fasta sequence. This allows 
 us to support different assemblies for each VCF file 
 The CSV file `vcf_mapping.csv` contains the following columns vcf, fasta, report providing respectively:
- - The VCF to validatio/upload
+ - The VCF to validate/upload
  - The assembly in fasta format that was used to derive the VCF
  - The assembly report associated with the assembly (if available) as found in NCBI assemblies (https://www.ncbi.nlm.nih.gov/genome/doc/ftpfaq/#files)
 
@@ -34,7 +34,7 @@ It should be populated following the instruction provided within the template
 
 ## Execution
 
-### Validate and submit you dataset
+### Validate and submit your dataset
 
 To validate and submit run the following command
 
