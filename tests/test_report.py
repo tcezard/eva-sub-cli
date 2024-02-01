@@ -67,6 +67,15 @@ validation_results = {
             }
         }
     },
+    "fasta_check": {
+        'reference_genome.fa': {
+            'all_insdc': False,
+            'sequences': [
+                {'sequence_name': '1', 'sequence_md5': 'hsjvchdhdo3ate83jdfd76rp2', 'insdc': True},
+                {'sequence_name': '2', 'sequence_md5': 'hjfdoijsfc47hfg0gh9qwjrve', 'insdc': False }
+            ]
+        }
+    },
     'metadata_check': {
         'json_errors': [
             {'property': '.files', 'description': "should have required property 'files'"},

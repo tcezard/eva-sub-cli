@@ -27,29 +27,21 @@ class DockerValidator(Reporter):
 
     def __init__(self, mapping_file, output_dir, metadata_json=None,
                  metadata_xlsx=None, container_name=None, docker_path='docker', submission_config=None):
+        # validator write to the validation output directory
+        # If the submission_config is not set it will also be written to the VALIDATION_OUTPUT_DIR
+        super().__init__(mapping_file, os.path.join(output_dir, VALIDATION_OUTPUT_DIR),
+                         submission_config=submission_config)
+
         self.docker_path = docker_path
-        self.mapping_file = mapping_file
         self.metadata_json = metadata_json
         self.metadata_xlsx = metadata_xlsx
         self.container_name = container_name
         if self.container_name is None:
             self.container_name = container_image.split('/')[1] + '.' + container_tag
         self.spreadsheet2json_conf = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
-        # validator write to the validation output directory
-        # If the submission_config is not set it will also be written to the VALIDATION_OUTPUT_DIR
-        super().__init__(self._find_vcf_file(), os.path.join(output_dir, VALIDATION_OUTPUT_DIR),
-                         submission_config=submission_config)
 
     def _validate(self):
         self.run_docker_validator()
-
-    def _find_vcf_file(self):
-        vcf_files = []
-        with open(self.mapping_file) as open_file:
-            reader = csv.DictReader(open_file, delimiter=',')
-            for row in reader:
-                vcf_files.append(row['vcf'])
-        return vcf_files
 
     def get_docker_validation_cmd(self):
         if self.metadata_xlsx and not self.metadata_json:
@@ -97,6 +89,7 @@ class DockerValidator(Reporter):
             self.copy_files_to_container()
 
             docker_cmd = self.get_docker_validation_cmd()
+            print(docker_cmd)
             # start validation
             # FIXME: If nextflow fails in the docker exec still exit with error code 0
             run_command_with_output("Run Validation using Nextflow", docker_cmd)

@@ -1,0 +1,8 @@
+sequences:
+  - sequence_name: 1
+    sequence_md5: 6681ac2f62509cfc220d78751b8dc524
+    insdc: true
+  - sequence_name: 2
+    sequence_md5: d2b3f22704d944f92a6bc45b6603ea2d
+    insdc: false
+all_insdc: false

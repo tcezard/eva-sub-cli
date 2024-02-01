@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 {% from 'file_validation.html' import file_validation_report %}
 {% from 'sample_name_check.html' import sample_name_check_report %}
+{% from 'fasta_check.html' import fasta_check_report %}
 {% from 'metadata_validation.html' import metadata_validation_report %}
+
 <html lang="EN">
 <head>
     <meta charset="UTF-8">
@@ -72,6 +74,14 @@
         Checks whether information in the metadata is concordant with that contained in the VCF files, in particular sample names.
     </div>
     {{ sample_name_check_report(validation_results)}}
+</section>
+
+<section>
+    <h2>Reference Genome INSDC check</h2>
+    <div class="description">
+        Checks that the reference sequences in the fasta file used to call the variant are accessioned in INSDC.
+    </div>
+    {{ fasta_check_report(validation_results)}}
 </section>
 
 <script>

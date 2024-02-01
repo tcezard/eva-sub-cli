@@ -25,11 +25,12 @@ params.executable = [
     "vcf_validator": "vcf_validator",
     "vcf_assembly_checker": "vcf_assembly_checker",
     "samples_checker": "samples_checker.py",
+    "fasta_checker": "check_fasta_insdc.py",
     "xlsx2json": "xlsx2json.py",
     "biovalidator": "biovalidator"
 ]
 // validation tasks
-params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check", "metadata_check"]
+params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check", "metadata_check", "genome_check"]
 // container validation dir (prefix for vcf files)
 params.container_validation_dir = "/opt/vcf_validation"
 // help
@@ -78,6 +79,13 @@ workflow {
     }
     if ("samples_check" in params.validation_tasks) {
         sample_name_concordance(metadata_json, vcf_files.collect())
+    }
+    if ("genome_check" in params.validation_tasks){
+        fasta_files = Channel.fromPath(params.vcf_files_mapping)
+        .splitCsv(header:true)
+        .map{row -> file(params.container_validation_dir+row.fasta)}
+        .unique()
+        genome_checker(fasta_files)
     }
 }
 
@@ -185,5 +193,24 @@ process sample_name_concordance {
     script:
     """
     $params.executable.samples_checker --metadata_json $metadata_json --vcf_files $vcf_files --output_yaml sample_checker.yml
+    """
+}
+
+
+
+process genome_checker {
+    publishDir "$params.output_dir",
+            overwrite: true,
+            mode: "copy"
+
+    input:
+    path(fasta_file)
+
+    output:
+    path "${fasta_file}_check.yml", emit: fasta_checker
+
+    script:
+    """
+    $params.executable.fasta_checker --input_fasta $fasta_file  --output_yaml ${fasta_file}_check.yml
     """
 }
