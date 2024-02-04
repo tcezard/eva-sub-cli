@@ -62,7 +62,7 @@ class TestDockerValidator(TestCase):
             container_name='eva-sub-cli-test'
         )
         shutil.copyfile(
-            os.path.join(self.resources_folder, 'EVA_Submission_template.V1.1.4.xlsx'),
+            os.path.join(self.resources_folder, 'EVA_Submission_test.xlsx'),
             self.metadata_xlsx
         )
 

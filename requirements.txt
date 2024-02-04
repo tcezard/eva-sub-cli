@@ -1,6 +1,6 @@
 pyyaml
 jinja2
-minify_html
+minify_html==0.11.1
 openpyxl
 requests
 jsonschema

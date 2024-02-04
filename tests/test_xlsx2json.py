@@ -15,7 +15,7 @@ class TestXlsReader(TestCase):
     biosample_schema = os.path.abspath(os.path.join(__file__, "../../eva_sub_cli/etc/eva-biosamples.json", ))
 
     def test_conversion_2_json(self) -> None:
-        xls_filename = os.path.join(self.resource_dir, 'EVA_Submission_template.V1.1.4.xlsx')
+        xls_filename = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
         self.parser = XlsxParser(xls_filename, self.conf_filename)
         output_json = os.path.join(self.resource_dir, 'EVA_Submission_template.V1.1.4.json')
         self.parser.json(output_json)

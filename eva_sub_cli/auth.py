@@ -102,5 +102,5 @@ def get_auth(username=None, password=None):
     global auth
     if auth:
         return auth
-    auth = WebinAuth(username, password)
+    auth = WebinAuth(username=username, password=password)
     return auth
