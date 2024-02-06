@@ -15,7 +15,7 @@ logger = logging_config.get_logger(__name__)
 
 docker_path = 'docker'
 container_image = 'ebivariation/eva-sub-cli'
-container_tag = 'v0.0.1.dev2'
+container_tag = 'v0.0.1.dev3'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = '/opt/vcf_validation/vcf_validation_output'
 container_etc_dir = '/opt/eva_sub_cli/etc'
