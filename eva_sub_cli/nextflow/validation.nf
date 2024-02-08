@@ -207,7 +207,7 @@ process genome_checker {
     path(fasta_file)
 
     output:
-    path "${fasta_file}_check.yml", emit: fasta_checker
+    path "${fasta_file}_check.yml", emit: fasta_checker_yml
 
     script:
     """

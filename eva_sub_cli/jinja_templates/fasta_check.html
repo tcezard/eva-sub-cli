@@ -10,7 +10,7 @@
             {% set row_class = "report-section fail collapsible" %}
             {% set text = "sequences are not INSDC accessioned" %}
         {% endif %}
-        <div class='{{ row_class }}'>{{ icon }} {{ fasta_file }} {{ text }} </div>
+        <div class='{{ row_class }}'>{{ icon }} {{ fasta_file }}: {{ text }} </div>
         {% if not results_for_fasta.get('all_insdc') %}
             <div class="error-list">
                 <div class="error-description">First 10 sequences not in INSDC. <strong>Full report:</strong> {{ results_for_fasta.get('report_path', '') }}</div>

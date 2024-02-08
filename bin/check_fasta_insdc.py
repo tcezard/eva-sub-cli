@@ -43,7 +43,6 @@ def fasta_iter(input_fasta):
 
     # ditch the boolean (x[0]) and just keep the header or sequence since
     # we know they alternate.
-
     faiter = (x[1] for x in groupby(fin, lambda line: line[0] == ">"))
 
     for header in faiter:
@@ -74,13 +73,13 @@ def assess_fasta(input_fasta):
         sequence_metadata = get_refget_metadata(md5_digest)
         results['sequences'].append({'sequence_name': name, 'sequence_md5': md5_digest, 'insdc': bool(sequence_metadata)})
         all_insdc = all_insdc and bool(sequence_metadata)
-    results['all_insdc']: all_insdc
+    results['all_insdc'] = all_insdc
     return results
 
 
 def main():
     arg_parser = argparse.ArgumentParser(
-        description='Calculate the each sequence Refget MD5 identify and compare these against INSDC Refget server.')
+        description='Calculate each sequence's Refget MD5 digest and compare these against INSDC Refget server.')
     arg_parser.add_argument('--input_fasta', required=True, dest='input_fasta',
                             help='Fasta file that contains the sequence to be checked')
     arg_parser.add_argument('--output_yaml', required=True, dest='output_yaml',
