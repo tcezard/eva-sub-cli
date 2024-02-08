@@ -38,20 +38,20 @@ def fasta_iter(input_fasta):
     """
     Given a fasta file. yield tuples of header, sequence
     """
-    "first open the file outside "
-    fin = open(input_fasta, 'r')
+    # first open the file outside
+    with open(input_fasta, 'r') as open_file:
 
-    # ditch the boolean (x[0]) and just keep the header or sequence since
-    # we know they alternate.
-    faiter = (x[1] for x in groupby(fin, lambda line: line[0] == ">"))
+        # ditch the boolean (x[0]) and just keep the header or sequence since
+        # we know they alternate.
+        faiter = (x[1] for x in groupby(open_file, lambda line: line[0] == ">"))
 
-    for header in faiter:
-        # drop the ">"
-        headerStr = header.__next__()[1:].strip()
+        for header in faiter:
+            # drop the ">"
+            headerStr = header.__next__()[1:].strip()
 
-        # join all sequence lines to one.
-        seq = "".join(s.strip() for s in faiter.__next__())
-        yield (headerStr, seq)
+            # join all sequence lines to one.
+            seq = "".join(s.strip() for s in faiter.__next__())
+            yield (headerStr, seq)
 
 
 @retry(exceptions=(HTTPError,), tries=3, delay=2, backoff=1.2, jitter=(1, 3))
@@ -79,7 +79,7 @@ def assess_fasta(input_fasta):
 
 def main():
     arg_parser = argparse.ArgumentParser(
-        description='Calculate each sequence's Refget MD5 digest and compare these against INSDC Refget server.')
+        description="Calculate each sequence's Refget MD5 digest and compare these against INSDC Refget server.")
     arg_parser.add_argument('--input_fasta', required=True, dest='input_fasta',
                             help='Fasta file that contains the sequence to be checked')
     arg_parser.add_argument('--output_yaml', required=True, dest='output_yaml',

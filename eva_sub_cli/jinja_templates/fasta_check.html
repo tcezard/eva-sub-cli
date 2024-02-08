@@ -4,11 +4,11 @@
         {% if results_for_fasta.get('all_insdc') %}
             {% set icon = "&#10004;" %}
             {% set row_class = "report-section pass" %}
-            {% set text = "sequences are all INSDC accessioned" %}
+            {% set text = "all sequences are INSDC accessioned" %}
         {% else %}
             {% set icon = "&#10060;" %}
             {% set row_class = "report-section fail collapsible" %}
-            {% set text = "sequences are not INSDC accessioned" %}
+            {% set text = "some sequences are not INSDC accessioned" %}
         {% endif %}
         <div class='{{ row_class }}'>{{ icon }} {{ fasta_file }}: {{ text }} </div>
         {% if not results_for_fasta.get('all_insdc') %}
@@ -16,12 +16,12 @@
                 <div class="error-description">First 10 sequences not in INSDC. <strong>Full report:</strong> {{ results_for_fasta.get('report_path', '') }}</div>
                 <table>
                     <tr>
-                        <th>Sequence name</th><th>Refget md5</th><th>In INSDC</th>
+                        <th>Sequence name</th><th>Refget md5</th>
                     </tr>
                     {% set sequence_info_list = results_for_fasta.get('sequences', [])|rejectattr("insdc")|list %}
                     {% for sequence_info in sequence_info_list[:10] %}
                         <tr>
-                            <td><strong>{{sequence_info.get('sequence_name') }}</strong></td><td> {{ sequence_info.get('sequence_md5') }}</td><td> &#10060; </td>
+                            <td><strong>{{sequence_info.get('sequence_name') }}</strong></td><td> {{ sequence_info.get('sequence_md5') }}</td>
                         </tr>
                     {% endfor %}
 

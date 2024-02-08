@@ -30,7 +30,7 @@ params.executable = [
     "biovalidator": "biovalidator"
 ]
 // validation tasks
-params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check", "metadata_check", "genome_check"]
+params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check", "metadata_check", "insdc_check"]
 // container validation dir (prefix for vcf files)
 params.container_validation_dir = "/opt/vcf_validation"
 // help
@@ -80,12 +80,12 @@ workflow {
     if ("samples_check" in params.validation_tasks) {
         sample_name_concordance(metadata_json, vcf_files.collect())
     }
-    if ("genome_check" in params.validation_tasks){
+    if ("insdc_check" in params.validation_tasks){
         fasta_files = Channel.fromPath(params.vcf_files_mapping)
         .splitCsv(header:true)
         .map{row -> file(params.container_validation_dir+row.fasta)}
         .unique()
-        genome_checker(fasta_files)
+        insdc_checker(fasta_files)
     }
 }
 
@@ -198,7 +198,7 @@ process sample_name_concordance {
 
 
 
-process genome_checker {
+process insdc_checker {
     publishDir "$params.output_dir",
             overwrite: true,
             mode: "copy"
