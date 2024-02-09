@@ -9,6 +9,7 @@ from unittest.mock import patch
 import yaml
 
 from eva_sub_cli.docker_validator import DockerValidator
+from tests.test_utils import create_mapping_file
 
 
 class TestDockerValidator(TestCase):
@@ -29,17 +30,11 @@ class TestDockerValidator(TestCase):
         if not os.path.exists(self.test_run_dir):
             os.makedirs(self.test_run_dir)
 
-        # create vcf metadata file
-        data = [
-            ['vcf', 'fasta', 'report'],
-            [os.path.join(self.vcf_files, 'input_passed.vcf'),
-             os.path.join(self.fasta_files, 'input_passed.fa'),
-             os.path.join(self.assembly_reports, 'input_passed.txt')]
-        ]
-        with open(self.mapping_file, 'w', encoding='UTF8') as f:
-            writer = csv.writer(f)
-            for row in data:
-                writer.writerow(row)
+        # create vcf mapping file
+        create_mapping_file(self.mapping_file,
+                            [os.path.join(self.vcf_files, 'input_passed.vcf')],
+                            [os.path.join(self.fasta_files, 'input_passed.fa')],
+                            [os.path.join(self.assembly_reports, 'input_passed.txt')])
         sub_metadata = {
             "submitterDetails": [],
             "project": {},

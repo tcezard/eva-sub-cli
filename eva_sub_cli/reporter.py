@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import csv
 import datetime
 import glob
 import os
@@ -27,9 +28,12 @@ def resolve_single_file_path(file_path):
 
 class Reporter:
 
-    def __init__(self, vcf_files, output_dir, submission_config: WritableConfig = None):
+    def __init__(self, mapping_file, output_dir, submission_config: WritableConfig = None):
         self.output_dir = output_dir
+        self.mapping_file = mapping_file
+        vcf_files, fasta_files = self._find_vcf_and_fasta_files()
         self.vcf_files = vcf_files
+        self.fasta_files = fasta_files
         self.results = {}
         self.project_title = None  # TODO fill this from metadata?
         self.validation_date = datetime.datetime.now()
@@ -45,6 +49,16 @@ class Reporter:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.sub_config.backup()
         self.sub_config.write()
+
+    def _find_vcf_and_fasta_files(self):
+        vcf_files = []
+        fasta_files = []
+        with open(self.mapping_file) as open_file:
+            reader = csv.DictReader(open_file, delimiter=',')
+            for row in reader:
+                vcf_files.append(row['vcf'])
+                fasta_files.append(row['fasta'])
+        return vcf_files, fasta_files
 
     def validate(self):
         self._validate()
@@ -151,6 +165,7 @@ class Reporter:
         self._collect_vcf_check_results()
         self._collect_assembly_check_results()
         self._load_sample_check_results()
+        self._load_fasta_check_results()
         self._parse_biovalidator_validation_results()
         self._convert_biovalidator_validation_to_spreadsheet()
         self._write_spreadsheet_validation_results()
@@ -246,6 +261,14 @@ class Reporter:
     @cached_property
     def _sample_check_yaml(self):
         return resolve_single_file_path(os.path.join(self.output_dir, 'sample_checker.yml'))
+
+    def _load_fasta_check_results(self):
+        for fasta_file in self.fasta_files:
+            fasta_file_name = os.path.basename(fasta_file)
+            fasta_check = resolve_single_file_path(os.path.join(self.output_dir, f'{fasta_file_name}_check.yml'))
+            self.results['fasta_check'] = {}
+            with open(fasta_check) as open_yaml:
+                self.results['fasta_check'][fasta_file_name] = yaml.safe_load(open_yaml)
 
     def _load_sample_check_results(self):
         with open(self._sample_check_yaml) as open_yaml:

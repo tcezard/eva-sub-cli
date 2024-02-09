@@ -67,6 +67,16 @@ validation_results = {
             }
         }
     },
+    "fasta_check": {
+        'reference_genome.fa': {
+            'report_path': 'path/to/fasta_check.yml',
+            'all_insdc': False,
+            'sequences': [
+                {'sequence_name': '1', 'sequence_md5': 'hsjvchdhdo3ate83jdfd76rp2', 'insdc': True},
+                {'sequence_name': '2', 'sequence_md5': 'hjfdoijsfc47hfg0gh9qwjrve', 'insdc': False }
+            ]
+        }
+    },
     'metadata_check': {
         'json_errors': [
             {'property': '.files', 'description': "should have required property 'files'"},
@@ -107,6 +117,9 @@ class TestReport(TestCase):
     expected_report = os.path.join(resource_dir, 'validation_reports', 'expected_report.html')
 
     def test_generate_html_report(self):
+
         report = generate_html_report(validation_results, datetime.datetime(2023, 8, 31, 12, 34, 56), "My cool project")
+
+
         with open(self.expected_report) as open_html:
             assert report == open_html.read()

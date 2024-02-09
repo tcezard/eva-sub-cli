@@ -3,19 +3,30 @@ import shutil
 from unittest import TestCase
 
 from eva_sub_cli.reporter import Reporter
+from tests.test_utils import create_mapping_file
 
 
 class TestReporter(TestCase):
     resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
+    vcf_files = os.path.join(resource_dir, 'vcf_files')
+    fasta_files = os.path.join(resource_dir, 'fasta_files')
+    assembly_reports = os.path.join(resource_dir, 'assembly_reports')
+    output_dir = os.path.join(resource_dir, 'validation_reports')
+    mapping_file = os.path.join(output_dir, 'vcf_files_mapping.csv')
 
     def setUp(self) -> None:
-        output_dir = os.path.join(self.resource_dir, 'validation_reports')
-        self.reporter = Reporter(['input_passed.vcf'], output_dir)
+        # create vcf mapping file
+        os.makedirs(self.output_dir, exist_ok=True)
+        create_mapping_file(self.mapping_file,
+                            [os.path.join(self.vcf_files, 'input_passed.vcf')],
+                            [os.path.join(self.fasta_files, 'input_passed.fa')],
+                            [os.path.join(self.assembly_reports, 'input_passed.txt')])
+        self.reporter = Reporter(self.mapping_file, self.output_dir)
 
     def tearDown(self) -> None:
-        report_path = 'expected_report.html'
-        if os.path.exists(report_path):
-            shutil.rmtree(report_path)
+        for f in ['expected_report.html', self.mapping_file] :
+            if os.path.exists(f):
+                os.remove(f)
 
     def test__collect_validation_workflow_results(self):
         expected_results = {
@@ -35,6 +46,12 @@ class TestReporter(TestCase):
                         'more_submitted_files_metadata': []
                     }
                 }
+            },
+            'fasta_check': {
+                'input_passed.fa': {'all_insdc': False, 'sequences': [
+                    {'sequence_name': 1, 'insdc': True, 'sequence_md5': '6681ac2f62509cfc220d78751b8dc524'},
+                    {'sequence_name': 2, 'insdc': False, 'sequence_md5': 'd2b3f22704d944f92a6bc45b6603ea2d'}
+                ]},
             },
             'metadata_check': {
                 'json_errors': [
