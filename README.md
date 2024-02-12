@@ -2,23 +2,27 @@
 EVA Submission Command Line Interface for Validation
 
 
-
-
 ## Installation
 
 TBD
 
 ## Input files for the validation and submission tool
 
-### The VCF file and association with reference genome
+There are two ways of specifying the VCF files and associated assembly
+
+### Using  `--vcf_files` and `--assembly_fasta`
+
+This allows you to provide multiple VCF file to validate and a single genome file associated. 
+The VCF file and genome associated must use the same chromosome naming convention 
+
+### Using  `--vcf_files_mapping`
 
 The path to the VCF files are provided via CSV file that links the VCF to their respective fasta sequence. This allows 
 us to support different assemblies for each VCF file 
 The CSV file `vcf_mapping.csv` contains the following columns vcf, fasta, report providing respectively:
  - The VCF to validate/upload
  - The assembly in fasta format that was used to derive the VCF
- - The assembly report associated with the assembly (if available) as found in NCBI assemblies (https://www.ncbi.nlm.nih.gov/genome/doc/ftpfaq/#files)
-
+ - (Optional) The assembly report associated with the assembly (if available) as found in NCBI assemblies (https://www.ncbi.nlm.nih.gov/genome/doc/ftpfaq/#files)
 
 Example:
 ```shell
@@ -48,7 +52,7 @@ To validate and submit run the following command
 
 ```shell
 eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx \
-               --vcf_files_mapping vcf_mapping.csv --submission_dir submission_dir
+               --vcf_files vcf_file1.vcf vcf_file2.vcf --assembly_fasta assembly.fa --submission_dir submission_dir
 ```
 
 ### Validate only

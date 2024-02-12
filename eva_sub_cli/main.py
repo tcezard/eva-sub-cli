@@ -12,6 +12,7 @@ from eva_sub_cli.submit import StudySubmitter
 VALIDATE = 'validate'
 SUBMIT = 'submit'
 
+
 def get_vcf_files(mapping_file):
     vcf_files = []
     with open(mapping_file) as open_file:
@@ -21,12 +22,28 @@ def get_vcf_files(mapping_file):
     return vcf_files
 
 
-def orchestrate_process(submission_dir, vcf_files_mapping, metadata_json, metadata_xlsx, tasks, resume):
+def create_vcf_files_mapping(submission_dir, vcf_files, assembly_fasta):
+    mapping_file = os.path.join(submission_dir, 'vcf_mapping_file.csv')
+    with open(mapping_file, 'w') as open_file:
+        writer = csv.writer(open_file, delimiter=',')
+        writer.writerow(['vcf', 'fasta', 'report'])
+        for vcf_file in vcf_files:
+            writer.writerow([os.path.abspath(vcf_file), os.path.abspath(assembly_fasta)])
+    return mapping_file
+
+
+def orchestrate_process(submission_dir, vcf_files_mapping, vcf_files, assembly_fasta, metadata_json, metadata_xlsx,
+                        tasks, resume, username=None, password=None, **kwargs):
     # load config
     config_file_path = os.path.join(submission_dir, SUB_CLI_CONFIG_FILE)
     sub_config = WritableConfig(config_file_path, version=__version__)
 
+    # Get the provided metadata
     metadata_file = metadata_json or metadata_xlsx
+
+    # Get the provided VCF and assembly
+    if vcf_files and assembly_fasta:
+        vcf_files_mapping = create_vcf_files_mapping(submission_dir, vcf_files, assembly_fasta)
     vcf_files = get_vcf_files(vcf_files_mapping)
 
     # Validation is mandatory so if submit is requested then VALIDATE must have run before or be requested as well
@@ -41,5 +58,6 @@ def orchestrate_process(submission_dir, vcf_files_mapping, metadata_json, metada
             validator.create_reports()
             validator.update_config_with_validation_result()
     if SUBMIT in tasks:
-        with StudySubmitter(submission_dir, vcf_files, metadata_file, submission_config=sub_config) as submitter:
+        with StudySubmitter(submission_dir, vcf_files, metadata_file, submission_config=sub_config,
+                            username=username, password=password) as submitter:
             submitter.submit(resume=resume)

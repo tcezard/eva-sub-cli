@@ -7,7 +7,6 @@ import time
 
 from ebi_eva_common_pyutils.command_utils import run_command_with_output
 
-from eva_sub_cli import ETC_DIR
 from eva_sub_cli.reporter import Reporter
 from ebi_eva_common_pyutils.logger import logging_config
 
@@ -15,10 +14,9 @@ logger = logging_config.get_logger(__name__)
 
 docker_path = 'docker'
 container_image = 'ebivariation/eva-sub-cli'
-container_tag = 'v0.0.1.dev3'
+container_tag = 'v0.0.1.dev4'
 container_validation_dir = '/opt/vcf_validation'
-container_validation_output_dir = '/opt/vcf_validation/vcf_validation_output'
-container_etc_dir = '/opt/eva_sub_cli/etc'
+container_validation_output_dir = 'vcf_validation_output'
 
 VALIDATION_OUTPUT_DIR = "validation_output"
 
@@ -31,14 +29,12 @@ class DockerValidator(Reporter):
         # If the submission_config is not set it will also be written to the VALIDATION_OUTPUT_DIR
         super().__init__(mapping_file, os.path.join(output_dir, VALIDATION_OUTPUT_DIR),
                          submission_config=submission_config)
-
         self.docker_path = docker_path
         self.metadata_json = metadata_json
         self.metadata_xlsx = metadata_xlsx
         self.container_name = container_name
         if self.container_name is None:
             self.container_name = container_image.split('/')[1] + '.' + container_tag
-        self.spreadsheet2json_conf = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
 
     def _validate(self):
         self.run_docker_validator()
@@ -47,21 +43,19 @@ class DockerValidator(Reporter):
         if self.metadata_xlsx and not self.metadata_json:
             docker_cmd = (
                 f"{self.docker_path} exec {self.container_name} nextflow run eva_sub_cli/nextflow/validation.nf "
-                f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
-                f"--metadata_xlsx {container_validation_dir}/{self.metadata_xlsx} "
-                f"--conversion_configuration {container_validation_dir}/{self.spreadsheet2json_conf} "
-                f"--schema_dir {container_etc_dir} "
+                f"--base_dir {container_validation_dir} "
+                f"--vcf_files_mapping {self.mapping_file} "
+                f"--metadata_xlsx {self.metadata_xlsx} "
                 f"--output_dir {container_validation_output_dir}"
             )
         else:
             docker_cmd = (
                 f"{self.docker_path} exec {self.container_name} nextflow run eva_sub_cli/nextflow/validation.nf "
-                f"--vcf_files_mapping {container_validation_dir}/{self.mapping_file} "
-                f"--metadata_json {container_validation_dir}/{self.metadata_json} "
-                f"--schema_dir {container_etc_dir} "
+                f"--base_dir {container_validation_dir} "
+                f"--vcf_files_mapping {self.mapping_file} "
+                f"--metadata_json {self.metadata_json} "
                 f"--output_dir {container_validation_output_dir}"
             )
-        print(docker_cmd)
         return docker_cmd
 
     def run_docker_validator(self):
@@ -89,14 +83,13 @@ class DockerValidator(Reporter):
             self.copy_files_to_container()
 
             docker_cmd = self.get_docker_validation_cmd()
-            print(docker_cmd)
             # start validation
             # FIXME: If nextflow fails in the docker exec still exit with error code 0
             run_command_with_output("Run Validation using Nextflow", docker_cmd)
             # copy validation result to user host
             run_command_with_output(
                 "Copy validation output from container to host",
-                f"{self.docker_path} cp {self.container_name}:{container_validation_output_dir} {self.output_dir}"
+                f"{self.docker_path} cp {self.container_name}:{container_validation_dir}/{container_validation_output_dir} {self.output_dir}"
             )
         except subprocess.CalledProcessError as ex:
             logger.error(ex)
@@ -140,9 +133,7 @@ class DockerValidator(Reporter):
 
     def verify_container_is_stopped(self):
         container_stop_cmd_output = run_command_with_output(
-            "check if container is stopped",
-            f"{self.docker_path} ps -a"
-            , return_process_output=True
+            "check if container is stopped", f"{self.docker_path} ps -a",  return_process_output=True
         )
         if container_stop_cmd_output is not None and self.container_name in container_stop_cmd_output:
             logger.info(f"Container ({self.container_name}) is in stop state")
@@ -236,13 +227,14 @@ class DockerValidator(Reporter):
             _copy('json metadata file', self.metadata_json)
         if self.metadata_xlsx:
             _copy('excel metadata file', self.metadata_xlsx)
-            _copy('configuration', self.spreadsheet2json_conf)
         with open(self.mapping_file) as open_file:
             reader = csv.DictReader(open_file, delimiter=',')
             for row in reader:
                 _copy('vcf files', row['vcf'])
                 _copy('fasta files', row['fasta'])
-                _copy('assembly report files', row['report'])
+                # report is optional
+                if row['report']:
+                    _copy('assembly report files', row['report'])
 
 
 if __name__ == "__main__":
