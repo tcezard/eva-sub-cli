@@ -10,3 +10,8 @@ LSRI_CLIENT_ID = "aa0fcc42-096a-4f9d-b871-aceb1a97d174"
 __version__ = open(os.path.join(PACKAGE_DIR, 'VERSION')).read().strip()
 
 SUB_CLI_CONFIG_FILE = ".eva_sub_cli_config.yml"
+
+# Environment variable
+SUBMISSION_WS_VAR = 'SUBMISSION_WS_URL'
+ENA_WEBIN_ACCOUNT_VAR = 'ENA_WEBIN_ACCOUNT'
+ENA_WEBIN_PASSWORD_VAR = 'ENA_WEBIN_PASSWORD'
