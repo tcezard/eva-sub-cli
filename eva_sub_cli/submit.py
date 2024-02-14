@@ -106,7 +106,6 @@ class StudySubmitter(AppLogger):
         self._upload_submission()
 
         # Complete the submission
-        self.verify_submission_dir(self.submission_dir)
         response = requests.put(
             self.submission_uploaded_url.format(submissionId=self.sub_config.get(SUB_CLI_CONFIG_KEY_SUBMISSION_ID)),
             headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer ' + self.auth.token}
