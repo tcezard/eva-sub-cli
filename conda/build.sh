@@ -2,17 +2,24 @@
 
 VCF_VALIDATOR_VERSION=0.9.4
 BIOVALIDATOR_VERSION=2.1.0
+EVA_PYUTILS_VERSION=0.6.1
 
 EVA_SUB_CLI="${PREFIX}/share/${PKG_NAME}-${PKG_VERSION}"
 mkdir -p ${PREFIX}/bin ${EVA_SUB_CLI}
 
 # Install eva-sub-cli
-$PYTHON -m pip install -r requirements.txt
 $PYTHON -m pip install .
 cp bin/* ${PREFIX}/bin
 echo "Done with eva-sub-cli"
 
 cd ${EVA_SUB_CLI}
+
+# Install python dependencies not yet on conda
+curl -Lo eva-pyutils.zip https://github.com/EBIvariation/eva-common-pyutils/archive/refs/tags/v${EVA_PYUTILS_VERSION}.zip \
+    && unzip eva-pyutils.zip && rm eva-pyutils.zip \
+    && cd eva-common-pyutils-${EVA_PYUTILS_VERSION} \
+    && $PYTHON setup.py install \
+    && cd ..
 
 # Install biovalidator from source
 # Includes some workarounds that can be cleaned up once a new version is released
