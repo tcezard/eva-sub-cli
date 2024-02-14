@@ -16,7 +16,7 @@ def validate_command_line_arguments(args, argparser):
         sys.exit(1)
 
     if (args.vcf_files and not args.assembly_fasta) or (not args.vcf_files and args.assembly_fasta):
-        print("When using --vcf_files and --assembly_fasta, both needs to be specified")
+        print("When using --vcf_files and --assembly_fasta, both need to be specified")
         argparser.print_usage()
         sys.exit(1)
 
@@ -35,16 +35,16 @@ if __name__ == "__main__":
                                 'and submission info is/will be stored')
     vcf_group = argparser.add_argument_group(
         'Input VCF and assembly',
-        "Specify the VCF files and associated assembly with the following options. If you used different assembly "
+        "Specify the VCF files and associated assembly with the following options. If you used different assemblies "
         "for different VCF files then use --vcf_file_mapping"
     )
-    vcf_group.add_argument('--vcf_files', nargs='+', help="One or several vcf file to validate")
+    vcf_group.add_argument('--vcf_files', nargs='+', help="One or several vcf files to validate")
     vcf_group.add_argument('--assembly_fasta',
-                           help="The fasta file containing the reference genome from which the variant were derived")
+                           help="The fasta file containing the reference genome from which the variants were derived")
     vcf_group.add_argument("--vcf_files_mapping",
                            help="csv file with the mappings for vcf files, fasta and assembly report")
 
-    metadata_group = argparser.add_argument_group('Metadata', 'Specify the metadata in a spreadsheet of in a JSON file')
+    metadata_group = argparser.add_argument_group('Metadata', 'Specify the metadata in a spreadsheet or in a JSON file')
     metadata_group = metadata_group.add_mutually_exclusive_group(required=True)
     metadata_group.add_argument("--metadata_json",
                                help="Json file that describe the project, analysis, samples and files")

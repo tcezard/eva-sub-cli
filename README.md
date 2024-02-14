@@ -12,8 +12,8 @@ There are two ways of specifying the VCF files and associated assembly
 
 ### Using  `--vcf_files` and `--assembly_fasta`
 
-This allows you to provide multiple VCF file to validate and a single genome file associated. 
-The VCF file and genome associated must use the same chromosome naming convention 
+This allows you to provide multiple VCF files to validate and a single associated genome file.
+The VCF files and the associated genome file must use the same chromosome naming convention 
 
 ### Using  `--vcf_files_mapping`
 
