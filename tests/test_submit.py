@@ -32,37 +32,50 @@ class TestSubmit(unittest.TestCase):
 
     def test_submit(self):
         # Mock the response for post-authentication response from eva-submission-ws
-        # see get_auth_response() in LSRIAuth class
-        mock_submit_response = MagicMock()
-        mock_submit_response.status_code = 200
-        mock_submit_response.text = json.dumps({"submissionId": "mock_submission_id",
-                                                'uploadUrl': 'directory to use for upload'})
+        mock_initiate_response = MagicMock()
+        mock_initiate_response.status_code = 200
+        mock_initiate_response.json.return_value = {"submissionId": "mock_submission_id",
+                                                    "uploadUrl": "directory to use for upload"}
+        mock_uploaded_response = MagicMock()
+        mock_uploaded_response.status_code = 200
+
 
         # Set the side_effect attribute to return different responses
-        with patch('eva_sub_cli.submit.requests.post', return_value=mock_submit_response) as mock_post, \
+        with patch('eva_sub_cli.submit.requests.post', return_value=mock_initiate_response) as mock_post, \
+                patch('eva_sub_cli.submit.requests.put', return_value=mock_uploaded_response) as mock_put, \
                 patch.object(StudySubmitter, '_upload_submission'), \
                 patch.object(StudySubmitter, 'verify_submission_dir'), \
-                patch.object(StudySubmitter, 'update_config_with_submission_id_and_upload_url'), \
-                patch.object(self.submitter, 'sub_config', {READY_FOR_SUBMISSION_TO_EVA: True}), \
                 patch.object(self.submitter, 'submission_dir', self.test_sub_dir):
+
+            self.submitter.sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=True)
             self.submitter.submit()
-        mock_post.assert_called_once_with('http://www.ebi.ac.uk/eva/v1/submission/initiate',
-                                          headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'})
+        mock_post.assert_called_once_with(
+            'https://www.ebi.ac.uk/eva/webservices/submission-ws/submission/submission/initiate',
+            headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'}
+        )
+        mock_put.assert_called_once_with(
+            'https://www.ebi.ac.uk/eva/webservices/submission-ws/submission/submission/mock_submission_id/uploaded',
+            headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'}
+        )
+        print(mock_put.mock_calls)
 
     def test_submit_with_config(self):
-        mock_submit_response = MagicMock()
-        mock_submit_response.status_code = 200
-        mock_submit_response.json.return_value = {
+        mock_initiate_response = MagicMock()
+        mock_initiate_response.status_code = 200
+        mock_initiate_response.json.return_value = {
             "submissionId": "mock_submission_id",
             "uploadUrl": "directory to use for upload",
         }
+        mock_uploaded_response = MagicMock()
+        mock_uploaded_response.status_code = 200
 
         self.submitter.verify_submission_dir(self.test_sub_dir)
         sub_config = WritableConfig(self.config_file, version='version1.0')
         sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=True)
         sub_config.write()
 
-        with patch('eva_sub_cli.submit.requests.post', return_value=mock_submit_response) as mock_post, \
+        with patch('eva_sub_cli.submit.requests.post', return_value=mock_initiate_response) as mock_post, \
+                patch('eva_sub_cli.submit.requests.put', return_value=mock_uploaded_response) as mock_put, \
                 patch.object(StudySubmitter, '_upload_submission'):
             with self.submitter as submitter:
                 submitter.submit()

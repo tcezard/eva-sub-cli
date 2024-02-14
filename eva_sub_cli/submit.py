@@ -7,20 +7,22 @@ from ebi_eva_common_pyutils.config import WritableConfig
 from ebi_eva_common_pyutils.logger import AppLogger
 from retry import retry
 
-from eva_sub_cli import SUB_CLI_CONFIG_FILE, __version__
+from eva_sub_cli import SUB_CLI_CONFIG_FILE, __version__, SUBMISSION_WS_VAR
 from eva_sub_cli.auth import get_auth
 from eva_sub_cli.reporter import READY_FOR_SUBMISSION_TO_EVA
 
 SUB_CLI_CONFIG_KEY_SUBMISSION_ID = "submission_id"
 SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL = "submission_upload_url"
-SUBMISSION_INITIATE_URL = "http://www.ebi.ac.uk/eva/v1/submission/initiate"
+SUB_CLI_CONFIG_KEY_COMPLETE = "submission_complete"
+
+SUBMISSION_WS_URL = "https://www.ebi.ac.uk/eva/webservices/submission-ws/submission/"
 
 
 class StudySubmitter(AppLogger):
-    def __init__(self, submission_dir, vcf_files, metadata_file, submission_initiate_url=SUBMISSION_INITIATE_URL,
+    def __init__(self, submission_dir, vcf_files, metadata_file, submission_ws_url=None,
                  submission_config: WritableConfig = None, username=None, password=None):
         self.auth = get_auth(username, password)
-        self.submission_initiate_url = submission_initiate_url
+        self.submission_ws_url = submission_ws_url
         self.submission_dir = submission_dir
         self.vcf_files = vcf_files
         self.metadata_file = metadata_file
@@ -37,9 +39,28 @@ class StudySubmitter(AppLogger):
         self.sub_config.backup()
         self.sub_config.write()
 
+    def _get_submission_ws_url(self):
+        """Retrieve the base URL for the submission web services. In order of preference from the user of this class,
+        the environment variable or the hardcoded value."""
+        if self.submission_ws_url:
+            return self.submission_ws_url
+        if os.environ.get(SUBMISSION_WS_VAR):
+            return os.environ.get(SUBMISSION_WS_VAR)
+        else:
+            return SUBMISSION_WS_URL
+
+    @property
+    def submission_initiate_url(self):
+        return self._get_submission_ws_url() + 'submission/initiate'
+
+    @property
+    def submission_uploaded_url(self):
+        return self._get_submission_ws_url() + 'submission/{submissionId}/uploaded'
+
     def update_config_with_submission_id_and_upload_url(self, submission_id, upload_url):
         self.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_ID, value=submission_id)
         self.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL, value=upload_url)
+
 
     def _upload_submission(self):
         if READY_FOR_SUBMISSION_TO_EVA not in self.sub_config or not self.sub_config[READY_FOR_SUBMISSION_TO_EVA]:
@@ -77,9 +98,21 @@ class StudySubmitter(AppLogger):
                                               'Authorization': 'Bearer ' + self.auth.token})
             response.raise_for_status()
             response_json = response.json()
-            self.info("Submission ID {} received!!".format(response_json["submissionId"]))
+            self.info(f'Submission ID {response_json["submissionId"]} received!!')
             # update config with submission id and upload url
             self.update_config_with_submission_id_and_upload_url(response_json["submissionId"], response_json["uploadUrl"])
 
         # upload submission
         self._upload_submission()
+
+        # Complete the submission
+        self.verify_submission_dir(self.submission_dir)
+        response = requests.put(
+            self.submission_uploaded_url.format(submissionId=self.sub_config.get(SUB_CLI_CONFIG_KEY_SUBMISSION_ID)),
+            headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer ' + self.auth.token}
+        )
+        response.raise_for_status()
+        self.info("Submission ID {} Complete".format(self.sub_config.get(SUB_CLI_CONFIG_KEY_SUBMISSION_ID)))
+        # update config with completion of the submission
+        self.sub_config.set(SUB_CLI_CONFIG_KEY_COMPLETE, value=True)
+

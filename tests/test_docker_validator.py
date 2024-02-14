@@ -27,8 +27,7 @@ class TestDockerValidator(TestCase):
     output_dir = test_run_dir
 
     def setUp(self):
-        if not os.path.exists(self.test_run_dir):
-            os.makedirs(self.test_run_dir)
+        os.makedirs(self.test_run_dir, exist_ok=True)
 
         # create vcf mapping file
         create_mapping_file(self.mapping_file,

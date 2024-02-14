@@ -7,7 +7,7 @@ import requests
 from ebi_eva_common_pyutils.logger import AppLogger
 from urllib3.exceptions import ResponseError
 
-from eva_sub_cli import LSRI_CLIENT_ID
+from eva_sub_cli import LSRI_CLIENT_ID, ENA_WEBIN_ACCOUNT_VAR, ENA_WEBIN_PASSWORD_VAR
 
 ENA_AUTH_URL = "https://www.ebi.ac.uk/ena/submit/webin/auth/token"
 LSRI_AUTH_URL = "https://www.ebi.ac.uk/eva/v1/submission/auth/lsri"
@@ -84,8 +84,8 @@ class WebinAuth(AppLogger):
         return username, password
 
     def _get_webin_username_password_from_env(self):
-        username = os.environ.get('ENAWEBINACCOUNT')
-        password = os.environ.get('ENAWEBINPASSWORD')
+        username = os.environ.get(ENA_WEBIN_ACCOUNT_VAR)
+        password = os.environ.get(ENA_WEBIN_PASSWORD_VAR)
         return username, password
 
     def _get_webin_username_password_from_stdin(self):

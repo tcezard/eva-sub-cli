@@ -31,13 +31,15 @@ class TestWebinAuth(unittest.TestCase):
 
     def test_get_webin_username_password_cmd_line(self):
         auth = WebinAuth(username='username', password='password')
+        os.environ['ENA_WEBIN_ACCOUNT'] = 'notusername'
+        os.environ['ENA_WEBIN_PASSWORD'] = 'notpassword'
         username, password = auth._get_webin_username_password()
         assert username == 'username'
         assert password == 'password'
 
     def test_get_webin_username_password_environ(self):
-        os.environ['ENAWEBINACCOUNT'] = 'username'
-        os.environ['ENAWEBINPASSWORD'] = 'password'
+        os.environ['ENA_WEBIN_ACCOUNT'] = 'username'
+        os.environ['ENA_WEBIN_PASSWORD'] = 'password'
         auth = WebinAuth()
         username, password = auth._get_webin_username_password()
         assert username == 'username'
