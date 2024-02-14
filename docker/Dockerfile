@@ -16,8 +16,6 @@ RUN curl -LJo /usr/local/bin/vcf_validator  https://github.com/EBIvariation/vcf-
 # Install biovalidator and make it executable
 RUN git clone https://github.com/elixir-europe/biovalidator.git  \
     && cd biovalidator  \
-    && chmod +x src/biovalidator.js \
-    && sed -i 's/dist/src/' package.json \
     && npm install \
     && npm link
 

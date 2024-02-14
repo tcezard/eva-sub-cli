@@ -1,0 +1,6 @@
+- name: My pipeline
+  command: nextflow run eva_sub_cli/nextflow/validation.nf --base_dir /Users/tcezard/PycharmProjects/eva-sub-cli --vcf_files_mapping tests/resources/vcf_files.csv --output_dir tests/resources/validation_output/ --metadata_xlsx tests/resources/EVA_Submission_test.xlsx
+  files:
+    - path: "tests/resources/validation_output/assembly_check/input_passed.vcf.assembly_check.log"
+    - path: "tests/resources/validation_output/assembly_check/input_passed.vcf.text_assembly_report.*.txt"
+    - path: "tests/resources/validation_output/assembly_check/input_passed.vcf.assembly_check.log"

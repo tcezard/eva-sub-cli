@@ -11,7 +11,6 @@ def helpMessage() {
             --output_dir            output_directory where the reports will be output
             --metadata_json         Json file describing the project, analysis, samples and files
             --metadata_xlsx         Excel file describing the project, analysis, samples and files
-            --schema_dir            Directory containing the JSON schemas used for validation
     """
 }
 
@@ -31,14 +30,13 @@ params.executable = [
 ]
 // validation tasks
 params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check", "metadata_check", "insdc_check"]
-// container validation dir (prefix for vcf files)
-params.container_validation_dir = "/opt/vcf_validation"
+// prefix to prepend to all provided path
+params.base_dir = ""
 // help
 params.help = null
 
 // Show help message
 if (params.help) exit 0, helpMessage()
-
 
 // Test input files
 if (!params.vcf_files_mapping || !params.output_dir || (!params.metadata_json && !params.metadata_xlsx)) {
@@ -49,18 +47,31 @@ if (!params.vcf_files_mapping || !params.output_dir || (!params.metadata_json &&
     exit 1, helpMessage()
 }
 
+schema_dir = file(projectDir).parent + '/etc'
+conversion_configuration = schema_dir + '/spreadsheet2json_conf.yaml'
+
+def joinBasePath(path) {
+    if (path){
+        return params.base_dir + '/' + path
+    }
+    return 'NO_FILE'
+}
+
+output_dir = joinBasePath(params.output_dir)
 
 workflow {
-    vcf_channel = Channel.fromPath(params.vcf_files_mapping)
+
+    // Prepare the file path
+    vcf_channel = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
         .splitCsv(header:true)
         .map{row -> tuple(
-            file(params.container_validation_dir+row.vcf),
-            file(params.container_validation_dir+row.fasta),
-            file(params.container_validation_dir+row.report)
+            file(joinBasePath(row.vcf)),
+            file(joinBasePath(row.fasta)),
+            file(joinBasePath(row.report))
         )}
-    vcf_files = Channel.fromPath(params.vcf_files_mapping)
+    vcf_files = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
         .splitCsv(header:true)
-        .map{row -> file(params.container_validation_dir+row.vcf)}
+        .map{row -> file(joinBasePath(row.vcf))}
 
     if ("vcf_check" in params.validation_tasks) {
         check_vcf_valid(vcf_channel)
@@ -69,10 +80,10 @@ workflow {
         check_vcf_reference(vcf_channel)
     }
     if (params.metadata_xlsx && !params.metadata_json){
-        convert_xlsx_2_json(params.metadata_xlsx, params.conversion_configuration)
+        convert_xlsx_2_json(joinBasePath(params.metadata_xlsx))
         metadata_json = convert_xlsx_2_json.out.metadata_json
     } else{
-        metadata_json = params.metadata_json
+        metadata_json = joinBasePath(params.metadata_json)
     }
     if ("metadata_check" in params.validation_tasks){
         metadata_json_validation(metadata_json)
@@ -81,9 +92,9 @@ workflow {
         sample_name_concordance(metadata_json, vcf_files.collect())
     }
     if ("insdc_check" in params.validation_tasks){
-        fasta_files = Channel.fromPath(params.vcf_files_mapping)
+        fasta_files = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
         .splitCsv(header:true)
-        .map{row -> file(params.container_validation_dir+row.fasta)}
+        .map{row -> file(joinBasePath(row.fasta))}
         .unique()
         insdc_checker(fasta_files)
     }
@@ -93,7 +104,7 @@ workflow {
 * Validate the VCF file format
 */
 process check_vcf_valid {
-    publishDir "$params.output_dir",
+    publishDir output_dir,
             overwrite: false,
             mode: "copy"
 
@@ -117,7 +128,7 @@ process check_vcf_valid {
 * Validate the VCF reference allele
 */
 process check_vcf_reference {
-    publishDir "$params.output_dir",
+    publishDir output_dir,
             overwrite: true,
             mode: "copy"
 
@@ -132,23 +143,25 @@ process check_vcf_reference {
     when:
     "assembly_check" in params.validation_tasks
 
+    script:
+    def report_opt = report.name != 'NO_FILE' ? "-a $report" : ''
+
     """
     trap 'if [[ \$? == 1 || \$? == 139 ]]; then exit 0; fi' EXIT
 
     mkdir -p assembly_check
-    $params.executable.vcf_assembly_checker -i $vcf -f $fasta -a $report -r summary,text,valid  -o assembly_check --require-genbank > assembly_check/${vcf}.assembly_check.log 2>&1
+    $params.executable.vcf_assembly_checker -i $vcf -f $fasta $report_opt -r summary,text,valid  -o assembly_check --require-genbank > assembly_check/${vcf}.assembly_check.log 2>&1
     """
 }
 
 
 process convert_xlsx_2_json {
-    publishDir "$params.output_dir",
+    publishDir output_dir,
             overwrite: true,
             mode: "copy"
 
     input:
     path(metadata_xlsx)
-    path(conversion_configuration)
 
     output:
     path "metadata.json", emit: metadata_json
@@ -162,7 +175,7 @@ process convert_xlsx_2_json {
 }
 
 process metadata_json_validation {
-    publishDir "$params.output_dir",
+    publishDir output_dir,
             overwrite: true,
             mode: "copy"
 
@@ -174,12 +187,12 @@ process metadata_json_validation {
 
     script:
     """
-    $params.executable.biovalidator --schema $params.schema_dir/eva_schema.json --ref $params.schema_dir/eva-biosamples.json --data $metadata_json > metadata_validation.txt
+    $params.executable.biovalidator --schema $schema_dir/eva_schema.json --ref $schema_dir/eva-biosamples.json --data $metadata_json > metadata_validation.txt
     """
 }
 
 process sample_name_concordance {
-    publishDir "$params.output_dir",
+    publishDir output_dir,
             overwrite: true,
             mode: "copy"
 
@@ -199,7 +212,7 @@ process sample_name_concordance {
 
 
 process insdc_checker {
-    publishDir "$params.output_dir",
+    publishDir output_dir,
             overwrite: true,
             mode: "copy"
 
