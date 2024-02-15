@@ -1,5 +1,4 @@
 import csv
-import os
 
 
 def create_mapping_file(mapping_file, vcf_files, fasta_files, assembly_reports):

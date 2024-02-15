@@ -65,6 +65,10 @@ class Reporter:
         self._validate()
         self._collect_validation_workflow_results()
 
+    def report(self):
+        self.create_reports()
+        self.update_config_with_validation_result()
+
     def _validate(self):
         raise NotImplementedError
 

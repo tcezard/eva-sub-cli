@@ -1,10 +1,9 @@
-import os
 import subprocess
 
 from ebi_eva_common_pyutils.command_utils import run_command_with_output
 from ebi_eva_common_pyutils.logger import logging_config
 
-from eva_sub_cli.validator import Validator
+from eva_sub_cli.validators.validator import Validator
 
 logger = logging_config.get_logger(__name__)
 
@@ -24,18 +23,8 @@ class NativeValidator(Validator):
         self.run_validator()
 
     def run_validator(self):
-        # verify mapping file exists
-        if not os.path.exists(self.mapping_file):
-            raise RuntimeError(f'Mapping file {self.mapping_file} not found')
-
-        # verify all files mentioned in metadata files exist
-        files_missing, missing_files_list = self.check_if_file_missing()
-        if files_missing:
-            raise RuntimeError(f"some files (vcf/fasta) mentioned in metadata file could not be found. "
-                               f"Missing files list {missing_files_list}")
-
+        self.verify_files_present()
         self.verify_executables_installed()
-
         try:
             command = self.get_validation_cmd()
             run_command_with_output("Run Validation using Nextflow", command)

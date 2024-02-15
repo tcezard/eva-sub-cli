@@ -15,6 +15,17 @@ class Validator(Reporter):
         self.metadata_json = metadata_json
         self.metadata_xlsx = metadata_xlsx
 
+    def verify_files_present(self):
+        # verify mapping file exists
+        if not os.path.exists(self.mapping_file):
+            raise RuntimeError(f'Mapping file {self.mapping_file} not found')
+
+        # verify all files mentioned in metadata files exist
+        files_missing, missing_files_list = self.check_if_file_missing()
+        if files_missing:
+            raise RuntimeError(f"some files (vcf/fasta) mentioned in metadata file could not be found. "
+                               f"Missing files list {missing_files_list}")
+
     def check_if_file_missing(self):
         files_missing = False
         missing_files_list = []
