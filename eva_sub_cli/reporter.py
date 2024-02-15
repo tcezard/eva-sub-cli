@@ -18,6 +18,7 @@ READY_FOR_SUBMISSION_TO_EVA = 'ready_for_submission_to_eva'
 
 logger = logging_config.get_logger(__name__)
 
+
 def resolve_single_file_path(file_path):
     files = glob.glob(file_path)
     if len(files) == 0:

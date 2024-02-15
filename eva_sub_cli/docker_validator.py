@@ -6,9 +6,9 @@ import subprocess
 import time
 
 from ebi_eva_common_pyutils.command_utils import run_command_with_output
-
-from eva_sub_cli.reporter import Reporter
 from ebi_eva_common_pyutils.logger import logging_config
+
+from eva_sub_cli.validator import Validator
 
 logger = logging_config.get_logger(__name__)
 
@@ -18,20 +18,16 @@ container_tag = 'v0.0.1.dev4'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = 'vcf_validation_output'
 
-VALIDATION_OUTPUT_DIR = "validation_output"
 
-
-class DockerValidator(Reporter):
+class DockerValidator(Validator):
 
     def __init__(self, mapping_file, output_dir, metadata_json=None,
                  metadata_xlsx=None, container_name=None, docker_path='docker', submission_config=None):
         # validator write to the validation output directory
         # If the submission_config is not set it will also be written to the VALIDATION_OUTPUT_DIR
-        super().__init__(mapping_file, os.path.join(output_dir, VALIDATION_OUTPUT_DIR),
+        super().__init__(mapping_file, output_dir, metadata_json=metadata_json, metadata_xlsx=metadata_xlsx,
                          submission_config=submission_config)
         self.docker_path = docker_path
-        self.metadata_json = metadata_json
-        self.metadata_xlsx = metadata_xlsx
         self.container_name = container_name
         if self.container_name is None:
             self.container_name = container_image.split('/')[1] + '.' + container_tag
@@ -94,24 +90,6 @@ class DockerValidator(Reporter):
         except subprocess.CalledProcessError as ex:
             logger.error(ex)
 
-    def check_if_file_missing(self):
-        files_missing = False
-        missing_files_list = []
-        with open(self.mapping_file) as open_file:
-            reader = csv.DictReader(open_file, delimiter=',')
-            for row in reader:
-                if not os.path.exists(row['vcf']):
-                    files_missing = True
-                    missing_files_list.append(row['vcf'])
-                if not os.path.exists(row['fasta']):
-                    files_missing = True
-                    missing_files_list.append(row['fasta'])
-                if not os.path.exists(row['report']):
-                    files_missing = True
-                    missing_files_list.append(row['report'])
-
-        return files_missing, missing_files_list
-
     def verify_docker_is_installed(self):
         try:
             run_command_with_output(
@@ -123,8 +101,8 @@ class DockerValidator(Reporter):
             raise RuntimeError(f"Please make sure docker ({self.docker_path}) is installed and available on the path")
 
     def verify_container_is_running(self):
-        container_run_cmd_ouptut = run_command_with_output("check if container is running", f"{self.docker_path} ps", return_process_output=True)
-        if container_run_cmd_ouptut is not None and self.container_name in container_run_cmd_ouptut:
+        container_run_cmd_output = run_command_with_output("check if container is running", f"{self.docker_path} ps", return_process_output=True)
+        if container_run_cmd_output is not None and self.container_name in container_run_cmd_output:
             logger.info(f"Container ({self.container_name}) is running")
             return True
         else:

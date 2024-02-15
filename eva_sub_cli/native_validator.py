@@ -1,0 +1,71 @@
+import os
+import subprocess
+
+from ebi_eva_common_pyutils.command_utils import run_command_with_output
+from ebi_eva_common_pyutils.logger import logging_config
+
+from eva_sub_cli.validator import Validator
+
+logger = logging_config.get_logger(__name__)
+
+
+class NativeValidator(Validator):
+
+    def __init__(self, mapping_file, output_dir, metadata_json=None, metadata_xlsx=None,
+                 vcf_validator_path='vcf_validator', assembly_checker_path='vcf_assembly_checker',
+                 biovalidator_path='biovalidator', submission_config=None):
+        super().__init__(mapping_file, output_dir, metadata_json=metadata_json, metadata_xlsx=metadata_xlsx,
+                         submission_config=submission_config)
+        self.vcf_validator_path = vcf_validator_path
+        self.assembly_checker_path = assembly_checker_path
+        self.biovalidator_path = biovalidator_path
+
+    def validate(self):
+        self.run_validator()
+
+    def run_validator(self):
+        # verify mapping file exists
+        if not os.path.exists(self.mapping_file):
+            raise RuntimeError(f'Mapping file {self.mapping_file} not found')
+
+        # verify all files mentioned in metadata files exist
+        files_missing, missing_files_list = self.check_if_file_missing()
+        if files_missing:
+            raise RuntimeError(f"some files (vcf/fasta) mentioned in metadata file could not be found. "
+                               f"Missing files list {missing_files_list}")
+
+        self.verify_executables_installed()
+
+        try:
+            command = self.get_validation_cmd()
+            run_command_with_output("Run Validation using Nextflow", command)
+        except subprocess.CalledProcessError as ex:
+            logger.error(ex)
+
+    def get_validation_cmd(self):
+        if self.metadata_xlsx and not self.metadata_json:
+            metadata_flag = f"--metadata_xlsx {self.metadata_xlsx}"
+        else:
+            metadata_flag = f"--metadata_json {self.metadata_json}"
+        return (
+            f"nextflow run eva_sub_cli/nextflow/validation.nf "
+            f"--vcf_files_mapping {self.mapping_file} "
+            f"{metadata_flag} "
+            f"--output_dir {self.output_dir} "
+            f"--executable.vcf_validator {self.vcf_validator_path} "
+            f"--executable.vcf_assembly_checker {self.assembly_checker_path} "
+            f"--executable.biovalidator {self.biovalidator_path}"
+        )
+
+    def verify_executables_installed(self):
+        for name, path in [('vcf-validator', self.vcf_validator_path),
+                           ('vcf-assembly-checker', self.assembly_checker_path),
+                           ('biovalidator', self.biovalidator_path)]:
+            try:
+                run_command_with_output(
+                    f"Check {name} is installed and available on the path",
+                    f"{path} --version"
+                )
+            except subprocess.CalledProcessError as ex:
+                logger.error(ex)
+                raise RuntimeError(f"Please make sure {name} ({path}) is installed and available on the path")
