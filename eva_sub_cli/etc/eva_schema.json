@@ -158,7 +158,8 @@
               "Genotyping by array",
               "Curation",
               "Genotyping by sequencing",
-              "Target sequencing"
+              "Target sequencing",
+              "transcriptomics"
             ]
           },
           "referenceGenome": {
