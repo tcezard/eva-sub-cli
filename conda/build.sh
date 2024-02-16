@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VCF_VALIDATOR_VERSION=0.9.4
+VCF_VALIDATOR_VERSION=0.9.6
 BIOVALIDATOR_VERSION=2.1.0
 EVA_PYUTILS_VERSION=0.6.1
 
@@ -41,6 +41,8 @@ if [ -z ${OSX_ARCH+x} ]; then
     && curl -LJo ${PREFIX}/bin/vcf_assembly_checker  https://github.com/EBIvariation/vcf-validator/releases/download/v${VCF_VALIDATOR_VERSION}/vcf_assembly_checker_linux \
     && chmod 755 ${PREFIX}/bin/vcf_assembly_checker ${PREFIX}/bin/vcf_validator
 else
-  echo "VCF validator MacOS build not currently functional"
+  curl -LJo ${PREFIX}/bin/vcf_validator  https://github.com/EBIvariation/vcf-validator/releases/download/v${VCF_VALIDATOR_VERSION}/vcf_validator_macos \
+    && curl -LJo ${PREFIX}/bin/vcf_assembly_checker  https://github.com/EBIvariation/vcf-validator/releases/download/v${VCF_VALIDATOR_VERSION}/vcf_assembly_checker_macos \
+    && chmod 755 ${PREFIX}/bin/vcf_assembly_checker ${PREFIX}/bin/vcf_validator
 fi
 echo "Done with vcf-validator"
