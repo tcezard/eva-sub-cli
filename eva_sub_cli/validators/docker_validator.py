@@ -8,7 +8,7 @@ import time
 from ebi_eva_common_pyutils.command_utils import run_command_with_output
 from ebi_eva_common_pyutils.logger import logging_config
 
-from eva_sub_cli.validators.validator import Validator
+from eva_sub_cli.validators.validator import Validator, VALIDATION_OUTPUT_DIR
 
 logger = logging_config.get_logger(__name__)
 
@@ -24,7 +24,8 @@ class DockerValidator(Validator):
                  metadata_xlsx=None, container_name=None, docker_path='docker', submission_config=None):
         # validator write to the validation output directory
         # If the submission_config is not set it will also be written to the VALIDATION_OUTPUT_DIR
-        super().__init__(mapping_file, output_dir, metadata_json=metadata_json, metadata_xlsx=metadata_xlsx,
+        super().__init__(mapping_file, os.path.join(output_dir, VALIDATION_OUTPUT_DIR),
+                         metadata_json=metadata_json, metadata_xlsx=metadata_xlsx,
                          submission_config=submission_config)
         self.docker_path = docker_path
         self.container_name = container_name
