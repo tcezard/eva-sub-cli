@@ -55,7 +55,7 @@ if __name__ == "__main__":
                                 'previous runs. Selecting SUBMIT will run validate only if the validation was not performed '
                                 'successfully before and then run the submission.')
     argparser.add_argument('--executor', choices=[DOCKER, NATIVE], default=NATIVE,
-                           help='Select an execution type for running validation')
+                           help='Select an execution type for running validation (default native)')
     credential_group = argparser.add_argument_group('Credential', 'Specify the Webin credential you want to use to '
                                                                   'upload to the EVA')
     credential_group.add_argument("--username", help="Username used for connecting to the ENA webin account")
