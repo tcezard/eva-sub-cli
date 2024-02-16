@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 from ebi_eva_common_pyutils.command_utils import run_command_with_output
@@ -35,8 +36,10 @@ class NativeValidator(Validator):
             metadata_flag = f"--metadata_xlsx {self.metadata_xlsx}"
         else:
             metadata_flag = f"--metadata_json {self.metadata_json}"
+        path_to_workflow = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                        'nextflow/validation.nf')
         return (
-            f"nextflow run eva_sub_cli/nextflow/validation.nf "
+            f"nextflow run {path_to_workflow} "
             f"--vcf_files_mapping {self.mapping_file} "
             f"{metadata_flag} "
             f"--output_dir {self.output_dir} "
