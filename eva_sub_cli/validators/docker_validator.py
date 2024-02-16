@@ -54,7 +54,6 @@ class DockerValidator(Validator):
         return docker_cmd
 
     def run_docker_validator(self):
-        self.verify_files_present()
         # check if docker container is ready for running validation
         self.verify_docker_env()
 

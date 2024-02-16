@@ -1,10 +1,8 @@
-# Function to generate HTML report from validation results
 import os
 import datetime
 from unittest import TestCase
 
 from eva_sub_cli.report import generate_html_report
-from eva_sub_cli.reporter import Reporter
 
 validation_results = {
     "assembly_check": {

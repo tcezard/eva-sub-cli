@@ -19,11 +19,10 @@ class NativeValidator(Validator):
         self.assembly_checker_path = assembly_checker_path
         self.biovalidator_path = biovalidator_path
 
-    def validate(self):
+    def _validate(self):
         self.run_validator()
 
     def run_validator(self):
-        self.verify_files_present()
         self.verify_executables_installed()
         try:
             command = self.get_validation_cmd()

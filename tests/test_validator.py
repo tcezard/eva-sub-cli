@@ -2,11 +2,11 @@ import os.path
 import shutil
 from unittest import TestCase
 
-from eva_sub_cli.reporter import Reporter
+from eva_sub_cli.validators.validator import Validator
 from tests.test_utils import create_mapping_file
 
 
-class TestReporter(TestCase):
+class TestValidator(TestCase):
     resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
     vcf_files = os.path.join(resource_dir, 'vcf_files')
     fasta_files = os.path.join(resource_dir, 'fasta_files')
@@ -21,10 +21,10 @@ class TestReporter(TestCase):
                             [os.path.join(self.vcf_files, 'input_passed.vcf')],
                             [os.path.join(self.fasta_files, 'input_passed.fa')],
                             [os.path.join(self.assembly_reports, 'input_passed.txt')])
-        self.reporter = Reporter(self.mapping_file, self.output_dir)
+        self.reporter = Validator(self.mapping_file, self.output_dir)
 
     def tearDown(self) -> None:
-        for f in ['expected_report.html', self.mapping_file] :
+        for f in ['expected_report.html', self.mapping_file]:
             if os.path.exists(f):
                 os.remove(f)
 

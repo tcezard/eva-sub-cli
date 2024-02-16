@@ -1,16 +1,11 @@
-import json
 import os
 import shutil
 import unittest
-from unittest.mock import MagicMock, patch, Mock
-
-import yaml
-from ebi_eva_common_pyutils.config import WritableConfig
+from unittest.mock import patch
 
 from eva_sub_cli import SUB_CLI_CONFIG_FILE
 from eva_sub_cli.main import orchestrate_process, VALIDATE, SUBMIT, DOCKER
-from eva_sub_cli.reporter import READY_FOR_SUBMISSION_TO_EVA
-from eva_sub_cli.submit import StudySubmitter, SUB_CLI_CONFIG_KEY_SUBMISSION_ID, SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL
+from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
 
 
 class TestMain(unittest.TestCase):
@@ -44,8 +39,7 @@ class TestMain(unittest.TestCase):
                 submission_config=m_config.return_value
             )
             with m_docker_validator() as validator:
-                validator.validate.assert_called_once_with()
-                validator.report.assert_called_once_with()
+                validator.validate_and_report.assert_called_once_with()
 
     def test_orchestrate_validate_submit(self):
         with patch('eva_sub_cli.main.get_vcf_files') as m_get_vcf, \
@@ -66,8 +60,7 @@ class TestMain(unittest.TestCase):
                 submission_config=m_config.return_value
             )
             with m_docker_validator() as validator:
-                validator.validate.assert_called_once_with()
-                validator.report.assert_called_once_with()
+                validator.validate_and_report.assert_called_once_with()
 
             # Submit was created
             m_submitter.assert_any_call(self.test_sub_dir, m_get_vcf.return_value, self.metadata_json,
@@ -111,5 +104,4 @@ class TestMain(unittest.TestCase):
                 submission_config=m_config.return_value
             )
             with m_docker_validator() as validator:
-                validator.validate.assert_called_once_with()
-                validator.report.assert_called_once_with()
+                validator.validate_and_report.assert_called_once_with()
