@@ -32,7 +32,7 @@ class Validator:
 
     def __init__(self, mapping_file, output_dir, metadata_json=None, metadata_xlsx=None,
                  submission_config: WritableConfig = None):
-        self.output_dir = output_dir
+        self.output_dir = os.path.join(output_dir, VALIDATION_OUTPUT_DIR)
         self.mapping_file = mapping_file
         vcf_files, fasta_files = self._find_vcf_and_fasta_files()
         self.vcf_files = vcf_files
