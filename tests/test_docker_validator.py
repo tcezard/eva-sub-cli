@@ -1,14 +1,11 @@
-import csv
-import glob
 import json
 import os
 import shutil
 from unittest import TestCase
-from unittest.mock import patch
 
 import yaml
 
-from eva_sub_cli.docker_validator import DockerValidator
+from eva_sub_cli.validators.docker_validator import DockerValidator
 from tests.test_utils import create_mapping_file
 
 
@@ -120,7 +117,7 @@ class TestDockerValidator(TestCase):
                     'difference': False,
                     'more_metadata_submitted_files': [],
                     'more_per_submitted_files_metadata': {},
-                   'more_submitted_files_metadata': []
+                    'more_submitted_files_metadata': []
                 }
             }
         }

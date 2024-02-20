@@ -13,10 +13,12 @@ from eva_sub_cli import ETC_DIR, SUB_CLI_CONFIG_FILE, __version__
 from eva_sub_cli.report import generate_html_report
 from ebi_eva_common_pyutils.logger import logging_config
 
+VALIDATION_OUTPUT_DIR = "validation_output"
 VALIDATION_RESULTS = 'validation_results'
 READY_FOR_SUBMISSION_TO_EVA = 'ready_for_submission_to_eva'
 
 logger = logging_config.get_logger(__name__)
+
 
 def resolve_single_file_path(file_path):
     files = glob.glob(file_path)
@@ -26,9 +28,10 @@ def resolve_single_file_path(file_path):
         return files[0]
 
 
-class Reporter:
+class Validator:
 
-    def __init__(self, mapping_file, output_dir, submission_config: WritableConfig = None):
+    def __init__(self, mapping_file, output_dir, metadata_json=None, metadata_xlsx=None,
+                 submission_config: WritableConfig = None):
         self.output_dir = output_dir
         self.mapping_file = mapping_file
         vcf_files, fasta_files = self._find_vcf_and_fasta_files()
@@ -37,6 +40,8 @@ class Reporter:
         self.results = {}
         self.project_title = None  # TODO fill this from metadata?
         self.validation_date = datetime.datetime.now()
+        self.metadata_json = metadata_json
+        self.metadata_xlsx = metadata_xlsx
         if submission_config:
             self.sub_config = submission_config
         else:
@@ -60,12 +65,49 @@ class Reporter:
                 fasta_files.append(row['fasta'])
         return vcf_files, fasta_files
 
+    def validate_and_report(self):
+        self.validate()
+        self.report()
+
     def validate(self):
+        self.verify_files_present()
         self._validate()
         self._collect_validation_workflow_results()
 
+    def report(self):
+        self.create_reports()
+        self.update_config_with_validation_result()
+
     def _validate(self):
         raise NotImplementedError
+
+    def verify_files_present(self):
+        # verify mapping file exists
+        if not os.path.exists(self.mapping_file):
+            raise RuntimeError(f'Mapping file {self.mapping_file} not found')
+
+        # verify all files mentioned in metadata files exist
+        files_missing, missing_files_list = self.check_if_file_missing()
+        if files_missing:
+            raise RuntimeError(f"some files (vcf/fasta) mentioned in metadata file could not be found. "
+                               f"Missing files list {missing_files_list}")
+
+    def check_if_file_missing(self):
+        files_missing = False
+        missing_files_list = []
+        with open(self.mapping_file) as open_file:
+            reader = csv.DictReader(open_file, delimiter=',')
+            for row in reader:
+                if not os.path.exists(row['vcf']):
+                    files_missing = True
+                    missing_files_list.append(row['vcf'])
+                if not os.path.exists(row['fasta']):
+                    files_missing = True
+                    missing_files_list.append(row['fasta'])
+                if not os.path.exists(row['report']):
+                    files_missing = True
+                    missing_files_list.append(row['report'])
+        return files_missing, missing_files_list
 
     def update_config_with_validation_result(self):
         self.sub_config.set(VALIDATION_RESULTS, value=self.results)
@@ -160,7 +202,7 @@ class Reporter:
                     return False
         return True
 
-    def _collect_validation_workflow_results(self, ):
+    def _collect_validation_workflow_results(self):
         # Collect information from the output and summarise in the config
         self._collect_vcf_check_results()
         self._collect_assembly_check_results()

@@ -2,15 +2,17 @@
 import csv
 import os
 from ebi_eva_common_pyutils.config import WritableConfig
-from ebi_eva_common_pyutils.logger import logging_config
 
 from eva_sub_cli import SUB_CLI_CONFIG_FILE, __version__
-from eva_sub_cli.docker_validator import DockerValidator
-from eva_sub_cli.reporter import READY_FOR_SUBMISSION_TO_EVA
+from eva_sub_cli.validators.docker_validator import DockerValidator
+from eva_sub_cli.validators.native_validator import NativeValidator
+from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
 from eva_sub_cli.submit import StudySubmitter
 
 VALIDATE = 'validate'
 SUBMIT = 'submit'
+DOCKER = 'docker'
+NATIVE = 'native'
 
 
 def get_vcf_files(mapping_file):
@@ -33,7 +35,7 @@ def create_vcf_files_mapping(submission_dir, vcf_files, assembly_fasta):
 
 
 def orchestrate_process(submission_dir, vcf_files_mapping, vcf_files, assembly_fasta, metadata_json, metadata_xlsx,
-                        tasks, resume, username=None, password=None, **kwargs):
+                        tasks, executor, resume, username=None, password=None, **kwargs):
     # load config
     config_file_path = os.path.join(submission_dir, SUB_CLI_CONFIG_FILE)
     sub_config = WritableConfig(config_file_path, version=__version__)
@@ -52,11 +54,15 @@ def orchestrate_process(submission_dir, vcf_files_mapping, vcf_files, assembly_f
             tasks.append(VALIDATE)
 
     if VALIDATE in tasks:
-        with DockerValidator(vcf_files_mapping, submission_dir, metadata_json, metadata_xlsx,
-                             submission_config=sub_config) as validator:
-            validator.validate()
-            validator.create_reports()
-            validator.update_config_with_validation_result()
+        if executor == DOCKER:
+            with DockerValidator(vcf_files_mapping, submission_dir, metadata_json, metadata_xlsx,
+                                 submission_config=sub_config) as validator:
+                validator.validate_and_report()
+        # default to native execution
+        else:
+            with NativeValidator(vcf_files_mapping, submission_dir, metadata_json, metadata_xlsx,
+                                 submission_config=sub_config) as validator:
+                validator.validate_and_report()
     if SUBMIT in tasks:
         with StudySubmitter(submission_dir, vcf_files, metadata_file, submission_config=sub_config,
                             username=username, password=password) as submitter:

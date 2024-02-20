@@ -19,14 +19,17 @@ params.output_dir = null
 params.metadata_json = null
 params.metadata_xlsx = null
 
-// executables
+// executables - external tools
 params.executable = [
     "vcf_validator": "vcf_validator",
     "vcf_assembly_checker": "vcf_assembly_checker",
+    "biovalidator": "biovalidator"
+]
+// python scripts - installed as part of eva-sub-cli
+params.python_scripts = [
     "samples_checker": "samples_checker.py",
     "fasta_checker": "check_fasta_insdc.py",
-    "xlsx2json": "xlsx2json.py",
-    "biovalidator": "biovalidator"
+    "xlsx2json": "xlsx2json.py"
 ]
 // validation tasks
 params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check", "metadata_check", "insdc_check"]
@@ -60,7 +63,6 @@ def joinBasePath(path) {
 output_dir = joinBasePath(params.output_dir)
 
 workflow {
-
     // Prepare the file path
     vcf_channel = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
         .splitCsv(header:true)
@@ -170,7 +172,7 @@ process convert_xlsx_2_json {
     metadata_json = metadata_xlsx.getBaseName() + '.json'
 
     """
-    $params.executable.xlsx2json --metadata_xlsx $metadata_xlsx --metadata_json metadata.json --conversion_configuration $conversion_configuration
+    $params.python_scripts.xlsx2json --metadata_xlsx $metadata_xlsx --metadata_json metadata.json --conversion_configuration $conversion_configuration
     """
 }
 
@@ -205,7 +207,7 @@ process sample_name_concordance {
 
     script:
     """
-    $params.executable.samples_checker --metadata_json $metadata_json --vcf_files $vcf_files --output_yaml sample_checker.yml
+    $params.python_scripts.samples_checker --metadata_json $metadata_json --vcf_files $vcf_files --output_yaml sample_checker.yml
     """
 }
 
@@ -224,6 +226,6 @@ process insdc_checker {
 
     script:
     """
-    $params.executable.fasta_checker --input_fasta $fasta_file  --output_yaml ${fasta_file}_check.yml
+    $params.python_scripts.fasta_checker --input_fasta $fasta_file  --output_yaml ${fasta_file}_check.yml
     """
 }

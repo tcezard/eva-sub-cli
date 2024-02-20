@@ -1,16 +1,11 @@
-import json
 import os
 import shutil
 import unittest
-from unittest.mock import MagicMock, patch, Mock
-
-import yaml
-from ebi_eva_common_pyutils.config import WritableConfig
+from unittest.mock import patch
 
 from eva_sub_cli import SUB_CLI_CONFIG_FILE
-from eva_sub_cli.main import orchestrate_process, VALIDATE, SUBMIT
-from eva_sub_cli.reporter import READY_FOR_SUBMISSION_TO_EVA
-from eva_sub_cli.submit import StudySubmitter, SUB_CLI_CONFIG_KEY_SUBMISSION_ID, SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL
+from eva_sub_cli.main import orchestrate_process, VALIDATE, SUBMIT, DOCKER
+from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
 
 
 class TestMain(unittest.TestCase):
@@ -36,7 +31,7 @@ class TestMain(unittest.TestCase):
                 patch('eva_sub_cli.main.DockerValidator') as m_docker_validator:
             orchestrate_process(
                 self.test_sub_dir, self.mapping_file, None, None, self.metadata_json, self.metadata_xlsx,
-                tasks=[VALIDATE], resume=False
+                tasks=[VALIDATE], executor=DOCKER, resume=False
             )
             m_get_vcf.assert_called_once_with(self.mapping_file)
             m_docker_validator.assert_any_call(
@@ -44,9 +39,7 @@ class TestMain(unittest.TestCase):
                 submission_config=m_config.return_value
             )
             with m_docker_validator() as validator:
-                validator.validate.assert_called_once_with()
-                validator.create_reports.assert_called_once_with()
-                validator.update_config_with_validation_result.assert_called_once_with()
+                validator.validate_and_report.assert_called_once_with()
 
     def test_orchestrate_validate_submit(self):
         with patch('eva_sub_cli.main.get_vcf_files') as m_get_vcf, \
@@ -57,8 +50,8 @@ class TestMain(unittest.TestCase):
             m_config.return_value = {}
 
             orchestrate_process(
-                self.test_sub_dir, self.mapping_file, None, None, self.metadata_json, self.metadata_xlsx, tasks=[SUBMIT],
-                resume=False
+                self.test_sub_dir, self.mapping_file, None, None, self.metadata_json, self.metadata_xlsx,
+                tasks=[SUBMIT], executor=DOCKER, resume=False
             )
             m_get_vcf.assert_called_once_with(self.mapping_file)
             # Validate was run because the config show it was not run successfully before
@@ -67,9 +60,7 @@ class TestMain(unittest.TestCase):
                 submission_config=m_config.return_value
             )
             with m_docker_validator() as validator:
-                validator.validate.assert_called_once_with()
-                validator.create_reports.assert_called_once_with()
-                validator.update_config_with_validation_result.assert_called_once_with()
+                validator.validate_and_report.assert_called_once_with()
 
             # Submit was created
             m_submitter.assert_any_call(self.test_sub_dir, m_get_vcf.return_value, self.metadata_json,
@@ -86,8 +77,8 @@ class TestMain(unittest.TestCase):
             m_config.return_value = {READY_FOR_SUBMISSION_TO_EVA: True}
 
             orchestrate_process(
-                self.test_sub_dir, self.mapping_file, None, None, self.metadata_json, self.metadata_xlsx, tasks=[SUBMIT],
-                resume=False
+                self.test_sub_dir, self.mapping_file, None, None, self.metadata_json, self.metadata_xlsx,
+                tasks=[SUBMIT], executor=DOCKER, resume=False
             )
             m_get_vcf.assert_called_once_with(self.mapping_file)
             # Validate was not run because the config showed it was run successfully before
@@ -104,7 +95,7 @@ class TestMain(unittest.TestCase):
                 patch('eva_sub_cli.main.DockerValidator') as m_docker_validator:
             orchestrate_process(
                 self.test_sub_dir, None, self.vcf_files, self.assembly_fasta, self.metadata_json, self.metadata_xlsx,
-                tasks=[VALIDATE], resume=False
+                tasks=[VALIDATE], executor=DOCKER, resume=False
             )
             # Mapping file was created from the vcf and assembly files
             assert os.path.exists(self.mapping_file)
@@ -113,6 +104,4 @@ class TestMain(unittest.TestCase):
                 submission_config=m_config.return_value
             )
             with m_docker_validator() as validator:
-                validator.validate.assert_called_once_with()
-                validator.create_reports.assert_called_once_with()
-                validator.update_config_with_validation_result.assert_called_once_with()
+                validator.validate_and_report.assert_called_once_with()

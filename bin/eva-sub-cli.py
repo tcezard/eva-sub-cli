@@ -5,11 +5,11 @@ from argparse import ArgumentParser
 
 from ebi_eva_common_pyutils.logger import logging_config
 
-from eva_sub_cli import  main
-from eva_sub_cli.main import VALIDATE, SUBMIT
+from eva_sub_cli import main
+from eva_sub_cli.main import VALIDATE, SUBMIT, DOCKER, NATIVE
+
 
 def validate_command_line_arguments(args, argparser):
-
     if args.vcf_files_mapping and (args.vcf_files or args.assembly_fasta):
         print("Specify vcf_files and assembly_fasta OR a vcf_files_mapping in CSV. Not both")
         argparser.print_usage()
@@ -54,6 +54,8 @@ if __name__ == "__main__":
                            help='Select a task to perform. Selecting VALIDATE will run the validation regardless of the outcome of '
                                 'previous runs. Selecting SUBMIT will run validate only if the validation was not performed '
                                 'successfully before and then run the submission.')
+    argparser.add_argument('--executor', choices=[DOCKER, NATIVE], default=NATIVE,
+                           help='Select an execution type for running validation')
     credential_group = argparser.add_argument_group('Credential', 'Specify the Webin credential you want to use to '
                                                                   'upload to the EVA')
     credential_group.add_argument("--username", help="Username used for connecting to the ENA webin account")
