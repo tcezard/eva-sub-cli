@@ -7,6 +7,7 @@ package:
 
 source:
   path: ../
+# For submission to bioconda recipes, replace 'path' with the following (filling in the appropriate sha256):
 #  url: https://github.com/EBIvariation/eva-sub-cli/archive/v{{version}}.tar.gz
 #  sha256:
 
@@ -14,6 +15,7 @@ build:
   number: 0
   noarch: generic
   preserve_egg_dir: True
+# For submission to bioconda recipes, replace 'preserve_egg_dir' with the following:
 #  run_exports:
 #    - {{ pin_subpackage(name, max_pin="x.x") }}
 
