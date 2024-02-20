@@ -2,7 +2,6 @@ import base64
 import os.path
 
 from jinja2 import Environment, FileSystemLoader
-from minify_html import minify_html
 
 current_dir = os.path.dirname(__file__)
 
@@ -30,4 +29,9 @@ def generate_html_report(validation_results, validation_date, project_title=None
         validation_results=validation_results,
     )
 
-    return minify_html.minify(rendered_template, minify_js=True, remove_processing_instructions=True)
+    try:
+        # minify-html is not included in conda installation currently
+        from minify_html import minify_html
+        return minify_html.minify(rendered_template, minify_js=True, remove_processing_instructions=True)
+    except ImportError:
+        return rendered_template

@@ -4,7 +4,48 @@ EVA Submission Command Line Interface for Validation
 
 ## Installation
 
-TBD
+There are currently three ways to install and run the tool: using conda, from source using Docker,
+and from source natively (i.e. managing dependencies on your own).
+
+### Conda
+
+The most straightforward way to install eva-sub-cli and its dependencies is through conda.
+For example the following installs eva-sub-cli in a new environment called `eva`, activates the environment, and prints
+the help message:
+```bash
+conda create -n eva -c conda-forge -c bioconda eva-sub-cli
+conda activate eva
+eva-sub-cli.py --help
+````
+
+### From source using Docker
+
+This method requires just Python 3.8+ and [Docker](https://docs.docker.com/engine/install/) to be installed.
+Then either clone the git repository, or download the newest tagged release from [here](https://github.com/EBIvariation/eva-sub-cli/tags):
+```bash
+git clone git@github.com:EBIvariation/eva-sub-cli.git
+# OR
+wget -O eva-sub-cli.zip https://github.com/EBIvariation/eva-sub-cli/archive/refs/tags/v0.2.zip
+unzip eva-sub-cli.zip
+```
+
+Then install the library and its dependencies as follows (e.g. in a virtual environment):
+```bash
+cd eva-sub-cli
+pip install -r requirements.txt
+python setup.py install
+```
+
+### From source natively
+
+This method requires the following:
+* Python 3.8+
+* [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) 21.10+
+* [biovalidator](https://github.com/elixir-europe/biovalidator) 2.1.0+
+* [vcf-validator](https://github.com/EBIvariation/vcf-validator) 0.9.6+
+
+Install each of these and ensure they are available on the path.
+Then git clone the repo or install the newest release as described above.
 
 ## Input files for the validation and submission tool
 
@@ -45,6 +86,9 @@ The metadata can also be provided via a JSON file which should conform to the sc
 More detail documentation to follow 
 
 ## Execution
+
+Note for Docker users: for each of the below commands, add the command line option `--executor docker`, which will
+fetch and manage the docker container for you.
 
 ### Validate and submit your dataset
 
