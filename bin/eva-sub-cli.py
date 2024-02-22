@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+import logging
 import os
 import sys
 from argparse import ArgumentParser
 
 from ebi_eva_common_pyutils.logger import logging_config
 
-from eva_sub_cli import main
+from eva_sub_cli import main, is_submission_dir_writable
 from eva_sub_cli.main import VALIDATE, SUBMIT, DOCKER, NATIVE
 
 
@@ -25,6 +26,10 @@ def validate_command_line_arguments(args, argparser):
             not (args.password or os.environ.get('ENAWEBINPASSWORD'))):
         print("To submit your data, you need to provide a Webin username and password")
         argparser.print_usage()
+        sys.exit(1)
+
+    if not is_submission_dir_writable(args.submission_dir):
+        print(f"'{args.submission_dir}' does not have write permissions or is not a directory.")
         sys.exit(1)
 
 
@@ -66,8 +71,10 @@ if __name__ == "__main__":
 
     args = argparser.parse_args()
 
-    logging_config.add_stdout_handler()
-
     validate_command_line_arguments(args, argparser)
+
+    logging_config.add_stdout_handler()
+    logging_config.add_file_handler(os.path.join(args.submission_dir, 'eva_submission.log'), logging.DEBUG)
+
     # Pass on all the arguments
     main.orchestrate_process(**args.__dict__)

@@ -5,7 +5,6 @@ import re
 import subprocess
 import time
 
-from ebi_eva_common_pyutils.command_utils import run_command_with_output
 from ebi_eva_common_pyutils.logger import logging_config
 
 from eva_sub_cli.validators.validator import Validator, VALIDATION_OUTPUT_DIR
@@ -60,7 +59,7 @@ class DockerValidator(Validator):
 
         try:
             # remove all existing files from container
-            run_command_with_output(
+            self._quiet_commands(
                 "Remove existing files from validation directory in container",
                 f"{self.docker_path} exec {self.container_name} rm -rf work {container_validation_dir}"
             )
@@ -71,9 +70,9 @@ class DockerValidator(Validator):
             docker_cmd = self.get_docker_validation_cmd()
             # start validation
             # FIXME: If nextflow fails in the docker exec still exit with error code 0
-            run_command_with_output("Run Validation using Nextflow", docker_cmd)
+            self._quiet_commands("Run Validation using Nextflow", docker_cmd)
             # copy validation result to user host
-            run_command_with_output(
+            self._quiet_commands(
                 "Copy validation output from container to host",
                 f"{self.docker_path} cp {self.container_name}:{container_validation_dir}/{container_validation_output_dir} {self.output_dir}"
             )
@@ -82,7 +81,7 @@ class DockerValidator(Validator):
 
     def verify_docker_is_installed(self):
         try:
-            run_command_with_output(
+            self._quiet_commands(
                 "check docker is installed and available on the path",
                 f"{self.docker_path} --version"
             )
@@ -91,7 +90,7 @@ class DockerValidator(Validator):
             raise RuntimeError(f"Please make sure docker ({self.docker_path}) is installed and available on the path")
 
     def verify_container_is_running(self):
-        container_run_cmd_output = run_command_with_output("check if container is running", f"{self.docker_path} ps", return_process_output=True)
+        container_run_cmd_output = self._quiet_commands("check if container is running", f"{self.docker_path} ps", return_process_output=True)
         if container_run_cmd_output is not None and self.container_name in container_run_cmd_output:
             logger.info(f"Container ({self.container_name}) is running")
             return True
@@ -100,7 +99,7 @@ class DockerValidator(Validator):
             return False
 
     def verify_container_is_stopped(self):
-        container_stop_cmd_output = run_command_with_output(
+        container_stop_cmd_output = self._quiet_commands(
             "check if container is stopped", f"{self.docker_path} ps -a",  return_process_output=True
         )
         if container_stop_cmd_output is not None and self.container_name in container_stop_cmd_output:
@@ -113,7 +112,7 @@ class DockerValidator(Validator):
     def try_restarting_container(self):
         logger.info(f"Trying to restart container {self.container_name}")
         try:
-            run_command_with_output("Try restarting container", f"{self.docker_path} start {self.container_name}")
+            self._quiet_commands("Try restarting container", f"{self.docker_path} start {self.container_name}")
             if not self.verify_container_is_running():
                 raise RuntimeError(f"Container ({self.container_name}) could not be restarted")
         except subprocess.CalledProcessError as ex:
@@ -121,7 +120,7 @@ class DockerValidator(Validator):
             raise RuntimeError(f"Container ({self.container_name}) could not be restarted")
 
     def verify_image_available_locally(self):
-        container_images_cmd_ouptut = run_command_with_output(
+        container_images_cmd_ouptut = self._quiet_commands(
             "Check if validator image is present",
             f"{self.docker_path} images",
             return_process_output=True
@@ -136,7 +135,7 @@ class DockerValidator(Validator):
     def run_container(self):
         logger.info(f"Trying to run container {self.container_name}")
         try:
-            run_command_with_output(
+            self._quiet_commands(
                 "Try running container",
                 f"{self.docker_path} run -it --rm -d --name {self.container_name} {container_image}:{container_tag}"
             )
@@ -150,7 +149,7 @@ class DockerValidator(Validator):
 
     def stop_running_container(self):
         if not self.verify_container_is_stopped():
-            run_command_with_output(
+            self._quiet_commands(
                 "Stop the running container",
                 f"{self.docker_path} stop {self.container_name}"
             )
@@ -158,7 +157,7 @@ class DockerValidator(Validator):
     def download_container_image(self):
         logger.info(f"Pulling container ({container_image}) image")
         try:
-            run_command_with_output("pull container image", f"{self.docker_path} pull {container_image}:{container_tag}")
+            self._quiet_commands("pull container image", f"{self.docker_path} pull {container_image}:{container_tag}")
         except subprocess.CalledProcessError as ex:
             logger.error(ex)
             raise RuntimeError(f"Cannot pull container ({container_image}) image")
@@ -180,12 +179,12 @@ class DockerValidator(Validator):
 
     def copy_files_to_container(self):
         def _copy(file_description, file_path):
-            run_command_with_output(
+            self._quiet_commands(
                 f"Create directory structure for copying {file_description} into container",
                 (f"{self.docker_path} exec {self.container_name} "
                  f"mkdir -p {container_validation_dir}/{os.path.dirname(file_path)}")
             )
-            run_command_with_output(
+            self._quiet_commands(
                 f"Copy {file_description} to container",
                 (f"{self.docker_path} cp {file_path} "
                  f"{self.container_name}:{container_validation_dir}/{file_path}")

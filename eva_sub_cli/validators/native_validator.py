@@ -1,7 +1,6 @@
 import os
 import subprocess
 
-from ebi_eva_common_pyutils.command_utils import run_command_with_output
 from ebi_eva_common_pyutils.logger import logging_config
 
 from eva_sub_cli.validators.validator import Validator
@@ -27,7 +26,7 @@ class NativeValidator(Validator):
         self.verify_executables_installed()
         try:
             command = self.get_validation_cmd()
-            run_command_with_output("Run Validation using Nextflow", command)
+            self._quiet_commands("Run Validation using Nextflow", command)
         except subprocess.CalledProcessError as ex:
             logger.error(ex)
 
@@ -53,7 +52,7 @@ class NativeValidator(Validator):
                            ('vcf-assembly-checker', self.assembly_checker_path),
                            ('biovalidator', self.biovalidator_path)]:
             try:
-                run_command_with_output(
+                self._quiet_commands(
                     f"Check {name} is installed and available on the path",
                     f"{path} --version"
                 )
