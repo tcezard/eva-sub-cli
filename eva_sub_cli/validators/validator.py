@@ -111,7 +111,8 @@ class Validator(AppLogger):
                 if not os.path.exists(row['fasta']):
                     files_missing = True
                     missing_files_list.append(row['fasta'])
-                if not os.path.exists(row['report']):
+                # Assembly report is optional but should exist if it is set.
+                if row.get('report') and not os.path.exists(row['report']):
                     files_missing = True
                     missing_files_list.append(row['report'])
         return files_missing, missing_files_list

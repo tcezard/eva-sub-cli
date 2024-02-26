@@ -6,8 +6,9 @@ from argparse import ArgumentParser
 
 from ebi_eva_common_pyutils.logger import logging_config
 
-from eva_sub_cli import main, is_submission_dir_writable
+from eva_sub_cli import main
 from eva_sub_cli.main import VALIDATE, SUBMIT, DOCKER, NATIVE
+from eva_sub_cli.utils import is_submission_dir_writable
 
 
 def validate_command_line_arguments(args, argparser):

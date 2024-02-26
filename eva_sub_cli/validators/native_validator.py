@@ -26,7 +26,7 @@ class NativeValidator(Validator):
         self.verify_executables_installed()
         try:
             command = self.get_validation_cmd()
-            self._quiet_commands("Run Validation using Nextflow", command)
+            self._run_quiet_command("Run Validation using Nextflow", command)
         except subprocess.CalledProcessError as ex:
             logger.error(ex)
 
@@ -52,7 +52,7 @@ class NativeValidator(Validator):
                            ('vcf-assembly-checker', self.assembly_checker_path),
                            ('biovalidator', self.biovalidator_path)]:
             try:
-                self._quiet_commands(
+                self._run_quiet_command(
                     f"Check {name} is installed and available on the path",
                     f"{path} --version"
                 )
