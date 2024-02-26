@@ -2,16 +2,18 @@
 import csv
 import datetime
 import glob
+import logging
 import os
 import re
 from functools import lru_cache, cached_property
 
 import yaml
+from ebi_eva_common_pyutils.command_utils import run_command_with_output
 from ebi_eva_common_pyutils.config import WritableConfig
 
 from eva_sub_cli import ETC_DIR, SUB_CLI_CONFIG_FILE, __version__
 from eva_sub_cli.report import generate_html_report
-from ebi_eva_common_pyutils.logger import logging_config
+from ebi_eva_common_pyutils.logger import logging_config, AppLogger
 
 VALIDATION_OUTPUT_DIR = "validation_output"
 VALIDATION_RESULTS = 'validation_results'
@@ -28,7 +30,7 @@ def resolve_single_file_path(file_path):
         return files[0]
 
 
-class Validator:
+class Validator(AppLogger):
 
     def __init__(self, mapping_file, output_dir, metadata_json=None, metadata_xlsx=None,
                  submission_config: WritableConfig = None):
@@ -54,7 +56,10 @@ class Validator:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.sub_config.backup()
         self.sub_config.write()
-
+    @staticmethod
+    def _run_quiet_command(command_description, command, **kwargs):
+        return run_command_with_output(command_description, command, stdout_log_level=logging.DEBUG,
+                                       stderr_log_level=logging.DEBUG, **kwargs)
     def _find_vcf_and_fasta_files(self):
         vcf_files = []
         fasta_files = []
@@ -66,7 +71,9 @@ class Validator:
         return vcf_files, fasta_files
 
     def validate_and_report(self):
+        self.info('Start validation')
         self.validate()
+        self.info('Create report')
         self.report()
 
     def validate(self):
@@ -104,7 +111,8 @@ class Validator:
                 if not os.path.exists(row['fasta']):
                     files_missing = True
                     missing_files_list.append(row['fasta'])
-                if not os.path.exists(row['report']):
+                # Assembly report is optional but should exist if it is set.
+                if row.get('report') and not os.path.exists(row['report']):
                     files_missing = True
                     missing_files_list.append(row['report'])
         return files_missing, missing_files_list

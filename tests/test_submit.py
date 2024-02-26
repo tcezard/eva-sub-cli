@@ -7,6 +7,7 @@ import yaml
 from ebi_eva_common_pyutils.config import WritableConfig
 
 from eva_sub_cli import SUB_CLI_CONFIG_FILE
+from eva_sub_cli.utils import is_submission_dir_writable
 from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
 from eva_sub_cli.submit import StudySubmitter, SUB_CLI_CONFIG_KEY_SUBMISSION_ID, SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL
 
@@ -43,7 +44,6 @@ class TestSubmit(unittest.TestCase):
         with patch('eva_sub_cli.submit.requests.post', return_value=mock_initiate_response) as mock_post, \
                 patch('eva_sub_cli.submit.requests.put', return_value=mock_uploaded_response) as mock_put, \
                 patch.object(StudySubmitter, '_upload_submission'), \
-                patch.object(StudySubmitter, 'verify_submission_dir'), \
                 patch.object(self.submitter, 'submission_dir', self.test_sub_dir):
 
             self.submitter.sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=True)
@@ -68,7 +68,7 @@ class TestSubmit(unittest.TestCase):
         mock_uploaded_response = MagicMock()
         mock_uploaded_response.status_code = 200
 
-        self.submitter.verify_submission_dir(self.test_sub_dir)
+        assert is_submission_dir_writable(self.test_sub_dir)
         sub_config = WritableConfig(self.config_file, version='version1.0')
         sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=True)
         sub_config.write()
@@ -88,12 +88,8 @@ class TestSubmit(unittest.TestCase):
             assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_ID] == "mock_submission_id"
             assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL] == "directory to use for upload"
 
-    def test_verify_submission_dir(self):
-        self.submitter.verify_submission_dir(self.test_sub_dir)
-        assert os.path.exists(self.test_sub_dir)
-
     def test_sub_config_file_creation(self):
-        self.submitter.verify_submission_dir(self.test_sub_dir)
+        assert is_submission_dir_writable(self.test_sub_dir)
         self.submitter.sub_config.set('test_key', value='test_value')
         self.submitter.sub_config.write()
 
@@ -102,9 +98,9 @@ class TestSubmit(unittest.TestCase):
 
     def test_sub_config_passed_as_param(self):
         with patch('eva_sub_cli.submit.get_auth', return_value=Mock(token=self.token)):
+            assert is_submission_dir_writable(self.test_sub_dir)
             sub_config = WritableConfig(self.config_file)
             with StudySubmitter(self.test_sub_dir, vcf_files=None, metadata_file=None, submission_config=sub_config) as submitter:
-                submitter.verify_submission_dir(self.test_sub_dir)
                 submitter.sub_config.set('test_key', value='test_value')
 
             assert os.path.exists(self.config_file)

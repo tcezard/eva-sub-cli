@@ -38,6 +38,7 @@ class TestMain(unittest.TestCase):
                 self.mapping_file, self.test_sub_dir, self.metadata_json, self.metadata_xlsx,
                 submission_config=m_config.return_value
             )
+
             with m_docker_validator() as validator:
                 validator.validate_and_report.assert_called_once_with()
 

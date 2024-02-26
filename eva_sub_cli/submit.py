@@ -61,7 +61,6 @@ class StudySubmitter(AppLogger):
         self.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_ID, value=submission_id)
         self.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL, value=upload_url)
 
-
     def _upload_submission(self):
         if READY_FOR_SUBMISSION_TO_EVA not in self.sub_config or not self.sub_config[READY_FOR_SUBMISSION_TO_EVA]:
             raise Exception(f'There are still validation errors that needs to be addressed. '
@@ -76,42 +75,44 @@ class StudySubmitter(AppLogger):
     @retry(tries=5, delay=10, backoff=5)
     def _upload_file(self, submission_upload_url, input_file):
         base_name = os.path.basename(input_file)
-        self.info(f'Transfer {base_name} to EVA FTP')
+        self.debug(f'Transfer {base_name} to EVA FTP')
         r = requests.put(urljoin(submission_upload_url, base_name), data=open(input_file, 'rb'))
         r.raise_for_status()
-        self.info(f'Upload of {base_name} completed')
+        self.debug(f'Upload of {base_name} completed')
 
-    def verify_submission_dir(self, submission_dir):
-        if not os.path.exists(submission_dir):
-            os.makedirs(submission_dir)
-        if not os.access(submission_dir, os.W_OK):
-            raise Exception(f"The directory '{submission_dir}' does not have write permissions.")
+    def _initiate_submission(self):
+        response = requests.post(self.submission_initiate_url,
+                                 headers={'Accept': 'application/hal+json',
+                                          'Authorization': 'Bearer ' + self.auth.token})
+        response.raise_for_status()
+        response_json = response.json()
+        self.debug(f'Submission ID {response_json["submissionId"]} received!!')
+        # update config with submission id and upload url
+        self.update_config_with_submission_id_and_upload_url(response_json["submissionId"], response_json["uploadUrl"])
+
+    def _complete_submission(self):
+        response = requests.put(
+            self.submission_uploaded_url.format(submissionId=self.sub_config.get(SUB_CLI_CONFIG_KEY_SUBMISSION_ID)),
+            headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer ' + self.auth.token}
+        )
+        response.raise_for_status()
+        self.debug("Submission ID {} Complete".format(self.sub_config.get(SUB_CLI_CONFIG_KEY_SUBMISSION_ID)))
+        # update config with completion of the submission
+        self.sub_config.set(SUB_CLI_CONFIG_KEY_COMPLETE, value=True)
 
     def submit(self, resume=False):
         if READY_FOR_SUBMISSION_TO_EVA not in self.sub_config or not self.sub_config[READY_FOR_SUBMISSION_TO_EVA]:
             raise Exception(f'There are still validation errors that need to be addressed. '
                             f'Please review, address and re-validate before submitting.')
         if not (resume or self.sub_config.get(SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL)):
-            self.verify_submission_dir(self.submission_dir)
-            response = requests.post(self.submission_initiate_url,
-                                     headers={'Accept': 'application/hal+json',
-                                              'Authorization': 'Bearer ' + self.auth.token})
-            response.raise_for_status()
-            response_json = response.json()
-            self.info(f'Submission ID {response_json["submissionId"]} received!!')
-            # update config with submission id and upload url
-            self.update_config_with_submission_id_and_upload_url(response_json["submissionId"], response_json["uploadUrl"])
+            self.info(f'Initiate submission')
+            self._initiate_submission()
 
         # upload submission
+        self.info(f'Upload data')
         self._upload_submission()
 
         # Complete the submission
-        response = requests.put(
-            self.submission_uploaded_url.format(submissionId=self.sub_config.get(SUB_CLI_CONFIG_KEY_SUBMISSION_ID)),
-            headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer ' + self.auth.token}
-        )
-        response.raise_for_status()
-        self.info("Submission ID {} Complete".format(self.sub_config.get(SUB_CLI_CONFIG_KEY_SUBMISSION_ID)))
-        # update config with completion of the submission
-        self.sub_config.set(SUB_CLI_CONFIG_KEY_COMPLETE, value=True)
+        self.info(f'Complete submission')
+        self._complete_submission()
 
