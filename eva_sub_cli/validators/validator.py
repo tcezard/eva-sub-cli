@@ -450,4 +450,5 @@ class Validator(AppLogger):
         file_path = os.path.join(self.output_dir, 'report.html')
         with open(file_path, "w") as f:
             f.write(report_html)
+        self.info(f'View the validation report: {file_path}')
         return file_path
