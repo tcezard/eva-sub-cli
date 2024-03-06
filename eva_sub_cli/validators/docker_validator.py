@@ -200,7 +200,7 @@ class DockerValidator(Validator):
                 _copy('vcf files', row['vcf'])
                 _copy('fasta files', row['fasta'])
                 # report is optional
-                if row['report']:
+                if row.get('report'):
                     _copy('assembly report files', row['report'])
 
 
