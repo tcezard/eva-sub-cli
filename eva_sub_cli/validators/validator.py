@@ -56,10 +56,12 @@ class Validator(AppLogger):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.sub_config.backup()
         self.sub_config.write()
+
     @staticmethod
     def _run_quiet_command(command_description, command, **kwargs):
         return run_command_with_output(command_description, command, stdout_log_level=logging.DEBUG,
                                        stderr_log_level=logging.DEBUG, **kwargs)
+
     def _find_vcf_and_fasta_files(self):
         vcf_files = []
         fasta_files = []

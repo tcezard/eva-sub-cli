@@ -28,7 +28,7 @@ def create_vcf_files_mapping(submission_dir, vcf_files, assembly_fasta):
     mapping_file = os.path.join(submission_dir, 'vcf_mapping_file.csv')
     with open(mapping_file, 'w') as open_file:
         writer = csv.writer(open_file, delimiter=',')
-        writer.writerow(['vcf', 'fasta', 'report'])
+        writer.writerow(['vcf', 'fasta'])
         for vcf_file in vcf_files:
             writer.writerow([os.path.abspath(vcf_file), os.path.abspath(assembly_fasta)])
     return mapping_file
