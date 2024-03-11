@@ -56,11 +56,11 @@ if __name__ == "__main__":
                                help="Json file that describe the project, analysis, samples and files")
     metadata_group.add_argument("--metadata_xlsx",
                                help="Excel spreadsheet  that describe the project, analysis, samples and files")
-    argparser.add_argument('--tasks', nargs='*', choices=[VALIDATE, SUBMIT], default=[SUBMIT],
-                           help='Select a task to perform. Selecting VALIDATE will run the validation regardless of the outcome of '
-                                'previous runs. Selecting SUBMIT will run validate only if the validation was not performed '
-                                'successfully before and then run the submission.')
-    argparser.add_argument('--executor', choices=[DOCKER, NATIVE], default=NATIVE,
+    argparser.add_argument('--tasks', nargs='*', choices=[VALIDATE, SUBMIT], default=[SUBMIT], type=str.lower,
+                           help='Select a task to perform. Selecting VALIDATE will run the validation regardless of the'
+                                ' outcome of previous runs. Selecting SUBMIT will run validate only if the validation'
+                                ' was not performed successfully before and then run the submission.')
+    argparser.add_argument('--executor', choices=[DOCKER, NATIVE], default=NATIVE, type=str.lower,
                            help='Select an execution type for running validation (default native)')
     credential_group = argparser.add_argument_group('Credential', 'Specify the Webin credential you want to use to '
                                                                   'upload to the EVA')

@@ -56,10 +56,12 @@ class Validator(AppLogger):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.sub_config.backup()
         self.sub_config.write()
+
     @staticmethod
     def _run_quiet_command(command_description, command, **kwargs):
         return run_command_with_output(command_description, command, stdout_log_level=logging.DEBUG,
                                        stderr_log_level=logging.DEBUG, **kwargs)
+
     def _find_vcf_and_fasta_files(self):
         vcf_files = []
         fasta_files = []
@@ -267,6 +269,7 @@ class Validator(AppLogger):
         return resolve_single_file_path(
             os.path.join(self.output_dir, 'assembly_check', vcf_name + '.assembly_check.log')
         )
+
     @lru_cache
     def _assembly_check_valid_vcf(self, vcf_name):
         return resolve_single_file_path(
@@ -317,10 +320,15 @@ class Validator(AppLogger):
             fasta_file_name = os.path.basename(fasta_file)
             fasta_check = resolve_single_file_path(os.path.join(self.output_dir, f'{fasta_file_name}_check.yml'))
             self.results['fasta_check'] = {}
+            if not fasta_check:
+                continue
             with open(fasta_check) as open_yaml:
                 self.results['fasta_check'][fasta_file_name] = yaml.safe_load(open_yaml)
 
     def _load_sample_check_results(self):
+        self.results['sample_check'] = {}
+        if not self._sample_check_yaml:
+            return
         with open(self._sample_check_yaml) as open_yaml:
             self.results['sample_check'] = yaml.safe_load(open_yaml)
         self.results['sample_check']['report_path'] = self._sample_check_yaml
@@ -337,6 +345,9 @@ class Validator(AppLogger):
             if l:
                 return ansi_escape.sub('', l).strip()
 
+        self.results['metadata_check'] = {}
+        if not metadata_check_file:
+            return
         with open(metadata_check_file) as open_file:
             errors = []
             collect = False
@@ -375,7 +386,7 @@ class Validator(AppLogger):
             xls2json_conf = yaml.safe_load(open_file)
 
         self.results['metadata_check']['spreadsheet_errors'] = []
-        for error in self.results['metadata_check']['json_errors']:
+        for error in self.results['metadata_check'].get('json_errors', {}):
             sheet_json, row_json, attribute_json = self._parse_metadata_property(error['property'])
             sheet = self._convert_metadata_sheet(sheet_json, xls2json_conf)
             row = self._convert_metadata_row(sheet, row_json, xls2json_conf)
@@ -400,7 +411,8 @@ class Validator(AppLogger):
             })
 
     def _write_spreadsheet_validation_results(self):
-        if 'spreadsheet_errors' in self.results['metadata_check']:
+        if ('spreadsheet_errors' in self.results['metadata_check']
+                and 'json_report_path' in self.results['metadata_check']):
             spreadsheet_report_file = os.path.join(os.path.dirname(self.results['metadata_check']['json_report_path']),
                                                    'metadata_spreadsheet_validation.txt')
             with open(spreadsheet_report_file, 'w') as open_file:
@@ -438,4 +450,5 @@ class Validator(AppLogger):
         file_path = os.path.join(self.output_dir, 'report.html')
         with open(file_path, "w") as f:
             f.write(report_html)
+        self.info(f'View the validation report: {file_path}')
         return file_path

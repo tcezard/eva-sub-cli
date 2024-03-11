@@ -20,13 +20,14 @@ eva-sub-cli.py --help
 
 ### From source using Docker
 
+Docker provides an easy way to run eva-sub-cli without installing dependencies separately.
 This method requires just Python 3.8+ and [Docker](https://docs.docker.com/engine/install/) to be installed.
 Then either clone the git repository, or download the newest tagged release from [here](https://github.com/EBIvariation/eva-sub-cli/tags):
 ```bash
 git clone git@github.com:EBIvariation/eva-sub-cli.git
-# OR
+# OR (replace "v0.2" with the newest version)
 wget -O eva-sub-cli.zip https://github.com/EBIvariation/eva-sub-cli/archive/refs/tags/v0.2.zip
-unzip eva-sub-cli.zip
+unzip eva-sub-cli.zip && mv eva-sub-cli-* eva-sub-cli
 ```
 
 Then install the library and its dependencies as follows (e.g. in a virtual environment):
@@ -34,6 +35,11 @@ Then install the library and its dependencies as follows (e.g. in a virtual envi
 cd eva-sub-cli
 pip install -r requirements.txt
 python setup.py install
+```
+
+To check it is installed correctly, you can run:
+```bash
+eva-sub-cli.py -h
 ```
 
 ### From source natively

@@ -5,7 +5,7 @@
         {% if check_type == "assembly_check" %}
             {% set nb_match = result.get("match", 0) %}
             {% set nb_total = result.get("total", 0) %}
-            {% set match_percentage = nb_match / nb_total * 100 %}
+            {% set match_percentage = nb_match / nb_total * 100 if nb_total else 0 %}
             {% if result.get("nb_mismatch", 0) > 0 %}
                 {% set icon = "&#10060;" %}
                 {% set row_class = "report-section fail collapsible" %}
