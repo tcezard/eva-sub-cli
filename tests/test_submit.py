@@ -9,7 +9,8 @@ from ebi_eva_common_pyutils.config import WritableConfig
 from eva_sub_cli import SUB_CLI_CONFIG_FILE
 from eva_sub_cli.utils import is_submission_dir_writable
 from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
-from eva_sub_cli.submit import StudySubmitter, SUB_CLI_CONFIG_KEY_SUBMISSION_ID, SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL
+from eva_sub_cli.submit import StudySubmitter, SUB_CLI_CONFIG_KEY_SUBMISSION_ID, \
+    SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL, SUBMISSION_WS_URL
 
 
 class TestSubmit(unittest.TestCase):
@@ -49,11 +50,11 @@ class TestSubmit(unittest.TestCase):
             self.submitter.sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=True)
             self.submitter.submit()
         mock_post.assert_called_once_with(
-            'https://www.ebi.ac.uk/eva/webservices/submission-ws/submission/submission/initiate',
+            os.path.join(SUBMISSION_WS_URL, 'submission/initiate'),
             headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'}
         )
         mock_put.assert_called_once_with(
-            'https://www.ebi.ac.uk/eva/webservices/submission-ws/submission/submission/mock_submission_id/uploaded',
+            os.path.join(SUBMISSION_WS_URL, 'submission/mock_submission_id/uploaded'),
             headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'}
         )
         print(mock_put.mock_calls)
