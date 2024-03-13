@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import os
-from urllib.parse import urljoin
 
 import requests
 from ebi_eva_common_pyutils.config import WritableConfig
@@ -15,7 +14,7 @@ SUB_CLI_CONFIG_KEY_SUBMISSION_ID = "submission_id"
 SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL = "submission_upload_url"
 SUB_CLI_CONFIG_KEY_COMPLETE = "submission_complete"
 
-SUBMISSION_WS_URL = "https://www.ebi.ac.uk/eva/webservices/submission-ws/submission/"
+SUBMISSION_WS_URL = "https://www.ebi.ac.uk/eva/webservices/submission-ws/v1/"
 
 
 class StudySubmitter(AppLogger):
@@ -51,11 +50,11 @@ class StudySubmitter(AppLogger):
 
     @property
     def submission_initiate_url(self):
-        return self._get_submission_ws_url() + 'submission/initiate'
+        return os.path.join(self._get_submission_ws_url(), 'submission/initiate')
 
     @property
     def submission_uploaded_url(self):
-        return self._get_submission_ws_url() + 'submission/{submissionId}/uploaded'
+        return os.path.join(self._get_submission_ws_url(), 'submission/{submissionId}/uploaded')
 
     def update_config_with_submission_id_and_upload_url(self, submission_id, upload_url):
         self.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_ID, value=submission_id)
@@ -76,7 +75,7 @@ class StudySubmitter(AppLogger):
     def _upload_file(self, submission_upload_url, input_file):
         base_name = os.path.basename(input_file)
         self.debug(f'Transfer {base_name} to EVA FTP')
-        r = requests.put(urljoin(submission_upload_url, base_name), data=open(input_file, 'rb'))
+        r = requests.put(os.path.join(submission_upload_url, base_name), data=open(input_file, 'rb'))
         r.raise_for_status()
         self.debug(f'Upload of {base_name} completed')
 
