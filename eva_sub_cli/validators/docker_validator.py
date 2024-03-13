@@ -26,6 +26,7 @@ class DockerValidator(Validator):
         super().__init__(mapping_file, os.path.join(output_dir, VALIDATION_OUTPUT_DIR),
                          metadata_json=metadata_json, metadata_xlsx=metadata_xlsx,
                          submission_config=submission_config)
+        os.makedirs(os.path.join(output_dir, VALIDATION_OUTPUT_DIR), exist_ok=True)
         self.docker_path = docker_path
         self.container_name = container_name
         if self.container_name is None:
@@ -90,13 +91,17 @@ class DockerValidator(Validator):
             raise RuntimeError(f"Please make sure docker ({self.docker_path}) is installed and available on the path")
 
     def verify_container_is_running(self):
-        container_run_cmd_output = self._run_quiet_command("check if container is running", f"{self.docker_path} ps", return_process_output=True)
-        if container_run_cmd_output is not None and self.container_name in container_run_cmd_output:
-            logger.info(f"Container ({self.container_name}) is running")
-            return True
-        else:
-            logger.info(f"Container ({self.container_name}) is not running")
-            return False
+        try:
+            container_run_cmd_output = self._run_quiet_command("check if container is running", f"{self.docker_path} ps", return_process_output=True)
+            if container_run_cmd_output is not None and self.container_name in container_run_cmd_output:
+                logger.info(f"Container ({self.container_name}) is running")
+                return True
+            else:
+                logger.info(f"Container ({self.container_name}) is not running")
+                return False
+        except subprocess.CalledProcessError as ex:
+            logger.error(ex)
+            raise RuntimeError(f"Please make sure docker ({self.docker_path}) is installed and running in the background")
 
     def verify_container_is_stopped(self):
         container_stop_cmd_output = self._run_quiet_command(
