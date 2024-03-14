@@ -93,8 +93,8 @@ More detail documentation to follow
 
 ## Execution
 
-Note for Docker users: for each of the below commands, add the command line option `--executor docker`, which will
-fetch and manage the docker container for you. Make sure that the Docker daemon is running in the background, e.g.
+**Note for Docker users:** for each of the below commands, add the command line option `--executor docker`, which will
+fetch and manage the docker container for you. Make sure that Docker is running in the background, e.g.
 by opening Docker Desktop.
 
 ### Validate and submit your dataset
