@@ -3,6 +3,7 @@
 import argparse
 import gzip
 import hashlib
+import json
 
 from itertools import groupby
 
@@ -13,7 +14,11 @@ import yaml
 from requests import HTTPError
 from retry import retry
 
+from eva_sub_cli.metadata_utils import get_files_per_analysis, get_analysis_for_vcf_file, \
+    get_reference_assembly_for_analysis
+
 REFGET_SERVER = 'https://www.ebi.ac.uk/ena/cram'
+CONTIG_ALIAS_SERVER = 'https://www.ebi.ac.uk/eva/webservices/contig-alias/v1/chromosomes/md5checksum'
 
 logger = logging_config.get_logger(__name__)
 
@@ -64,17 +69,59 @@ def get_refget_metadata(md5_digest):
     return None
 
 
-def assess_fasta(input_fasta):
+@retry(exceptions=(HTTPError,), tries=3, delay=2, backoff=1.2, jitter=(1, 3))
+def get_containing_assemblies(md5_digest):
+    response = requests.get(f'{CONTIG_ALIAS_SERVER}/{md5_digest}')
+    if 500 <= response.status_code < 600:
+        raise HTTPError(f"{response.status_code} Server Error: {response.reason} for url: {response.url}", response=response)
+    if 200 <= response.status_code < 300:
+        results = set()
+        for contigEntity in response.json()['_embedded']['chromosomeEntities']:  # TODO handle pagination
+            results.add(contigEntity['assembly']['insdcAccession'])
+        return results
+    return set()
+
+
+def assess_fasta(input_fasta, metadata_insdc):
+    """
+    Check whether all sequences in fasta file are INSDC, and if so whether the INSDC accession provided in the metadata
+    is compatible.
+    :param input_fasta: path to fasta file
+    :param metadata_insdc: INSDC accession from metadata (if None will only do the first check)
+    :returns: dict of results
+    """
     results = {'sequences': []}
     all_insdc = True
+    possible_assemblies = set()
     for header, sequence in fasta_iter(input_fasta):
         name = header.split()[0]
         md5_digest = refget_md5_digest(sequence)
         sequence_metadata = get_refget_metadata(md5_digest)
-        results['sequences'].append({'sequence_name': name, 'sequence_md5': md5_digest, 'insdc': bool(sequence_metadata)})
-        all_insdc = all_insdc and bool(sequence_metadata)
+        is_insdc = bool(sequence_metadata)
+        if is_insdc:
+            containing_assemblies = get_containing_assemblies(md5_digest)
+            if len(possible_assemblies) == 0:
+                possible_assemblies = containing_assemblies
+            else:
+                possible_assemblies &= containing_assemblies
+        results['sequences'].append({'sequence_name': name, 'sequence_md5': md5_digest, 'insdc': is_insdc})
+        all_insdc = all_insdc and is_insdc
     results['all_insdc'] = all_insdc
+    results['possible_assemblies'] = possible_assemblies
+    if metadata_insdc:
+        results['metadata_assembly_compatible'] = (metadata_insdc in possible_assemblies)
     return results
+
+
+def get_insdc_from_metadata(vcf_file, json_file):
+    with open(json_file) as open_json:
+        metadata = json.load(open_json)
+        files_per_analysis = get_files_per_analysis(metadata)
+        analysis_aliases = get_analysis_for_vcf_file(vcf_file, files_per_analysis)
+        if len(analysis_aliases) != 1:
+            logger.error(f'Could not determine assembly accession associated with VCF file: {vcf_file}')
+            return None
+        return get_reference_assembly_for_analysis(metadata, analysis_aliases[0])
 
 
 def main():
@@ -82,11 +129,15 @@ def main():
         description="Calculate each sequence's Refget MD5 digest and compare these against INSDC Refget server.")
     arg_parser.add_argument('--input_fasta', required=True, dest='input_fasta',
                             help='Fasta file that contains the sequence to be checked')
+    arg_parser.add_argument('--vcf_file', required=True, dest='vcf_file',
+                            help='VCF file, used to connect fasta file to assembly accession in metadata via analysis')
+    arg_parser.add_argument('--metadata_json', required=True, dest='metadata_json', help='EVA metadata json file')
     arg_parser.add_argument('--output_yaml', required=True, dest='output_yaml',
                             help='Path to the location of the results')
     args = arg_parser.parse_args()
     logging_config.add_stdout_handler()
-    results = assess_fasta(args.input_fasta)
+    metadata_insdc = get_insdc_from_metadata(args.vcf_file, args.metadata_json)
+    results = assess_fasta(args.input_fasta, metadata_insdc)
     write_result_yaml(args.output_yaml, results)
 
 

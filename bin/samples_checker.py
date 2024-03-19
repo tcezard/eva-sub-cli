@@ -4,11 +4,11 @@ import gzip
 import json
 import os
 
-from collections import defaultdict
 from ebi_eva_common_pyutils.logger import logging_config
 
 import yaml
 
+from eva_sub_cli.metadata_utils import get_samples_per_analysis, get_files_per_analysis, get_analysis_for_vcf_file
 
 logger = logging_config.get_logger(__name__)
 
@@ -88,17 +88,7 @@ def compare_all_analysis(samples_per_analysis, files_per_analysis):
 def read_metadata_json(json_file):
     with open(json_file) as open_json:
         metadata = json.load(open_json)
-        samples_per_analysis = defaultdict(list)
-        files_per_analysis = defaultdict(list)
-        for sample_info in metadata['sample']:
-            samples_per_analysis[sample_info.get('analysisAlias')].append(sample_info.get('sampleInVCF'))
-        for file_info in metadata['files']:
-            if file_info.get('fileType') == 'vcf':
-                files_per_analysis[file_info.get('analysisAlias')].append(file_info.get('fileName'))
-        return (
-            {analysis_alias: set(samples) for analysis_alias, samples in samples_per_analysis.items()},
-            {filepath: set(samples) for filepath, samples in files_per_analysis.items()}
-        )
+        return get_samples_per_analysis(metadata), get_files_per_analysis(metadata)
 
 
 def associate_vcf_path_with_analysis(vcf_files, files_per_analysis):
@@ -113,10 +103,7 @@ def associate_vcf_path_with_analysis(vcf_files, files_per_analysis):
     for analysis in files_per_analysis:
         result_files_per_analysis[analysis] = []
     for vcf_file in vcf_files:
-        if not os.path.exists(vcf_file):
-            raise FileNotFoundError(f'{vcf_file} cannot be resolved')
-        analysis_aliases = [analysis_alias for analysis_alias in files_per_analysis
-                            if os.path.basename(vcf_file) in files_per_analysis[analysis_alias]]
+        analysis_aliases = get_analysis_for_vcf_file(vcf_file, files_per_analysis)
         if len(analysis_aliases) == 1:
             result_files_per_analysis[analysis_aliases[0]].append(vcf_file)
         elif len(analysis_aliases) == 0:
@@ -140,7 +127,7 @@ def write_result_yaml(output_yaml, overall_differences, results_per_analysis_ali
 
 def check_sample_name_concordance(metadata_json, vcf_files, output_yaml):
     """
-    Take the metadata following EVA standard and  formatted in JSON then compare the sample names in it to the ones
+    Take the metadata following EVA standard and formatted in JSON then compare the sample names in it to the ones
     found in the VCF files
     """
     samples_per_analysis, files_per_analysis = read_metadata_json(metadata_json)

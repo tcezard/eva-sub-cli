@@ -96,9 +96,8 @@ workflow {
     if ("insdc_check" in params.validation_tasks){
         fasta_files = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
         .splitCsv(header:true)
-        .map{row -> file(joinBasePath(row.fasta))}
-        .unique()
-        insdc_checker(fasta_files)
+        .map{row -> tuple(file(joinBasePath(row.vcf)), file(joinBasePath(row.fasta)))}
+        insdc_checker(metadata_json, fasta_files)
     }
 }
 
@@ -219,13 +218,14 @@ process insdc_checker {
             mode: "copy"
 
     input:
-    path(fasta_file)
+    path(metadata_json)
+    tuple(path(vcf_file), path(fasta_file))
 
     output:
     path "${fasta_file}_check.yml", emit: fasta_checker_yml
 
     script:
     """
-    $params.python_scripts.fasta_checker --input_fasta $fasta_file  --output_yaml ${fasta_file}_check.yml
+    $params.python_scripts.fasta_checker --metadata_json $metadata_json --vcf_file $vcf_file --input_fasta $fasta_file --output_yaml ${fasta_file}_check.yml
     """
 }
