@@ -1,14 +1,14 @@
-
+<!-- TODO add metadata concordance results -->
 {% macro fasta_check_report(validation_results) -%}
     {% for fasta_file, results_for_fasta in validation_results.get('fasta_check', {}).items() %}
         {% if results_for_fasta.get('all_insdc') %}
             {% set icon = "&#10004;" %}
             {% set row_class = "report-section pass" %}
-            {% set text = "all sequences are INSDC accessioned" %}
+            {% set text = "All sequences are INSDC accessioned" %}
         {% else %}
             {% set icon = "&#10060;" %}
             {% set row_class = "report-section fail collapsible" %}
-            {% set text = "some sequences are not INSDC accessioned" %}
+            {% set text = "Some sequences are not INSDC accessioned" %}
         {% endif %}
         <div class='{{ row_class }}'>{{ icon }} {{ fasta_file }}: {{ text }} </div>
         {% if not results_for_fasta.get('all_insdc') %}

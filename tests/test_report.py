@@ -71,7 +71,7 @@ validation_results = {
             'all_insdc': False,
             'sequences': [
                 {'sequence_name': '1', 'sequence_md5': 'hsjvchdhdo3ate83jdfd76rp2', 'insdc': True},
-                {'sequence_name': '2', 'sequence_md5': 'hjfdoijsfc47hfg0gh9qwjrve', 'insdc': False }
+                {'sequence_name': '2', 'sequence_md5': 'hjfdoijsfc47hfg0gh9qwjrve', 'insdc': False}
             ]
         }
     },
@@ -108,16 +108,11 @@ validation_results = {
 }
 
 
-
-
 class TestReport(TestCase):
     resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
     expected_report = os.path.join(resource_dir, 'validation_reports', 'expected_report.html')
 
     def test_generate_html_report(self):
-
         report = generate_html_report(validation_results, datetime.datetime(2023, 8, 31, 12, 34, 56), "My cool project")
-
-
         with open(self.expected_report) as open_html:
             assert report == open_html.read()

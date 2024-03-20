@@ -77,11 +77,20 @@
 </section>
 
 <section>
-    <h2>Reference Genome INSDC check</h2>
+    <h2>Reference genome INSDC check</h2>
     <div class="description">
         Checks that the reference sequences in the fasta file used to call the variants are accessioned in INSDC.
     </div>
     {{ fasta_check_report(validation_results)}}
+</section>
+
+<section>
+    <h2>Reference genome INSDC concordance check</h2>
+    <div class="description">
+        Checks that the reference assembly accession in the metadata is concordant with the sequences in the fasta file.
+        This check is only run if the fasta file is confirmed to contain only INSDC accessions.
+    </div>
+    {{ fasta_concordance_report(validation_results)}}
 </section>
 
 <script>

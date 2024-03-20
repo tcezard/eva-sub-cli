@@ -82,11 +82,12 @@ def get_containing_assemblies(md5_digest):
     return set()
 
 
-def assess_fasta(input_fasta, metadata_insdc):
+def assess_fasta(input_fasta, analyses, metadata_insdc):
     """
     Check whether all sequences in fasta file are INSDC, and if so whether the INSDC accession provided in the metadata
     is compatible.
     :param input_fasta: path to fasta file
+    :param analyses: aliases of all analyses associated with this fasta
     :param metadata_insdc: INSDC accession from metadata (if None will only do the first check)
     :returns: dict of results
     """
@@ -107,21 +108,32 @@ def assess_fasta(input_fasta, metadata_insdc):
         results['sequences'].append({'sequence_name': name, 'sequence_md5': md5_digest, 'insdc': is_insdc})
         all_insdc = all_insdc and is_insdc
     results['all_insdc'] = all_insdc
-    results['possible_assemblies'] = possible_assemblies
-    if metadata_insdc:
+    if all_insdc:
+        results['possible_assemblies'] = possible_assemblies
+    if all_insdc and metadata_insdc:
         results['metadata_assembly_compatible'] = (metadata_insdc in possible_assemblies)
+        results['associated_analyses'] = analyses
     return results
 
 
-def get_insdc_from_metadata(vcf_file, json_file):
+def get_analyses_and_reference_genome_from_metadata(vcf_files, json_file):
     with open(json_file) as open_json:
         metadata = json.load(open_json)
         files_per_analysis = get_files_per_analysis(metadata)
-        analysis_aliases = get_analysis_for_vcf_file(vcf_file, files_per_analysis)
-        if len(analysis_aliases) != 1:
-            logger.error(f'Could not determine assembly accession associated with VCF file: {vcf_file}')
-            return None
-        return get_reference_assembly_for_analysis(metadata, analysis_aliases[0])
+        # Get all analyses associated with all vcf files
+        all_analyses = set()
+        for vcf_file in vcf_files:
+            analysis_aliases = get_analysis_for_vcf_file(vcf_file, files_per_analysis)
+            if len(analysis_aliases) != 1:
+                logger.error(f'Could not determine analysis associated with VCF file: {vcf_file}')
+            else:
+                all_analyses.add(analysis_aliases[0])
+        # Get (single) assembly associated with all analyses
+        assemblies = [get_reference_assembly_for_analysis(metadata, analysis) for analysis in all_analyses]
+        if len(assemblies) != 1:
+            logger.error(f'Could not determine assembly accession to check against fasta file, out of: {assemblies}')
+            return all_analyses, None
+        return all_analyses, assemblies[0]
 
 
 def main():
@@ -129,15 +141,15 @@ def main():
         description="Calculate each sequence's Refget MD5 digest and compare these against INSDC Refget server.")
     arg_parser.add_argument('--input_fasta', required=True, dest='input_fasta',
                             help='Fasta file that contains the sequence to be checked')
-    arg_parser.add_argument('--vcf_file', required=True, dest='vcf_file',
-                            help='VCF file, used to connect fasta file to assembly accession in metadata via analysis')
+    arg_parser.add_argument('--vcf_files', dest='vcf_files', nargs='+',
+                            help='VCF files, used to connect fasta file to assembly accession in metadata via analysis')
     arg_parser.add_argument('--metadata_json', required=True, dest='metadata_json', help='EVA metadata json file')
     arg_parser.add_argument('--output_yaml', required=True, dest='output_yaml',
                             help='Path to the location of the results')
     args = arg_parser.parse_args()
     logging_config.add_stdout_handler()
-    metadata_insdc = get_insdc_from_metadata(args.vcf_file, args.metadata_json)
-    results = assess_fasta(args.input_fasta, metadata_insdc)
+    analyses, metadata_insdc = get_analyses_and_reference_genome_from_metadata(args.vcf_files, args.metadata_json)
+    results = assess_fasta(args.input_fasta, analyses, metadata_insdc)
     write_result_yaml(args.output_yaml, results)
 
 
