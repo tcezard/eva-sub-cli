@@ -57,7 +57,7 @@ validation_results = {
         'report_path': '/path/to/sample/report',
         'overall_differences': True,
         'results_per_analysis': {
-            'AA': {
+            'Analysis A': {
                 'difference': True,
                 'more_metadata_submitted_files': ['Sample1'],
                 'more_per_submitted_files_metadata': {},
@@ -65,14 +65,49 @@ validation_results = {
             }
         }
     },
+    # NB. obviously this doesn't make sense for the number analyses, but demonstrates the possible outputs
+    # for this check.
     "fasta_check": {
-        'reference_genome.fa': {
-            'report_path': 'path/to/fasta_check.yml',
+        'not_all_insdc.fa': {
+            'report_path': '/path/to/not_all_insdc_check.yml',
             'all_insdc': False,
             'sequences': [
                 {'sequence_name': '1', 'sequence_md5': 'hsjvchdhdo3ate83jdfd76rp2', 'insdc': True},
                 {'sequence_name': '2', 'sequence_md5': 'hjfdoijsfc47hfg0gh9qwjrve', 'insdc': False}
             ]
+        },
+        'metadata_asm_not_found.fa': {
+            'report_path': '/path/to/metadata_asm_not_found.yml',
+            'all_insdc': True,
+            'sequences': [
+                {'sequence_name': '1', 'sequence_md5': 'hsjvchdhdo3ate83jdfd76rp2', 'insdc': True},
+                {'sequence_name': '2', 'sequence_md5': 'hjfdoijsfc47hfg0gh9qwjrve', 'insdc': True}
+            ],
+            'possible_assemblies': {'GCA_1'}
+        },
+        'metadata_asm_not_match.fa': {
+            'report_path': '/path/to/metadata_asm_not_match.yml',
+            'all_insdc': True,
+            'sequences': [
+                {'sequence_name': '1', 'sequence_md5': 'hsjvchdhdo3ate83jdfd76rp2', 'insdc': True},
+                {'sequence_name': '2', 'sequence_md5': 'hjfdoijsfc47hfg0gh9qwjrve', 'insdc': True}
+            ],
+            'metadata_assembly_compatible': False,
+            'possible_assemblies': {'GCA_1'},
+            'assembly_in_metadata': 'GCA_2',
+            'associated_analyses': ['Analysis B']
+        },
+        'metadata_asm_match.fa': {
+            'report_path': '/path/to/metadata_asm_match.yml',
+            'all_insdc': True,
+            'sequences': [
+                {'sequence_name': '1', 'sequence_md5': 'hsjvchdhdo3ate83jdfd76rp2', 'insdc': True},
+                {'sequence_name': '2', 'sequence_md5': 'hjfdoijsfc47hfg0gh9qwjrve', 'insdc': True}
+            ],
+            'metadata_assembly_compatible': True,
+            'possible_assemblies': {'GCA_1'},
+            'assembly_in_metadata': 'GCA_1',
+            'associated_analyses': ['Analysis A']
         }
     },
     'metadata_check': {

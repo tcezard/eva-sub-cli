@@ -9,7 +9,7 @@ logger = logging_config.get_logger(__name__)
 def get_samples_per_analysis(metadata):
     """Returns mapping of analysis alias to sample names, based on metadata."""
     samples_per_analysis = defaultdict(list)
-    for sample_info in metadata['sample']:
+    for sample_info in metadata.get('sample', []):
         samples_per_analysis[sample_info.get('analysisAlias')].append(sample_info.get('sampleInVCF'))
     return {
         analysis_alias: set(samples)
@@ -20,7 +20,7 @@ def get_samples_per_analysis(metadata):
 def get_files_per_analysis(metadata):
     """Returns mapping of analysis alias to filenames, based on metadata."""
     files_per_analysis = defaultdict(list)
-    for file_info in metadata['files']:
+    for file_info in metadata.get('files', []):
         if file_info.get('fileType') == 'vcf':
             files_per_analysis[file_info.get('analysisAlias')].append(file_info.get('fileName'))
     return {
@@ -31,7 +31,7 @@ def get_files_per_analysis(metadata):
 
 def get_reference_assembly_for_analysis(metadata, analysis_alias):
     """Returns the reference assembly for this analysis (does not validate format)."""
-    for analysis in metadata['analysis']:
+    for analysis in metadata.get('analysis', []):
         if analysis.get('analysisAlias') == analysis_alias:
             return analysis.get('referenceGenome')
     return None

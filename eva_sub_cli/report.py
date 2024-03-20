@@ -13,11 +13,11 @@ def get_logo_data():
 
 
 def generate_html_report(validation_results, validation_date, project_title=None):
-    file_names = sorted(set([file_name
-                             for check in validation_results if check in ["vcf_check", "assembly_check"]
-                             for file_name in validation_results[check]
-                             ]))
-
+    vcf_files = sorted(set([file_name
+                            for check in validation_results if check in ["vcf_check", "assembly_check"]
+                            for file_name in validation_results[check]
+                            ]))
+    fasta_files = sorted([file_name for file_name in validation_results['fasta_check']])
     template = Environment(
         loader=FileSystemLoader(os.path.join(current_dir, 'jinja_templates'))
     ).get_template('html_report.html')
@@ -25,7 +25,8 @@ def generate_html_report(validation_results, validation_date, project_title=None
         logo_data=get_logo_data(),
         project_title=project_title,
         validation_date=validation_date,
-        file_names=file_names,
+        vcf_files=vcf_files,
+        fasta_files=fasta_files,
         validation_results=validation_results,
     )
 

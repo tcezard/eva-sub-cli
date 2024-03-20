@@ -87,7 +87,7 @@ def assess_fasta(input_fasta, analyses, metadata_insdc):
     Check whether all sequences in fasta file are INSDC, and if so whether the INSDC accession provided in the metadata
     is compatible.
     :param input_fasta: path to fasta file
-    :param analyses: aliases of all analyses associated with this fasta
+    :param analyses: aliases of all analyses associated with this fasta (used only for reporting)
     :param metadata_insdc: INSDC accession from metadata (if None will only do the first check)
     :returns: dict of results
     """
@@ -101,6 +101,9 @@ def assess_fasta(input_fasta, analyses, metadata_insdc):
         is_insdc = bool(sequence_metadata)
         if is_insdc:
             containing_assemblies = get_containing_assemblies(md5_digest)
+            if len(containing_assemblies) == 0:
+                logger.warning(f'Sequence with this MD5 is INSDC but not found in contig alias: {md5_digest}')
+                continue
             if len(possible_assemblies) == 0:
                 possible_assemblies = containing_assemblies
             else:
@@ -108,11 +111,18 @@ def assess_fasta(input_fasta, analyses, metadata_insdc):
         results['sequences'].append({'sequence_name': name, 'sequence_md5': md5_digest, 'insdc': is_insdc})
         all_insdc = all_insdc and is_insdc
     results['all_insdc'] = all_insdc
-    if all_insdc:
+
+    # Only report on metadata concordance if all of the following hold:
+    #  1) All sequences in FASTA file are INSDC
+    #  2) At least one compatible assembly accession was found in contig alias
+    #  3) Found a single assembly accession in the metadata to compare against this FASTA file
+    # If (3) is missing but (1) and (2) hold, we will still report possible INSDC assemblies.
+    if all_insdc and possible_assemblies:
         results['possible_assemblies'] = possible_assemblies
-    if all_insdc and metadata_insdc:
+    if all_insdc and possible_assemblies and metadata_insdc:
         results['metadata_assembly_compatible'] = (metadata_insdc in possible_assemblies)
         results['associated_analyses'] = analyses
+        results['assembly_in_metadata'] = metadata_insdc
     return results
 
 

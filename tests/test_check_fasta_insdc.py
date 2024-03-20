@@ -9,14 +9,14 @@ class TestFastaChecker(TestCase):
 
     def test_assess_fasta_is_insdc(self):
         input_fasta = os.path.join(self.resource_dir, 'fasta_files', 'Saccharomyces_cerevisiae_I.fa')
-        results = assess_fasta(input_fasta, [], None)
+        results = assess_fasta(input_fasta, ['analysis'], None)
         assert results == {
             'all_insdc': True,
             'sequences': [{'sequence_name': 'I', 'sequence_md5': '6681ac2f62509cfc220d78751b8dc524', 'insdc': True}],
             'possible_assemblies': {'GCA_000146045.2'}
         }
         input_fasta = os.path.join(self.resource_dir, 'fasta_files', 'input_passed.fa')
-        results = assess_fasta(input_fasta, [], None)
+        results = assess_fasta(input_fasta, ['analysis'], None)
         assert results == {
             'all_insdc': False,
             'sequences': [{'sequence_name': 'chr1', 'sequence_md5': 'd2b3f22704d944f92a6bc45b6603ea2d', 'insdc': False}]
@@ -31,7 +31,8 @@ class TestFastaChecker(TestCase):
                 {'sequence_name': 'I', 'sequence_md5': '6681ac2f62509cfc220d78751b8dc524', 'insdc': True}],
             'possible_assemblies': {'GCA_000146045.2'},
             'metadata_assembly_compatible': True,
-            'associated_analyses': ['analysis']
+            'associated_analyses': ['analysis'],
+            'assembly_in_metadata': 'GCA_000146045.2'
         }
         results = assess_fasta(input_fasta, ['analysis'], 'GCA_002915635.1')
         assert results == {
@@ -40,7 +41,8 @@ class TestFastaChecker(TestCase):
                 {'sequence_name': 'I', 'sequence_md5': '6681ac2f62509cfc220d78751b8dc524', 'insdc': True}],
             'possible_assemblies': {'GCA_000146045.2'},
             'metadata_assembly_compatible': False,
-            'associated_analyses': ['analysis']
+            'associated_analyses': ['analysis'],
+            'assembly_in_metadata': 'GCA_002915635.1'
         }
 
     def test_get_analysis_and_reference_genome_from_metadata(self):
