@@ -65,8 +65,8 @@ validation_results = {
             }
         }
     },
-    # NB. obviously this doesn't make sense for the number analyses, but demonstrates the possible outputs
-    # for this check.
+    # NB. obviously this doesn't make sense for the number of analyses in this report, but demonstrates the possible
+    # outputs for this check.
     "fasta_check": {
         'not_all_insdc.fa': {
             'report_path': '/path/to/not_all_insdc_check.yml',

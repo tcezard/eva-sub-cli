@@ -70,16 +70,27 @@ def get_refget_metadata(md5_digest):
 
 
 @retry(exceptions=(HTTPError,), tries=3, delay=2, backoff=1.2, jitter=(1, 3))
-def get_containing_assemblies(md5_digest):
-    response = requests.get(f'{CONTIG_ALIAS_SERVER}/{md5_digest}')
+def _get_containing_assemblies_paged(url):
+    response = requests.get(url)
     if 500 <= response.status_code < 600:
-        raise HTTPError(f"{response.status_code} Server Error: {response.reason} for url: {response.url}", response=response)
+        raise HTTPError(f"{response.status_code} Server Error: {response.reason} for url: {response.url}",
+                        response=response)
     if 200 <= response.status_code < 300:
         results = set()
-        for contigEntity in response.json()['_embedded']['chromosomeEntities']:  # TODO handle pagination
+        response_data = response.json()
+        for contigEntity in response_data['_embedded']['chromosomeEntities']:
             results.add(contigEntity['assembly']['insdcAccession'])
+        if 'next' in response_data['_links']:
+            # Add results from next page if needed
+            results |= _get_containing_assemblies_paged(response_data['_links']['next'])
         return results
     return set()
+
+
+def get_containing_assemblies(md5_digest):
+    # Wrapper method to handle pagination
+    url = f'{CONTIG_ALIAS_SERVER}/{md5_digest}'
+    return _get_containing_assemblies_paged(url)
 
 
 def assess_fasta(input_fasta, analyses, metadata_insdc):
