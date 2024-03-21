@@ -83,14 +83,14 @@ workflow {
         metadata_json = convert_xlsx_2_json.out.metadata_json
     } else {
         metadata_json = joinBasePath(params.metadata_json)
-
+    }
     // Metadata checks and concordance checks
     metadata_json_validation(metadata_json)
     sample_name_concordance(metadata_json, vcf_files.collect())
     fasta_to_vcfs = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
         .splitCsv(header:true)
         .map{row -> tuple(file(joinBasePath(row.fasta)), file(joinBasePath(row.vcf)))}
-        .groupTuple()
+        .groupTuple(by:0)
     insdc_checker(metadata_json, fasta_to_vcfs)
 }
 
@@ -133,9 +133,6 @@ process check_vcf_reference {
     path "assembly_check/*valid_assembly_report*", emit: vcf_assembly_valid
     path "assembly_check/*text_assembly_report*", emit: assembly_check_report
     path "assembly_check/*.assembly_check.log", emit: assembly_check_log
-
-    when:
-    "assembly_check" in params.validation_tasks
 
     script:
     def report_opt = report.name != 'NO_FILE' ? "-a $report" : ''
@@ -210,8 +207,8 @@ process insdc_checker {
             mode: "copy"
 
     input:
-    tuple(path(fasta_file), path(vcf_files))
     path(metadata_json)
+    tuple(path(fasta_file), path(vcf_files))
 
     output:
     path "${fasta_file}_check.yml", emit: fasta_checker_yml

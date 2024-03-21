@@ -78,9 +78,10 @@ def _get_containing_assemblies_paged(url):
     if 200 <= response.status_code < 300:
         results = set()
         response_data = response.json()
-        for contigEntity in response_data['_embedded']['chromosomeEntities']:
-            results.add(contigEntity['assembly']['insdcAccession'])
-        if 'next' in response_data['_links']:
+        if '_embedded' in response_data and 'chromosomeEntities' in response_data['_embedded']:
+            for contigEntity in response_data['_embedded']['chromosomeEntities']:
+                results.add(contigEntity['assembly']['insdcAccession'])
+        if '_links' in response_data and 'next' in response_data['_links']:
             # Add results from next page if needed
             results |= _get_containing_assemblies_paged(response_data['_links']['next'])
         return results
