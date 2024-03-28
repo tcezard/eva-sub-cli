@@ -31,8 +31,6 @@ params.python_scripts = [
     "fasta_checker": "check_fasta_insdc.py",
     "xlsx2json": "xlsx2json.py"
 ]
-// validation tasks
-params.validation_tasks = [ "vcf_check", "assembly_check", "samples_check", "metadata_check", "insdc_check"]
 // prefix to prepend to all provided path
 params.base_dir = ""
 // help
@@ -75,31 +73,25 @@ workflow {
         .splitCsv(header:true)
         .map{row -> file(joinBasePath(row.vcf))}
 
-    if ("vcf_check" in params.validation_tasks) {
-        check_vcf_valid(vcf_channel)
-    }
-    if ("assembly_check" in params.validation_tasks) {
-        check_vcf_reference(vcf_channel)
-    }
+    // VCF checks
+    check_vcf_valid(vcf_channel)
+    check_vcf_reference(vcf_channel)
+
+    // Metadata conversion
     if (params.metadata_xlsx && !params.metadata_json){
         convert_xlsx_2_json(joinBasePath(params.metadata_xlsx))
         metadata_json = convert_xlsx_2_json.out.metadata_json
-    } else{
+    } else {
         metadata_json = joinBasePath(params.metadata_json)
     }
-    if ("metadata_check" in params.validation_tasks){
-        metadata_json_validation(metadata_json)
-    }
-    if ("samples_check" in params.validation_tasks) {
-        sample_name_concordance(metadata_json, vcf_files.collect())
-    }
-    if ("insdc_check" in params.validation_tasks){
-        fasta_files = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
+    // Metadata checks and concordance checks
+    metadata_json_validation(metadata_json)
+    sample_name_concordance(metadata_json, vcf_files.collect())
+    fasta_to_vcfs = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
         .splitCsv(header:true)
-        .map{row -> file(joinBasePath(row.fasta))}
-        .unique()
-        insdc_checker(fasta_files)
-    }
+        .map{row -> tuple(file(joinBasePath(row.fasta)), file(joinBasePath(row.vcf)))}
+        .groupTuple(by:0)
+    insdc_checker(metadata_json, fasta_to_vcfs)
 }
 
 /*
@@ -141,9 +133,6 @@ process check_vcf_reference {
     path "assembly_check/*valid_assembly_report*", emit: vcf_assembly_valid
     path "assembly_check/*text_assembly_report*", emit: assembly_check_report
     path "assembly_check/*.assembly_check.log", emit: assembly_check_log
-
-    when:
-    "assembly_check" in params.validation_tasks
 
     script:
     def report_opt = report.name != 'NO_FILE' ? "-a $report" : ''
@@ -212,20 +201,20 @@ process sample_name_concordance {
 }
 
 
-
 process insdc_checker {
     publishDir output_dir,
             overwrite: true,
             mode: "copy"
 
     input:
-    path(fasta_file)
+    path(metadata_json)
+    tuple(path(fasta_file), path(vcf_files))
 
     output:
     path "${fasta_file}_check.yml", emit: fasta_checker_yml
 
     script:
     """
-    $params.python_scripts.fasta_checker --input_fasta $fasta_file  --output_yaml ${fasta_file}_check.yml
+    $params.python_scripts.fasta_checker --metadata_json $metadata_json --vcf_files $vcf_files --input_fasta $fasta_file --output_yaml ${fasta_file}_check.yml
     """
 }
