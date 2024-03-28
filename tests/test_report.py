@@ -74,7 +74,11 @@ validation_results = {
             'sequences': [
                 {'sequence_name': '1', 'sequence_md5': 'hsjvchdhdo3ate83jdfd76rp2', 'insdc': True},
                 {'sequence_name': '2', 'sequence_md5': 'hjfdoijsfc47hfg0gh9qwjrve', 'insdc': False}
-            ]
+            ],
+            'metadata_assembly_compatible': True,
+            'possible_assemblies': {'GCA_1'},
+            'assembly_in_metadata': 'GCA_1',
+            'associated_analyses': ['Analysis A']
         },
         'metadata_asm_not_found.fa': {
             'report_path': '/path/to/metadata_asm_not_found.yml',
