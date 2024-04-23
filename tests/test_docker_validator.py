@@ -84,7 +84,7 @@ class TestDockerValidator(TestCase):
 
         vcf_format_log_file = os.path.join(vcf_format_dir, 'input_passed.vcf.vcf_format.log')
         self.assertTrue(os.path.exists(vcf_format_log_file))
-
+        print(os.listdir(self.validator.output_dir))
         with open(vcf_format_log_file) as vcf_format_log_file:
             vcf_format_logs = vcf_format_log_file.readlines()
             self.assertEqual('[info] According to the VCF specification, the input file is valid\n',

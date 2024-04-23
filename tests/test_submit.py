@@ -23,8 +23,9 @@ class TestSubmit(unittest.TestCase):
         with patch('eva_sub_cli.submit.get_auth', return_value=Mock(token=self.token)):
             vcf_files = [os.path.join(self.resource_dir, 'vcf_files', 'example2.vcf.gz')]
             metadata_file = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
-            self.submitter = StudySubmitter(submission_dir=self.test_sub_dir, vcf_files=vcf_files,
-                                            metadata_file=metadata_file)
+            vcf_files = vcf_files,
+            metadata_file = metadata_file
+            self.submitter = StudySubmitter(submission_dir=self.test_sub_dir)
 
         shutil.rmtree(self.test_sub_dir, ignore_errors=True)
 
