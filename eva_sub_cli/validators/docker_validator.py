@@ -35,6 +35,10 @@ class DockerValidator(Validator):
     def _validate(self):
         self.run_docker_validator()
 
+    @staticmethod
+    def _validation_file_path_for(file_path):
+        return f'{container_validation_dir}/{file_path}'
+
     def get_docker_validation_cmd(self):
         if self.metadata_xlsx and not self.metadata_json:
             docker_cmd = (

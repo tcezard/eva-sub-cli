@@ -2,6 +2,7 @@
 import csv
 import datetime
 import glob
+import json
 import logging
 import os
 import re
@@ -57,6 +58,12 @@ class Validator(AppLogger):
         self.sub_config.backup()
         self.sub_config.write()
 
+    @property
+    def metadata_json_post_validation(self):
+        if self.metadata_json:
+            return self.metadata_json
+        return resolve_single_file_path(os.path.join(self.output_dir, 'metadata.json'))
+
     @staticmethod
     def _run_quiet_command(command_description, command, **kwargs):
         return run_command_with_output(command_description, command, stdout_log_level=logging.DEBUG,
@@ -89,6 +96,10 @@ class Validator(AppLogger):
 
     def _validate(self):
         raise NotImplementedError
+
+    @staticmethod
+    def _validation_file_path_for(file_path):
+        return file_path
 
     def verify_files_present(self):
         # verify mapping file exists
@@ -221,6 +232,7 @@ class Validator(AppLogger):
         self._parse_biovalidator_validation_results()
         self._convert_biovalidator_validation_to_spreadsheet()
         self._write_spreadsheet_validation_results()
+        self._collect_md5sum_to_metadata()
 
     @lru_cache
     def _vcf_check_log(self, vcf_name):
@@ -444,6 +456,52 @@ class Validator(AppLogger):
         for attribute in attributes_dict:
             if attributes_dict[attribute] == json_attribute:
                 return attribute
+
+    def _collect_md5sum_to_metadata(self):
+        md5sum_file = resolve_single_file_path(os.path.join(self.output_dir, 'md5sums.txt'))
+        file_path_2_md5 = {}
+        file_name_2_md5 = {}
+        if md5sum_file:
+            with open(md5sum_file) as open_file:
+                for line in open_file:
+                    sp_line = line.split()
+                    md5sum = sp_line[0]
+                    vcf_file = sp_line[1]  # assuming no space in the vcf_file_name
+                    file_path_2_md5[vcf_file] = md5sum
+                    file_name_2_md5[os.path.basename(vcf_file)] = md5sum
+        if self.metadata_json_post_validation:
+            with open(self.metadata_json_post_validation) as open_file:
+                try:
+                    json_data = json.load(open_file)
+                    analysis_aliases = [a.get('analysisAlias') for a in json_data.get('analysis', [])]
+                    file_rows = []
+                    if len(analysis_aliases) == 1:
+                        analysis_alias = analysis_aliases[0]
+                        for vcf_file in self.vcf_files:
+                            validation_vcf_file = self._validation_file_path_for(vcf_file)
+                            file_rows.append({
+                                'analysisAlias': analysis_alias,
+                                'fileName': os.path.basename(vcf_file),
+                                'fileType': 'vcf',
+                                'md5': file_path_2_md5.get(validation_vcf_file) or
+                                       file_name_2_md5.get(os.path.basename(validation_vcf_file)) or ''
+                            })
+                    else:
+                        for file_dict in json_data.get('files', []):
+                            if file_dict.get('fileType') == 'vcf':
+                                if file_dict.get('fileName') in file_path_2_md5:
+                                    file_dict['md5'] = file_path_2_md5[file_dict.get('fileName')]
+                                elif file_dict.get('fileName') in file_name_2_md5:
+                                    file_dict['md5'] = file_name_2_md5[file_dict.get('fileName')]
+                            file_rows.append(file_dict)
+                    json_data['files'] = file_rows
+                except Exception:
+                    # Skip adding the md5
+                    pass
+            if json_data:
+                with open(self.metadata_json_post_validation, 'w') as open_file:
+                    json.dump(json_data, open_file)
+
 
     def create_reports(self):
         report_html = generate_html_report(self.results, self.validation_date, self.project_title)

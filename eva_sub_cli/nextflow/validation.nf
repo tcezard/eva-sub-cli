@@ -77,6 +77,10 @@ workflow {
     check_vcf_valid(vcf_channel)
     check_vcf_reference(vcf_channel)
 
+    generate_md5_digests(vcf_files)
+    collect_md5(generate_md5_digests.out.md5_digest.collect())
+
+
     // Metadata conversion
     if (params.metadata_xlsx && !params.metadata_json){
         convert_xlsx_2_json(joinBasePath(params.metadata_xlsx))
@@ -142,6 +146,37 @@ process check_vcf_reference {
 
     mkdir -p assembly_check
     $params.executable.vcf_assembly_checker -i $vcf -f $fasta $report_opt -r summary,text,valid  -o assembly_check --require-genbank > assembly_check/${vcf}.assembly_check.log 2>&1
+    """
+}
+
+process generate_md5_digests {
+    input:
+    path(vcf_file)
+
+    output:
+    path "${vcf_file}.md5", emit: md5_digest
+
+    script:
+    // Capture the realpath of the vcf to be able to resolve the file based on path instead of name
+    """
+    md5sum  `readlink $vcf_file` > ${vcf_file}.md5
+    """
+}
+
+process collect_md5 {
+    publishDir output_dir,
+            overwrite: true,
+            mode: "copy"
+
+    input:
+    path(file_digests)
+
+    output:
+    path "md5sums.txt", emit: md5_digest_log
+
+    script:
+    """
+    cat $file_digests > md5sums.txt
     """
 }
 
