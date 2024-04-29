@@ -136,7 +136,7 @@ class Validator(AppLogger):
                 if line.startswith('[error]'):
                     nb_error += 1
                     if nb_error < 11:
-                        error_list.append(line.strip()[len('[error]'):])
+                        error_list.append(line.strip()[len('[error] '):])
                 elif line.startswith('[info] Number of matches:'):
                     match, total = line.strip()[len('[info] Number of matches: '):].split('/')
                     match = int(match)
@@ -271,12 +271,6 @@ class Validator(AppLogger):
         )
 
     @lru_cache
-    def _assembly_check_valid_vcf(self, vcf_name):
-        return resolve_single_file_path(
-            os.path.join(self.output_dir, 'assembly_check', vcf_name + '.valid_assembly_report*')
-        )
-
-    @lru_cache
     def _assembly_check_text_report(self, vcf_name):
         return resolve_single_file_path(
             os.path.join(self.output_dir, 'assembly_check', vcf_name + '*text_assembly_report*')
@@ -289,10 +283,9 @@ class Validator(AppLogger):
             vcf_name = os.path.basename(vcf_file)
 
             assembly_check_log = self._assembly_check_log(vcf_name)
-            assembly_check_valid_vcf = self._assembly_check_valid_vcf(vcf_name)
             assembly_check_text_report = self._assembly_check_text_report(vcf_name)
 
-            if assembly_check_log and assembly_check_valid_vcf and assembly_check_text_report:
+            if assembly_check_log and assembly_check_text_report:
                 error_list_from_log, nb_error_from_log, match, total = \
                     self.parse_assembly_check_log(assembly_check_log)
                 mismatch_list, nb_mismatch, error_list_from_report, nb_error_from_report = \

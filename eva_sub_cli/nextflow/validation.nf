@@ -130,7 +130,6 @@ process check_vcf_reference {
     tuple path(vcf), path(fasta), path(report)
 
     output:
-    path "assembly_check/*valid_assembly_report*", emit: vcf_assembly_valid
     path "assembly_check/*text_assembly_report*", emit: assembly_check_report
     path "assembly_check/*.assembly_check.log", emit: assembly_check_log
 
@@ -141,7 +140,7 @@ process check_vcf_reference {
     trap 'if [[ \$? == 1 || \$? == 139 ]]; then exit 0; fi' EXIT
 
     mkdir -p assembly_check
-    $params.executable.vcf_assembly_checker -i $vcf -f $fasta $report_opt -r summary,text,valid  -o assembly_check --require-genbank > assembly_check/${vcf}.assembly_check.log 2>&1
+    $params.executable.vcf_assembly_checker -i $vcf -f $fasta $report_opt -r summary,text  -o assembly_check --require-genbank > assembly_check/${vcf}.assembly_check.log 2>&1
     """
 }
 
