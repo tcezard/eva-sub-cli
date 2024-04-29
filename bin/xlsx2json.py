@@ -366,10 +366,7 @@ def main():
     except Exception as e:
         parser.add_error(e)
     finally:
-        # Ensure we save errors before crashing the process
         parser.save_errors(args.errors_yaml)
-        if not parser.is_valid():
-            raise Exception
 
 
 if __name__ == "__main__":
