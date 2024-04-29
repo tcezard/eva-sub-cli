@@ -129,11 +129,6 @@ class TestDockerValidator(TestCase):
                  'md5': '96a80c9368cc3c37095c86fbe6044fb2'}
             ]
 
-
-
-
-
-
     def test_validate_from_excel(self):
         self.validator_from_excel.validate()
         self.assertTrue(os.path.isfile(self.validator_from_excel._sample_check_yaml))
