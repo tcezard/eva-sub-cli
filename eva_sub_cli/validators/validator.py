@@ -218,6 +218,7 @@ class Validator(AppLogger):
         self._collect_assembly_check_results()
         self._load_sample_check_results()
         self._load_fasta_check_results()
+        self._load_spreadsheet_conversion_results()
         self._parse_biovalidator_validation_results()
         self._convert_biovalidator_validation_to_spreadsheet()
         self._write_spreadsheet_validation_results()
@@ -308,6 +309,15 @@ class Validator(AppLogger):
     def _sample_check_yaml(self):
         return resolve_single_file_path(os.path.join(self.output_dir, 'sample_checker.yml'))
 
+    def _load_spreadsheet_conversion_results(self):
+        if 'spreadsheet_errors' not in self.results['metadata_check']:
+            self.results['metadata_check']['spreadsheet_errors'] = []
+        errors_file = resolve_single_file_path(os.path.join(self.output_dir, 'metadata_conversion_errors.yml'))
+        if not errors_file:
+            return
+        with open(errors_file) as open_yaml:
+            self.results['metadata_check']['spreadsheet_errors'] = yaml.safe_load(open_yaml)
+
     def _load_fasta_check_results(self):
         for fasta_file in self.fasta_files:
             fasta_file_name = os.path.basename(fasta_file)
@@ -378,7 +388,8 @@ class Validator(AppLogger):
         with open(config_file) as open_file:
             xls2json_conf = yaml.safe_load(open_file)
 
-        self.results['metadata_check']['spreadsheet_errors'] = []
+        if 'spreadsheet_errors' not in self.results['metadata_check']:
+            self.results['metadata_check']['spreadsheet_errors'] = []
         for error in self.results['metadata_check'].get('json_errors', {}):
             sheet_json, row_json, attribute_json = self._parse_metadata_property(error['property'])
             sheet = self._convert_metadata_sheet(sheet_json, xls2json_conf)

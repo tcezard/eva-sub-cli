@@ -155,12 +155,13 @@ process convert_xlsx_2_json {
 
     output:
     path "metadata.json", emit: metadata_json
+    path "metadata_conversion_errors.yml", emit: errors_yaml
 
     script:
     metadata_json = metadata_xlsx.getBaseName() + '.json'
 
     """
-    $params.python_scripts.xlsx2json --metadata_xlsx $metadata_xlsx --metadata_json metadata.json --conversion_configuration $conversion_configuration
+    $params.python_scripts.xlsx2json --metadata_xlsx $metadata_xlsx --metadata_json metadata.json --errors_yaml metadata_conversion_errors.yml --conversion_configuration $conversion_configuration
     """
 }
 
