@@ -23,7 +23,12 @@ class TestValidator(TestCase):
         self.validator = Validator(self.mapping_file, self.output_dir)
 
     def tearDown(self) -> None:
-        for f in ['expected_report.html', self.mapping_file]:
+        files_from_tests = [
+            self.mapping_file,
+            os.path.join(self.output_dir, 'metadata_spreadsheet_validation.txt'),
+            os.path.join(self.output_dir, 'report.html')
+        ]
+        for f in files_from_tests:
             if os.path.exists(f):
                 os.remove(f)
 
@@ -65,6 +70,9 @@ class TestValidator(TestCase):
                     {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
                 ],
                 'spreadsheet_errors': [
+                    # NB. Wouldn't normally get conversion error + validation errors together, but it is supported.
+                    {'sheet': 'Project', 'row': '', 'column': 'Tax ID',
+                     'description': 'Worksheet Project is missing required header Tax ID'},
                     {'sheet': 'Files', 'row': '', 'column': '', 'description': 'Sheet "Files" is missing'},
                     {'sheet': 'Project', 'row': '', 'column': 'Project Title',
                      'description': 'In sheet "Project", column "Project Title" is not populated'},
@@ -110,6 +118,7 @@ class TestValidator(TestCase):
             assert self.validator.vcf_check_errors_is_critical(error) == expected_return[i]
 
     def test_parse_biovalidator_validation_results(self):
+        self.validator.results['metadata_check'] = {}
         self.validator._parse_biovalidator_validation_results()
         assert self.validator.results['metadata_check']['json_errors'] == [
             {'property': '.files', 'description': "should have required property 'files'"},
@@ -171,3 +180,13 @@ class TestValidator(TestCase):
         assert nb_mismatch == 12
         assert error_list == []
         assert nb_error == 0
+
+    def test_collect_conversion_errors(self):
+        self.validator.results['metadata_check'] = {}
+        self.validator._load_spreadsheet_conversion_errors()
+        assert self.validator.results['metadata_check']['spreadsheet_errors'] == [{
+                'column': 'Tax ID',
+                'description': 'Worksheet Project is missing required header Tax ID',
+                'row': '',
+                'sheet': 'Project'
+            }]

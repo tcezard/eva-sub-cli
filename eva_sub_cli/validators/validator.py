@@ -218,10 +218,7 @@ class Validator(AppLogger):
         self._collect_assembly_check_results()
         self._load_sample_check_results()
         self._load_fasta_check_results()
-        self._load_spreadsheet_conversion_results()
-        self._parse_biovalidator_validation_results()
-        self._convert_biovalidator_validation_to_spreadsheet()
-        self._write_spreadsheet_validation_results()
+        self._collect_metadata_results()
 
     @lru_cache
     def _vcf_check_log(self, vcf_name):
@@ -309,15 +306,6 @@ class Validator(AppLogger):
     def _sample_check_yaml(self):
         return resolve_single_file_path(os.path.join(self.output_dir, 'sample_checker.yml'))
 
-    def _load_spreadsheet_conversion_results(self):
-        if 'spreadsheet_errors' not in self.results['metadata_check']:
-            self.results['metadata_check']['spreadsheet_errors'] = []
-        errors_file = resolve_single_file_path(os.path.join(self.output_dir, 'metadata_conversion_errors.yml'))
-        if not errors_file:
-            return
-        with open(errors_file) as open_yaml:
-            self.results['metadata_check']['spreadsheet_errors'] = yaml.safe_load(open_yaml)
-
     def _load_fasta_check_results(self):
         for fasta_file in self.fasta_files:
             fasta_file_name = os.path.basename(fasta_file)
@@ -336,6 +324,20 @@ class Validator(AppLogger):
             self.results['sample_check'] = yaml.safe_load(open_yaml)
         self.results['sample_check']['report_path'] = self._sample_check_yaml
 
+    def _collect_metadata_results(self):
+        self.results['metadata_check'] = {}
+        self._load_spreadsheet_conversion_errors()
+        self._parse_biovalidator_validation_results()
+        self._convert_biovalidator_validation_to_spreadsheet()
+        self._write_spreadsheet_validation_results()
+
+    def _load_spreadsheet_conversion_errors(self):
+        errors_file = resolve_single_file_path(os.path.join(self.output_dir, 'metadata_conversion_errors.yml'))
+        if not errors_file:
+            return
+        with open(errors_file) as open_yaml:
+            self.results['metadata_check']['spreadsheet_errors'] = yaml.safe_load(open_yaml)
+
     def _parse_biovalidator_validation_results(self):
         """
         Read the biovalidator's report and extract the list of validation errors
@@ -348,7 +350,6 @@ class Validator(AppLogger):
             if l:
                 return ansi_escape.sub('', l).strip()
 
-        self.results['metadata_check'] = {}
         if not metadata_check_file:
             return
         with open(metadata_check_file) as open_file:
@@ -368,10 +369,10 @@ class Validator(AppLogger):
                     if line is None or line2 is None:
                         break  # EOF
                     errors.append({'property': line, 'description': line2})
-        self.results['metadata_check'] = {
+        self.results['metadata_check'].update({
             'json_report_path': metadata_check_file,
             'json_errors': errors
-        }
+        })
 
     def _parse_metadata_property(self, property_str):
         if property_str.startswith('.'):
