@@ -1,5 +1,4 @@
 import os.path
-import shutil
 from unittest import TestCase
 
 from eva_sub_cli.validators.validator import Validator
@@ -57,6 +56,8 @@ class TestValidator(TestCase):
                 'json_errors': [
                     {'property': '.files', 'description': "should have required property 'files'"},
                     {'property': '/project.title', 'description': "should have required property 'title'"},
+                    {'property': '/project/taxId', 'description': "must have required property 'taxId'"},
+                    {'property': '/project/holdDate', 'description': 'must match format "date"'},
                     {'property': '/analysis/0.description', 'description': "should have required property 'description'"},
                     {'property': '/analysis/0.referenceGenome', 'description': "should have required property 'referenceGenome'"},
                     {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
@@ -67,6 +68,10 @@ class TestValidator(TestCase):
                     {'sheet': 'Files', 'row': '', 'column': '', 'description': 'Sheet "Files" is missing'},
                     {'sheet': 'Project', 'row': '', 'column': 'Project Title',
                      'description': 'In sheet "Project", column "Project Title" is not populated'},
+                    {'sheet': 'Project', 'row': '', 'column': 'Tax ID',
+                     'description': 'In sheet "Project", column "Tax ID" is not populated'},
+                    {'sheet': 'Project', 'row': '', 'column': 'Hold Date',
+                     'description': 'In sheet "Project", column "Hold Date" is not populated'},
                     {'sheet': 'Analysis', 'row': 2, 'column': 'Description',
                      'description': 'In sheet "Analysis", row "2", column "Description" is not populated'},
                     {'sheet': 'Analysis', 'row': 2, 'column': 'Reference',
@@ -109,6 +114,8 @@ class TestValidator(TestCase):
         assert self.validator.results['metadata_check']['json_errors'] == [
             {'property': '.files', 'description': "should have required property 'files'"},
             {'property': '/project.title', 'description': "should have required property 'title'"},
+            {'property': '/project/taxId', 'description': "must have required property 'taxId'"},
+            {'property': '/project/holdDate', 'description': 'must match format "date"'},
             {'property': '/analysis/0.description', 'description': "should have required property 'description'"},
             {'property': '/analysis/0.referenceGenome', 'description': "should have required property 'referenceGenome'"},
             {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
@@ -121,6 +128,8 @@ class TestValidator(TestCase):
             'json_errors': [
                 {'property': '.files', 'description': "should have required property 'files'"},
                 {'property': '/project.title', 'description': "should have required property 'title'"},
+                {'property': '/project/taxId', 'description': "must have required property 'taxId'"},
+                {'property': '/project/holdDate', 'description': 'must match format "date"'},
                 {'property': '/analysis/0.description',
                  'description': "should have required property 'description'"},
                 {'property': '/analysis/0.referenceGenome',
@@ -136,10 +145,18 @@ class TestValidator(TestCase):
 
         assert self.validator.results['metadata_check']['spreadsheet_errors'] == [
             {'sheet': 'Files', 'row': '', 'column': '', 'description': 'Sheet "Files" is missing'},
-            {'sheet': 'Project', 'row': '', 'column': 'Project Title', 'description': 'In sheet "Project", column "Project Title" is not populated'},
-            {'sheet': 'Analysis', 'row': 2, 'column': 'Description', 'description': 'In sheet "Analysis", row "2", column "Description" is not populated'},
-            {'sheet': 'Analysis', 'row': 2, 'column': 'Reference', 'description': 'In sheet "Analysis", row "2", column "Reference" is not populated'},
-            {'sheet': 'Sample', 'row': 3, 'column': 'Sample Accession', 'description': 'In sheet "Sample", row "3", column "Sample Accession" is not populated'}
+            {'sheet': 'Project', 'row': '', 'column': 'Project Title',
+             'description': 'In sheet "Project", column "Project Title" is not populated'},
+            {'sheet': 'Project', 'row': '', 'column': 'Tax ID',
+             'description': 'In sheet "Project", column "Tax ID" is not populated'},
+            {'sheet': 'Project', 'row': '', 'column': 'Hold Date',
+             'description': 'In sheet "Project", column "Hold Date" is not populated'},
+            {'sheet': 'Analysis', 'row': 2, 'column': 'Description',
+             'description': 'In sheet "Analysis", row "2", column "Description" is not populated'},
+            {'sheet': 'Analysis', 'row': 2, 'column': 'Reference',
+             'description': 'In sheet "Analysis", row "2", column "Reference" is not populated'},
+            {'sheet': 'Sample', 'row': 3, 'column': 'Sample Accession',
+             'description': 'In sheet "Sample", row "3", column "Sample Accession" is not populated'}
         ]
 
     def test_parse_assembly_check_log(self):

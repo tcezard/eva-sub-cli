@@ -12,6 +12,10 @@
 	should have required property 'files'
 /project.title
 	should have required property 'title'
+/project/taxId
+        must have required property 'taxId'
+/project/holdDate
+        must match format "date"
 /analysis/0.description
 	should have required property 'description'
 /analysis/0.referenceGenome

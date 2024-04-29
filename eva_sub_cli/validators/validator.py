@@ -366,7 +366,7 @@ class Validator(AppLogger):
     def _parse_metadata_property(self, property_str):
         if property_str.startswith('.'):
             return property_str.strip('.'), None, None
-        match = re.match(r'/(\w+)(/(\d+))?(\.(\w+))?', property_str)
+        match = re.match(r'/(\w+)(/(\d+))?([./](\w+))?', property_str)
         if match:
             return match.group(1), match.group(3), match.group(5)
         else:
