@@ -210,16 +210,6 @@ class XlsxParser:
     def get_biosample_object(self, data):
         sample_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_NAME_KEY]
         scientific_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SCIENTIFIC_NAME_KEY]
-        if sample_name not in data:
-            self.add_error(f'If BioSample Accession is not provided, the {SAMPLE} worksheet should have '
-                           f'{SAMPLE_NAME_KEY} populated',
-                           sheet=SAMPLE, column=SAMPLE_NAME_KEY)
-            return
-        if scientific_name not in data:
-            self.add_error(f'If BioSample Accession is not provided, the {SAMPLE} worksheet should have '
-                           f'{SCIENTIFIC_NAME_KEY} populated',
-                           sheet=SAMPLE, column=SCIENTIFIC_NAME_KEY)
-            return
 
         # BioSample expects any of organism or species field
         data[SPECIES] = data[scientific_name]
@@ -253,14 +243,6 @@ class XlsxParser:
 
             analysis_alias = self.xlsx_conf[SAMPLE][REQUIRED_HEADERS_KEY_NAME][ANALYSIS_ALIAS_KEY]
             sample_name_in_vcf = self.xlsx_conf[SAMPLE][REQUIRED_HEADERS_KEY_NAME][SAMPLE_NAME_IN_VCF_KEY]
-            if analysis_alias not in json_value:
-                self.add_error(f'Worksheet {SAMPLE} does not have required field {ANALYSIS_ALIAS_KEY}',
-                               sheet=SAMPLE, column=ANALYSIS_ALIAS_KEY)
-                return
-            if sample_name_in_vcf not in json_value:
-                self.add_error(f'Worksheet {SAMPLE} does not have required field {SAMPLE_NAME_IN_VCF_KEY}',
-                               sheet=SAMPLE, column=SAMPLE_NAME_IN_VCF_KEY)
-                return
             sample_data_with_split_aa = self.get_sample_data_with_split_analysis_alias(
                 json_value, analysis_alias, sample_name_in_vcf)
 
@@ -272,6 +254,20 @@ class XlsxParser:
                 json_value.pop(analysis_alias)
                 json_value.pop(sample_name_in_vcf)
 
+                # Check for headers that are required only in this case
+                sample_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_NAME_KEY]
+                scientific_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SCIENTIFIC_NAME_KEY]
+                if sample_name not in json_value:
+                    self.add_error(f'If BioSample Accession is not provided, the {SAMPLE} worksheet should have '
+                                   f'{SAMPLE_NAME_KEY} populated',
+                                   sheet=SAMPLE, column=SAMPLE_NAME_KEY)
+                    return None
+                if scientific_name not in json_value:
+                    self.add_error(f'If BioSample Accession is not provided, the {SAMPLE} worksheet should have '
+                                   f'{SCIENTIFIC_NAME_KEY} populated',
+                                   sheet=SAMPLE, column=SCIENTIFIC_NAME_KEY)
+                    return None
+
                 biosample_obj = self.get_biosample_object(json_value)
                 sample_data_with_biosample_obj = [dict(item, bioSampleObject=biosample_obj) for item in
                                                   sample_data_with_split_aa]
@@ -280,8 +276,9 @@ class XlsxParser:
         return sample_json
 
     def json(self, output_json_file):
+        # First check that all sheets present have the required headers;
+        # also guards against the case where conversion fails in init
         if not self.is_valid():
-            # guards against case where conversion fails in init
             return
         json_data = {}
         for title in self.xlsx_conf[WORKSHEETS_KEY_NAME]:
@@ -289,7 +286,10 @@ class XlsxParser:
             if title == PROJECT:
                 json_data.update(self.get_project_json_data())
             elif title == SAMPLE:
-                json_data.update(self.get_sample_json_data())
+                sample_data = self.get_sample_json_data()
+                if sample_data is None:  # missing conditionally required headers
+                    return
+                json_data.update(sample_data)
             else:
                 json_data[self.xlsx_conf[WORKSHEETS_KEY_NAME][title]] = []
                 for row in self.get_rows():
