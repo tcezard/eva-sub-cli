@@ -464,9 +464,9 @@ class Validator(AppLogger):
         if md5sum_file:
             with open(md5sum_file) as open_file:
                 for line in open_file:
-                    sp_line = line.split()
+                    sp_line = line.split(' ')
                     md5sum = sp_line[0]
-                    vcf_file = sp_line[1]  # assuming no space in the vcf_file_name
+                    vcf_file = line.strip()[len(md5sum):].rstrip()  # Remove the md5: the rest is the file path
                     file_path_2_md5[vcf_file] = md5sum
                     file_name_2_md5[os.path.basename(vcf_file)] = md5sum
         if self.metadata_json_post_validation:
@@ -475,7 +475,15 @@ class Validator(AppLogger):
                     json_data = json.load(open_file)
                     analysis_aliases = [a.get('analysisAlias') for a in json_data.get('analysis', [])]
                     file_rows = []
-                    if len(analysis_aliases) == 1:
+                    files_from_metadata = json_data.get('files', [])
+                    if files_from_metadata:
+                        for file_dict in json_data.get('files', []):
+                            if file_dict.get('fileType') == 'vcf':
+                                file_path = self._validation_file_path_for(file_dict.get('fileName'))
+                                file_dict['md5'] = file_path_2_md5.get(file_path) or \
+                                                   file_name_2_md5.get(file_dict.get('fileName')) or ''
+                            file_rows.append(file_dict)
+                    elif len(analysis_aliases) == 1:
                         analysis_alias = analysis_aliases[0]
                         for vcf_file in self.vcf_files:
                             validation_vcf_file = self._validation_file_path_for(vcf_file)
@@ -487,17 +495,12 @@ class Validator(AppLogger):
                                        file_name_2_md5.get(os.path.basename(validation_vcf_file)) or ''
                             })
                     else:
-                        for file_dict in json_data.get('files', []):
-                            if file_dict.get('fileType') == 'vcf':
-                                if file_dict.get('fileName') in file_path_2_md5:
-                                    file_dict['md5'] = file_path_2_md5[file_dict.get('fileName')]
-                                elif file_dict.get('fileName') in file_name_2_md5:
-                                    file_dict['md5'] = file_name_2_md5[file_dict.get('fileName')]
-                            file_rows.append(file_dict)
+                        self.error('No file found in metadata and multiple analysis alias exist: '
+                                   'cannot infer the relationship between files and analysis alias')
                     json_data['files'] = file_rows
-                except Exception:
+                except Exception as e:
                     # Skip adding the md5
-                    pass
+                    self.error('Error while loading or parsing metadata json: ' + str(e))
             if json_data:
                 with open(self.metadata_json_post_validation, 'w') as open_file:
                     json.dump(json_data, open_file)
