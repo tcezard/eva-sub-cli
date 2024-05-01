@@ -466,7 +466,7 @@ class Validator(AppLogger):
                 for line in open_file:
                     sp_line = line.split(' ')
                     md5sum = sp_line[0]
-                    vcf_file = line.strip()[len(md5sum):].rstrip()  # Remove the md5: the rest is the file path
+                    vcf_file = line.strip()[len(md5sum):].lstrip()  # Remove the md5: the rest is the file path
                     file_path_2_md5[vcf_file] = md5sum
                     file_name_2_md5[os.path.basename(vcf_file)] = md5sum
         if self.metadata_json_post_validation:
