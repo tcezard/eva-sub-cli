@@ -17,7 +17,7 @@ validation_results = {
         },
         "input_fail.vcf": {
             "report_path": "/path/to/assembly_failed/report",
-            "error_list": [],
+            "error_list": ["The assembly checking could not be completed: Contig 'chr23' not found in assembly report"],
             "match": 26,
             "mismatch_list": [
                 "Chromosome 1, position 35549, reference allele 'G' does not match the reference sequence, expected 'c'",
@@ -30,7 +30,7 @@ validation_results = {
                 "Chromosome 1, position 35819, reference allele 'T' does not match the reference sequence, expected 'a'",
                 "Chromosome 1, position 35822, reference allele 'T' does not match the reference sequence, expected 'c'",
             ],
-            "nb_error": 0,
+            "nb_error": 1,
             "nb_mismatch": 10,
             "total": 36,
         },
@@ -153,5 +153,8 @@ class TestReport(TestCase):
 
     def test_generate_html_report(self):
         report = generate_html_report(validation_results, datetime.datetime(2023, 8, 31, 12, 34, 56), "My cool project")
+        with open('report.html', 'w') as open_file:
+            open_file.write(report)
+
         with open(self.expected_report) as open_html:
             assert report == open_html.read()
