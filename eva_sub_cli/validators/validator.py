@@ -483,17 +483,6 @@ class Validator(AppLogger):
                                 file_dict['md5'] = file_path_2_md5.get(file_path) or \
                                                    file_name_2_md5.get(file_dict.get('fileName')) or ''
                             file_rows.append(file_dict)
-                    elif len(analysis_aliases) == 1:
-                        analysis_alias = analysis_aliases[0]
-                        for vcf_file in self.vcf_files:
-                            validation_vcf_file = self._validation_file_path_for(vcf_file)
-                            file_rows.append({
-                                'analysisAlias': analysis_alias,
-                                'fileName': os.path.basename(vcf_file),
-                                'fileType': 'vcf',
-                                'md5': file_path_2_md5.get(validation_vcf_file) or
-                                       file_name_2_md5.get(os.path.basename(validation_vcf_file)) or ''
-                            })
                     else:
                         self.error('No file found in metadata and multiple analysis alias exist: '
                                    'cannot infer the relationship between files and analysis alias')
