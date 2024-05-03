@@ -3,6 +3,7 @@ import os
 from unittest import TestCase
 
 import jsonschema
+import yaml
 
 from eva_sub_cli import ETC_DIR
 from bin.xlsx2json import XlsxParser, create_xls_template_from_yaml
@@ -14,10 +15,20 @@ class TestXlsReader(TestCase):
     eva_schema = os.path.abspath(os.path.join(__file__, "../../eva_sub_cli/etc/eva_schema.json", ))
     biosample_schema = os.path.abspath(os.path.join(__file__, "../../eva_sub_cli/etc/eva-biosamples.json", ))
 
+    def tearDown(self):
+        files_from_tests = [
+            os.path.join(self.resource_dir, 'EVA_Submission_test_output.json'),
+            os.path.join(self.resource_dir, 'metadata_not_existing.xlsx'),
+            os.path.join(self.resource_dir, 'EVA_Submission_test_errors.yml')
+        ]
+        for f in files_from_tests:
+            if os.path.exists(f):
+                os.remove(f)
+
     def test_conversion_2_json(self) -> None:
         xls_filename = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
         self.parser = XlsxParser(xls_filename, self.conf_filename)
-        output_json = os.path.join(self.resource_dir, 'EVA_Submission_template.V1.1.4.json')
+        output_json = os.path.join(self.resource_dir, 'EVA_Submission_test_output.json')
         self.parser.json(output_json)
 
         with open(output_json) as open_file:
@@ -44,6 +55,24 @@ class TestXlsReader(TestCase):
         metadata_file = os.path.join(self.resource_dir, 'metadata_not_existing.xlsx')
         create_xls_template_from_yaml(metadata_file, self.conf_filename)
         assert os.path.exists(metadata_file)
+
+    def test_json_conversion_fails(self):
+        xls_filename = os.path.join(self.resource_dir, 'EVA_Submission_test_fails.xlsx')
+        self.parser = XlsxParser(xls_filename, self.conf_filename)
+        output_json = os.path.join(self.resource_dir, 'EVA_Submission_test_output.json')
+        errors_yaml = os.path.join(self.resource_dir, 'EVA_Submission_test_errors.yml')
+        self.parser.json(output_json)
+        self.parser.save_errors(errors_yaml)
+
+        assert not os.path.exists(output_json)
+        with open(errors_yaml) as open_file:
+            errors_data = yaml.safe_load(open_file)
+            assert errors_data == [{
+                'sheet': 'Project',
+                'row': '',
+                'column': 'Tax ID',
+                'description': 'Worksheet Project is missing required header Tax ID'
+            }]
 
     def get_expected_json(self):
         return {

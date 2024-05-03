@@ -53,13 +53,14 @@ class XlsxParser:
         try:
             self.workbook = load_workbook(xlsx_filename, read_only=True)
         except Exception as e:
-            logger.error('Error loading %s', xlsx_filename)
-            raise e
+            self.add_error(f'Error loading {xlsx_filename}: {e}')
+            return
         self.worksheets = None
         self._active_worksheet = None
         self.row_offset = {}
         self.headers = {}
         self.valid = None
+        self.errors = []
 
     @property
     def active_worksheet(self):
@@ -70,7 +71,8 @@ class XlsxParser:
         if self.worksheets is None:
             self.valid_worksheets()
         if worksheet not in self.worksheets:
-            raise ValueError('Worksheet ' + worksheet + ' is not a valid worksheet!')
+            self.add_error(f'Tried to access an invalid worksheet {worksheet}', sheet=worksheet)
+            return
 
         self._active_worksheet = worksheet
 
@@ -104,9 +106,9 @@ class XlsxParser:
                 self.worksheets.append(title)
             else:
                 missing_headers = set(required_headers) - set(self.headers[title])
-                self.valid = False
-                raise ValueError(
-                    'Worksheet ' + title + ' does not have all the required headers!: ' + ','.join(missing_headers))
+                for header in missing_headers:
+                    self.add_error(f'Worksheet {title} is missing required header {header}',
+                                   sheet=title, column=header)
 
         return self.worksheets
 
@@ -208,9 +210,6 @@ class XlsxParser:
     def get_biosample_object(self, data):
         sample_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_NAME_KEY]
         scientific_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SCIENTIFIC_NAME_KEY]
-        if sample_name not in data or scientific_name not in data:
-            raise ValueError(f'If BioSample Accession is not provided, '
-                             f'The {SAMPLE} worksheet should have {SAMPLE_NAME_KEY} and {SCIENTIFIC_NAME_KEY} populated')
 
         # BioSample expects any of organism or species field
         data[SPECIES] = data[scientific_name]
@@ -244,10 +243,8 @@ class XlsxParser:
 
             analysis_alias = self.xlsx_conf[SAMPLE][REQUIRED_HEADERS_KEY_NAME][ANALYSIS_ALIAS_KEY]
             sample_name_in_vcf = self.xlsx_conf[SAMPLE][REQUIRED_HEADERS_KEY_NAME][SAMPLE_NAME_IN_VCF_KEY]
-            if analysis_alias not in json_value or sample_name_in_vcf not in json_value:
-                raise ValueError(
-                    f'Worksheet {SAMPLE} does not have required field {ANALYSIS_ALIAS_KEY} or {SAMPLE_NAME_IN_VCF_KEY}')
-            sample_data_with_split_aa = self.get_sample_data_with_split_analysis_alias(json_value, analysis_alias, sample_name_in_vcf)
+            sample_data_with_split_aa = self.get_sample_data_with_split_analysis_alias(
+                json_value, analysis_alias, sample_name_in_vcf)
 
             if bio_sample_acc in json_value and json_value[bio_sample_acc]:
                 sample_data_with_biosample_acc = [dict(item, bioSampleAccession=json_value[bio_sample_acc]) for item in
@@ -257,6 +254,20 @@ class XlsxParser:
                 json_value.pop(analysis_alias)
                 json_value.pop(sample_name_in_vcf)
 
+                # Check for headers that are required only in this case
+                sample_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_NAME_KEY]
+                scientific_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SCIENTIFIC_NAME_KEY]
+                if sample_name not in json_value:
+                    self.add_error(f'If BioSample Accession is not provided, the {SAMPLE} worksheet should have '
+                                   f'{SAMPLE_NAME_KEY} populated',
+                                   sheet=SAMPLE, column=SAMPLE_NAME_KEY)
+                    return None
+                if scientific_name not in json_value:
+                    self.add_error(f'If BioSample Accession is not provided, the {SAMPLE} worksheet should have '
+                                   f'{SCIENTIFIC_NAME_KEY} populated',
+                                   sheet=SAMPLE, column=SCIENTIFIC_NAME_KEY)
+                    return None
+
                 biosample_obj = self.get_biosample_object(json_value)
                 sample_data_with_biosample_obj = [dict(item, bioSampleObject=biosample_obj) for item in
                                                   sample_data_with_split_aa]
@@ -265,13 +276,20 @@ class XlsxParser:
         return sample_json
 
     def json(self, output_json_file):
+        # First check that all sheets present have the required headers;
+        # also guards against the case where conversion fails in init
+        if not self.is_valid():
+            return
         json_data = {}
         for title in self.xlsx_conf[WORKSHEETS_KEY_NAME]:
             self.active_worksheet = title
             if title == PROJECT:
                 json_data.update(self.get_project_json_data())
             elif title == SAMPLE:
-                json_data.update(self.get_sample_json_data())
+                sample_data = self.get_sample_json_data()
+                if sample_data is None:  # missing conditionally required headers
+                    return
+                json_data.update(sample_data)
             else:
                 json_data[self.xlsx_conf[WORKSHEETS_KEY_NAME][title]] = []
                 for row in self.get_rows():
@@ -293,6 +311,16 @@ class XlsxParser:
         logger.warning(
             f'Header {header} in {title} sheet does not have translation in the config file. Leave it as is')
         return header
+
+    def add_error(self, message, sheet='', row='', column=''):
+        """Adds a conversion error using the same structure as other validation errors,
+        and marks the spreadsheet as invalid."""
+        self.errors.append({'sheet': sheet, 'row': row, 'column': column, 'description': message})
+        self.valid = False
+
+    def save_errors(self, errors_yaml_file):
+        with open(errors_yaml_file, 'w') as open_file:
+            yaml.safe_dump(self.errors, stream=open_file)
 
 
 def create_xls_template_from_yaml(xlsx_filename, conf_filename):
@@ -328,11 +356,17 @@ def main():
     arg_parser.add_argument('--metadata_xlsx', required=True, dest='metadata_xlsx', help='EVA metadata Excel file')
     arg_parser.add_argument('--conversion_configuration', dest='conversion_configuration',
                             help='Configuration file describing the expected content of the Excel spreadsheet')
+    arg_parser.add_argument('--errors_yaml', required=True, dest='errors_yaml', help='Path to output errors as YAML')
 
     args = arg_parser.parse_args()
     logging_config.add_stdout_handler()
     parser = XlsxParser(args.metadata_xlsx, args.conversion_configuration)
-    parser.json(args.metadata_json)
+    try:
+        parser.json(args.metadata_json)
+    except Exception as e:
+        parser.add_error(e)
+    finally:
+        parser.save_errors(args.errors_yaml)
 
 
 if __name__ == "__main__":

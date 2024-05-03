@@ -12,7 +12,7 @@ from eva_sub_cli.validators.validator import Validator, VALIDATION_OUTPUT_DIR
 logger = logging_config.get_logger(__name__)
 
 container_image = 'ebivariation/eva-sub-cli'
-container_tag = 'v0.0.1.dev5'
+container_tag = 'v0.0.1.dev6'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = 'vcf_validation_output'
 
@@ -67,18 +67,23 @@ class DockerValidator(Validator):
 
             # copy all required files to container (mapping file, vcf and fasta)
             self.copy_files_to_container()
+            # create the output directory
+            self._run_quiet_command(
+                "Create output directory in container",
+                f"{self.docker_path} exec {self.container_name} mkdir -p {container_validation_dir}/{container_validation_output_dir}"
+            )
 
             docker_cmd = self.get_docker_validation_cmd()
             # start validation
-            # FIXME: If nextflow fails in the docker exec still exit with error code 0
             self._run_quiet_command("Run Validation using Nextflow", docker_cmd)
+        except subprocess.CalledProcessError as ex:
+            logger.error(ex)
+        finally:
             # copy validation result to user host
             self._run_quiet_command(
                 "Copy validation output from container to host",
                 f"{self.docker_path} cp {self.container_name}:{container_validation_dir}/{container_validation_output_dir}/. {self.output_dir}"
             )
-        except subprocess.CalledProcessError as ex:
-            logger.error(ex)
 
     def verify_docker_is_installed(self):
         try:
