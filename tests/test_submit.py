@@ -125,7 +125,7 @@ class TestSubmit(unittest.TestCase):
     def test_upload_file(self):
         test_url = 'http://example.com/'
         with patch('eva_sub_cli.submit.requests.put') as mock_put:
-            file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
+            file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
             self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.mock_calls[0][1][0] == test_url + os.path.basename(file_to_upload)
             # Cannot test the content of the upload as opening the same file twice give different object
