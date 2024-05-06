@@ -88,14 +88,16 @@ workflow {
     } else {
         metadata_json = joinBasePath(params.metadata_json)
     }
-    // Metadata checks and concordance checks
-    metadata_json_validation(metadata_json)
-    sample_name_concordance(metadata_json, vcf_files.collect())
-    fasta_to_vcfs = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
-        .splitCsv(header:true)
-        .map{row -> tuple(file(joinBasePath(row.fasta)), file(joinBasePath(row.vcf)))}
-        .groupTuple(by:0)
-    insdc_checker(metadata_json, fasta_to_vcfs)
+    if (metadata_json) {
+        // Metadata checks and concordance checks
+        metadata_json_validation(metadata_json)
+        sample_name_concordance(metadata_json, vcf_files.collect())
+        fasta_to_vcfs = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
+            .splitCsv(header:true)
+            .map{row -> tuple(file(joinBasePath(row.fasta)), file(joinBasePath(row.vcf)))}
+            .groupTuple(by:0)
+        insdc_checker(metadata_json, fasta_to_vcfs)
+    }
 }
 
 /*
@@ -134,7 +136,6 @@ process check_vcf_reference {
     tuple path(vcf), path(fasta), path(report)
 
     output:
-    path "assembly_check/*valid_assembly_report*", emit: vcf_assembly_valid
     path "assembly_check/*text_assembly_report*", emit: assembly_check_report
     path "assembly_check/*.assembly_check.log", emit: assembly_check_log
 
@@ -145,7 +146,7 @@ process check_vcf_reference {
     trap 'if [[ \$? == 1 || \$? == 139 ]]; then exit 0; fi' EXIT
 
     mkdir -p assembly_check
-    $params.executable.vcf_assembly_checker -i $vcf -f $fasta $report_opt -r summary,text,valid  -o assembly_check --require-genbank > assembly_check/${vcf}.assembly_check.log 2>&1
+    $params.executable.vcf_assembly_checker -i $vcf -f $fasta $report_opt -r summary,text  -o assembly_check --require-genbank > assembly_check/${vcf}.assembly_check.log 2>&1
     """
 }
 
@@ -190,13 +191,14 @@ process convert_xlsx_2_json {
     path(metadata_xlsx)
 
     output:
-    path "metadata.json", emit: metadata_json
+    path "metadata.json", emit: metadata_json, optional: true
+    path "metadata_conversion_errors.yml", emit: errors_yaml
 
     script:
     metadata_json = metadata_xlsx.getBaseName() + '.json'
 
     """
-    $params.python_scripts.xlsx2json --metadata_xlsx $metadata_xlsx --metadata_json metadata.json --conversion_configuration $conversion_configuration
+    $params.python_scripts.xlsx2json --metadata_xlsx $metadata_xlsx --metadata_json metadata.json --errors_yaml metadata_conversion_errors.yml --conversion_configuration $conversion_configuration
     """
 }
 

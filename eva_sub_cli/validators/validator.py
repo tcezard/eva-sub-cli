@@ -147,7 +147,7 @@ class Validator(AppLogger):
                 if line.startswith('[error]'):
                     nb_error += 1
                     if nb_error < 11:
-                        error_list.append(line.strip()[len('[error]'):])
+                        error_list.append(line.strip()[len('[error] '):])
                 elif line.startswith('[info] Number of matches:'):
                     match, total = line.strip()[len('[info] Number of matches: '):].split('/')
                     match = int(match)
@@ -229,10 +229,7 @@ class Validator(AppLogger):
         self._collect_assembly_check_results()
         self._load_sample_check_results()
         self._load_fasta_check_results()
-        self._parse_biovalidator_validation_results()
-        self._convert_biovalidator_validation_to_spreadsheet()
-        self._write_spreadsheet_validation_results()
-        self._collect_md5sum_to_metadata()
+        self._collect_metadata_results()
 
     @lru_cache
     def _vcf_check_log(self, vcf_name):
@@ -283,12 +280,6 @@ class Validator(AppLogger):
         )
 
     @lru_cache
-    def _assembly_check_valid_vcf(self, vcf_name):
-        return resolve_single_file_path(
-            os.path.join(self.output_dir, 'assembly_check', vcf_name + '.valid_assembly_report*')
-        )
-
-    @lru_cache
     def _assembly_check_text_report(self, vcf_name):
         return resolve_single_file_path(
             os.path.join(self.output_dir, 'assembly_check', vcf_name + '*text_assembly_report*')
@@ -301,10 +292,9 @@ class Validator(AppLogger):
             vcf_name = os.path.basename(vcf_file)
 
             assembly_check_log = self._assembly_check_log(vcf_name)
-            assembly_check_valid_vcf = self._assembly_check_valid_vcf(vcf_name)
             assembly_check_text_report = self._assembly_check_text_report(vcf_name)
 
-            if assembly_check_log and assembly_check_valid_vcf and assembly_check_text_report:
+            if assembly_check_log and assembly_check_text_report:
                 error_list_from_log, nb_error_from_log, match, total = \
                     self.parse_assembly_check_log(assembly_check_log)
                 mismatch_list, nb_mismatch, error_list_from_report, nb_error_from_report = \
@@ -345,6 +335,21 @@ class Validator(AppLogger):
             self.results['sample_check'] = yaml.safe_load(open_yaml)
         self.results['sample_check']['report_path'] = self._sample_check_yaml
 
+    def _collect_metadata_results(self):
+        self.results['metadata_check'] = {}
+        self._load_spreadsheet_conversion_errors()
+        self._parse_biovalidator_validation_results()
+        self._convert_biovalidator_validation_to_spreadsheet()
+        self._write_spreadsheet_validation_results()
+        self._collect_md5sum_to_metadata()
+
+    def _load_spreadsheet_conversion_errors(self):
+        errors_file = resolve_single_file_path(os.path.join(self.output_dir, 'metadata_conversion_errors.yml'))
+        if not errors_file:
+            return
+        with open(errors_file) as open_yaml:
+            self.results['metadata_check']['spreadsheet_errors'] = yaml.safe_load(open_yaml)
+
     def _parse_biovalidator_validation_results(self):
         """
         Read the biovalidator's report and extract the list of validation errors
@@ -357,7 +362,6 @@ class Validator(AppLogger):
             if l:
                 return ansi_escape.sub('', l).strip()
 
-        self.results['metadata_check'] = {}
         if not metadata_check_file:
             return
         with open(metadata_check_file) as open_file:
@@ -377,15 +381,15 @@ class Validator(AppLogger):
                     if line is None or line2 is None:
                         break  # EOF
                     errors.append({'property': line, 'description': line2})
-        self.results['metadata_check'] = {
+        self.results['metadata_check'].update({
             'json_report_path': metadata_check_file,
             'json_errors': errors
-        }
+        })
 
     def _parse_metadata_property(self, property_str):
         if property_str.startswith('.'):
             return property_str.strip('.'), None, None
-        match = re.match(r'/(\w+)(/(\d+))?(\.(\w+))?', property_str)
+        match = re.match(r'/(\w+)(/(\d+))?([./](\w+))?', property_str)
         if match:
             return match.group(1), match.group(3), match.group(5)
         else:
@@ -397,7 +401,8 @@ class Validator(AppLogger):
         with open(config_file) as open_file:
             xls2json_conf = yaml.safe_load(open_file)
 
-        self.results['metadata_check']['spreadsheet_errors'] = []
+        if 'spreadsheet_errors' not in self.results['metadata_check']:
+            self.results['metadata_check']['spreadsheet_errors'] = []
         for error in self.results['metadata_check'].get('json_errors', {}):
             sheet_json, row_json, attribute_json = self._parse_metadata_property(error['property'])
             sheet = self._convert_metadata_sheet(sheet_json, xls2json_conf)
