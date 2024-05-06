@@ -79,7 +79,6 @@ class TestDockerValidator(TestCase):
         # run validation in docker
         self.validator.validate()
 
-        # assert vcf checks
         vcf_format_dir = os.path.join(self.validator.output_dir, 'vcf_format')
         self.assertTrue(os.path.exists(vcf_format_dir))
 
@@ -122,6 +121,13 @@ class TestDockerValidator(TestCase):
             }
         }
         self.assert_sample_checker(self.validator._sample_check_yaml, expected_checker)
+
+        with open(self.validator.metadata_json_post_validation) as open_file:
+            json_data = json.load(open_file)
+            assert json_data.get('files') == [
+                {'analysisAlias': 'AA', 'fileName': 'input_passed.vcf', 'fileType': 'vcf',
+                 'md5': '96a80c9368cc3c37095c86fbe6044fb2'}
+            ]
 
     def test_validate_from_excel(self):
         self.validator_from_excel.validate()

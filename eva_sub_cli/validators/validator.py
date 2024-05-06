@@ -2,6 +2,7 @@
 import csv
 import datetime
 import glob
+import json
 import logging
 import os
 import re
@@ -57,6 +58,12 @@ class Validator(AppLogger):
         self.sub_config.backup()
         self.sub_config.write()
 
+    @property
+    def metadata_json_post_validation(self):
+        if self.metadata_json:
+            return self.metadata_json
+        return resolve_single_file_path(os.path.join(self.output_dir, 'metadata.json'))
+
     @staticmethod
     def _run_quiet_command(command_description, command, **kwargs):
         return run_command_with_output(command_description, command, stdout_log_level=logging.DEBUG,
@@ -89,6 +96,10 @@ class Validator(AppLogger):
 
     def _validate(self):
         raise NotImplementedError
+
+    @staticmethod
+    def _validation_file_path_for(file_path):
+        return file_path
 
     def verify_files_present(self):
         # verify mapping file exists
@@ -330,6 +341,7 @@ class Validator(AppLogger):
         self._parse_biovalidator_validation_results()
         self._convert_biovalidator_validation_to_spreadsheet()
         self._write_spreadsheet_validation_results()
+        self._collect_md5sum_to_metadata()
 
     def _load_spreadsheet_conversion_errors(self):
         errors_file = resolve_single_file_path(os.path.join(self.output_dir, 'metadata_conversion_errors.yml'))
@@ -449,6 +461,44 @@ class Validator(AppLogger):
         for attribute in attributes_dict:
             if attributes_dict[attribute] == json_attribute:
                 return attribute
+
+    def _collect_md5sum_to_metadata(self):
+        md5sum_file = resolve_single_file_path(os.path.join(self.output_dir, 'md5sums.txt'))
+        file_path_2_md5 = {}
+        file_name_2_md5 = {}
+        if md5sum_file:
+            with open(md5sum_file) as open_file:
+                for line in open_file:
+                    sp_line = line.split(' ')
+                    md5sum = sp_line[0]
+                    vcf_file = line.strip()[len(md5sum):].lstrip()  # Remove the md5: the rest is the file path
+                    file_path_2_md5[vcf_file] = md5sum
+                    file_name_2_md5[os.path.basename(vcf_file)] = md5sum
+        if self.metadata_json_post_validation:
+            with open(self.metadata_json_post_validation) as open_file:
+                try:
+                    json_data = json.load(open_file)
+                    analysis_aliases = [a.get('analysisAlias') for a in json_data.get('analysis', [])]
+                    file_rows = []
+                    files_from_metadata = json_data.get('files', [])
+                    if files_from_metadata:
+                        for file_dict in json_data.get('files', []):
+                            if file_dict.get('fileType') == 'vcf':
+                                file_path = self._validation_file_path_for(file_dict.get('fileName'))
+                                file_dict['md5'] = file_path_2_md5.get(file_path) or \
+                                                   file_name_2_md5.get(file_dict.get('fileName')) or ''
+                            file_rows.append(file_dict)
+                    else:
+                        self.error('No file found in metadata and multiple analysis alias exist: '
+                                   'cannot infer the relationship between files and analysis alias')
+                    json_data['files'] = file_rows
+                except Exception as e:
+                    # Skip adding the md5
+                    self.error('Error while loading or parsing metadata json: ' + str(e))
+            if json_data:
+                with open(self.metadata_json_post_validation, 'w') as open_file:
+                    json.dump(json_data, open_file)
+
 
     def create_reports(self):
         report_html = generate_html_report(self.results, self.validation_date, self.project_title)
