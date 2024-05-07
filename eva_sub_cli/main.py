@@ -56,17 +56,17 @@ def orchestrate_process(submission_dir, vcf_files_mapping, vcf_files, assembly_f
     if VALIDATE in tasks:
         if executor == DOCKER:
             validator = DockerValidator(vcf_files_mapping, submission_dir, metadata_json, metadata_xlsx,
-                                 submission_config=sub_config)
+                                        submission_config=sub_config)
         # default to native execution
         else:
             validator = NativeValidator(vcf_files_mapping, submission_dir, metadata_json, metadata_xlsx,
-                                 submission_config=sub_config)
+                                        submission_config=sub_config)
         with validator:
             validator.validate_and_report()
             if not metadata_json:
                 metadata_json = os.path.join(validator.output_dir, 'metadata.json')
-                sub_config.set('metadata_json', value=metadata_json)
-                sub_config.set('vcf_files', value=vcf_files)
+            sub_config.set('metadata_json', value=metadata_json)
+            sub_config.set('vcf_files', value=vcf_files)
 
     if SUBMIT in tasks:
         with StudySubmitter(submission_dir, submission_config=sub_config, username=username, password=password) as submitter:
