@@ -3,6 +3,8 @@ import shutil
 import unittest
 from unittest.mock import patch
 
+from ebi_eva_common_pyutils.config import WritableConfig
+
 from eva_sub_cli import SUB_CLI_CONFIG_FILE
 from eva_sub_cli.main import orchestrate_process, VALIDATE, SUBMIT, DOCKER
 from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
@@ -47,7 +49,8 @@ class TestMain(unittest.TestCase):
                 patch('eva_sub_cli.main.DockerValidator') as m_docker_validator, \
                 patch('eva_sub_cli.main.StudySubmitter') as m_submitter:
             # Empty config
-            m_config.return_value = {}
+            config = WritableConfig()
+            m_config.return_value = config
 
             orchestrate_process(
                 self.test_sub_dir, self.mapping_file, None, None, self.metadata_json, self.metadata_xlsx,
