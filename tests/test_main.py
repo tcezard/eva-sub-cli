@@ -40,7 +40,6 @@ class TestMain(unittest.TestCase):
                 self.mapping_file, self.test_sub_dir, self.metadata_json, self.metadata_xlsx,
                 submission_config=m_config.return_value
             )
-            print(m_docker_validator.mock_calls)
             m_docker_validator().validate_and_report.assert_called_once_with()
 
     def test_orchestrate_validate_submit(self):
