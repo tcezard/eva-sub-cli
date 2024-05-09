@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import unittest
@@ -22,9 +23,12 @@ class TestSubmit(unittest.TestCase):
         self.token = 'a token'
         with patch('eva_sub_cli.submit.get_auth', return_value=Mock(token=self.token)):
             vcf_files = [os.path.join(self.resource_dir, 'vcf_files', 'example2.vcf.gz')]
-            metadata_file = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
-            self.submitter = StudySubmitter(submission_dir=self.test_sub_dir, vcf_files=vcf_files,
-                                            metadata_file=metadata_file)
+            metadata_json_file = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
+            self.submitter = StudySubmitter(submission_dir=self.test_sub_dir)
+            self.submitter.sub_config.set('metadata_json', value=metadata_json_file)
+            self.submitter.sub_config.set('vcf_files', value=vcf_files)
+            with open(metadata_json_file) as open_file:
+                self.metadata_json = json.load(open_file)
 
         shutil.rmtree(self.test_sub_dir, ignore_errors=True)
 
@@ -55,8 +59,8 @@ class TestSubmit(unittest.TestCase):
         )
         mock_put.assert_called_once_with(
             os.path.join(SUBMISSION_WS_URL, 'submission/mock_submission_id/uploaded'),
-            headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'}
-        )
+            headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'},
+            data=self.metadata_json)
         print(mock_put.mock_calls)
 
     def test_submit_with_config(self):
@@ -101,7 +105,7 @@ class TestSubmit(unittest.TestCase):
         with patch('eva_sub_cli.submit.get_auth', return_value=Mock(token=self.token)):
             assert is_submission_dir_writable(self.test_sub_dir)
             sub_config = WritableConfig(self.config_file)
-            with StudySubmitter(self.test_sub_dir, vcf_files=None, metadata_file=None, submission_config=sub_config) as submitter:
+            with StudySubmitter(self.test_sub_dir, submission_config=sub_config) as submitter:
                 submitter.sub_config.set('test_key', value='test_value')
 
             assert os.path.exists(self.config_file)
@@ -111,18 +115,17 @@ class TestSubmit(unittest.TestCase):
         mock_submit_response = MagicMock()
         mock_submit_response.status_code = 200
         test_url = 'http://example.com/'
-        with patch.object(StudySubmitter, '_upload_file') as mock_upload_file, \
-            patch.object(self.submitter, 'sub_config', {READY_FOR_SUBMISSION_TO_EVA: True}):
-            self.submitter.sub_config[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL] = test_url
+        with patch.object(StudySubmitter, '_upload_file') as mock_upload_file:
+            self.submitter.sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=True)
+            self.submitter.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL, value=test_url)
             self.submitter._upload_submission()
         for vcf_file in self.submitter.vcf_files:
             mock_upload_file.assert_any_call(test_url, vcf_file)
-        mock_upload_file.assert_called_with(test_url, self.submitter.metadata_file)
 
     def test_upload_file(self):
         test_url = 'http://example.com/'
         with patch('eva_sub_cli.submit.requests.put') as mock_put:
-            file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
+            file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
             self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.mock_calls[0][1][0] == test_url + os.path.basename(file_to_upload)
             # Cannot test the content of the upload as opening the same file twice give different object

@@ -3,6 +3,8 @@ import shutil
 import unittest
 from unittest.mock import patch
 
+from ebi_eva_common_pyutils.config import WritableConfig
+
 from eva_sub_cli import SUB_CLI_CONFIG_FILE
 from eva_sub_cli.main import orchestrate_process, VALIDATE, SUBMIT, DOCKER
 from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
@@ -38,9 +40,7 @@ class TestMain(unittest.TestCase):
                 self.mapping_file, self.test_sub_dir, self.metadata_json, self.metadata_xlsx,
                 submission_config=m_config.return_value
             )
-
-            with m_docker_validator() as validator:
-                validator.validate_and_report.assert_called_once_with()
+            m_docker_validator().validate_and_report.assert_called_once_with()
 
     def test_orchestrate_validate_submit(self):
         with patch('eva_sub_cli.main.get_vcf_files') as m_get_vcf, \
@@ -48,7 +48,8 @@ class TestMain(unittest.TestCase):
                 patch('eva_sub_cli.main.DockerValidator') as m_docker_validator, \
                 patch('eva_sub_cli.main.StudySubmitter') as m_submitter:
             # Empty config
-            m_config.return_value = {}
+            config = WritableConfig()
+            m_config.return_value = config
 
             orchestrate_process(
                 self.test_sub_dir, self.mapping_file, None, None, self.metadata_json, self.metadata_xlsx,
@@ -60,12 +61,11 @@ class TestMain(unittest.TestCase):
                 self.mapping_file, self.test_sub_dir, self.metadata_json, self.metadata_xlsx,
                 submission_config=m_config.return_value
             )
-            with m_docker_validator() as validator:
-                validator.validate_and_report.assert_called_once_with()
+            m_docker_validator().validate_and_report.assert_called_once_with()
 
             # Submit was created
-            m_submitter.assert_any_call(self.test_sub_dir, m_get_vcf.return_value, self.metadata_json,
-                                        submission_config=m_config.return_value, username=None, password=None)
+            m_submitter.assert_any_call(self.test_sub_dir, submission_config=m_config.return_value,
+                                        username=None, password=None)
             with m_submitter() as submitter:
                 submitter.submit.assert_called_once_with(resume=False)
 
@@ -86,8 +86,8 @@ class TestMain(unittest.TestCase):
             assert m_docker_validator.call_count == 0
 
             # Submit was created
-            m_submitter.assert_any_call(self.test_sub_dir, m_get_vcf.return_value, self.metadata_json,
-                                        submission_config=m_config.return_value, username=None, password=None)
+            m_submitter.assert_any_call(self.test_sub_dir, submission_config=m_config.return_value,
+                                        username=None, password=None)
             with m_submitter() as submitter:
                 submitter.submit.assert_called_once_with(resume=False)
 
@@ -104,5 +104,4 @@ class TestMain(unittest.TestCase):
                 self.mapping_file, self.test_sub_dir, self.metadata_json, self.metadata_xlsx,
                 submission_config=m_config.return_value
             )
-            with m_docker_validator() as validator:
-                validator.validate_and_report.assert_called_once_with()
+            m_docker_validator().validate_and_report.assert_called_once_with()
