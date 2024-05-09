@@ -20,8 +20,8 @@ setup(
     install_requires=requirements,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools',
+        'Intended Audience :: Science/Research',
+        'Topic :: Communications :: File Sharing',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3'
     ],
