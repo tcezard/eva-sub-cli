@@ -323,8 +323,7 @@
         "type": "object",
         "required": [
           "analysisAlias",
-          "fileName",
-          "fileType"
+          "fileName"
         ],
         "properties": {
           "analysisAlias": {
@@ -334,15 +333,6 @@
           "fileName": {
             "type": "string",
             "description": "File name"
-          },
-          "fileType": {
-            "type": "string",
-            "description": "Type of file",
-            "enum": [
-              "vcf",
-              "tabix",
-              "csi"
-            ]
           },
           "md5": {
             "type": "string",

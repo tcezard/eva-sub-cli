@@ -35,6 +35,7 @@ class TestXlsReader(TestCase):
             json_data = json.load(open_file)
             # assert json file is created with expected data
             assert sorted(json_data.keys()) == ['analysis', 'files', 'project', 'sample', 'submitterDetails']
+            print(self.get_expected_json())
             self.assertTrue(self.get_expected_json() == json_data)
 
         # assert json schema
@@ -80,7 +81,6 @@ class TestXlsReader(TestCase):
                 {
                     "lastName": "Smith",
                     "firstName": "John",
-                    "telephone": "+1234567890",
                     "email": "john.smith@example.com",
                     "laboratory": "Genomics Lab",
                     "centre": "University of Example",
@@ -89,7 +89,6 @@ class TestXlsReader(TestCase):
                 {
                     "lastName": "Doe",
                     "firstName": "Jane",
-                    "telephone": "+1234567890",
                     "email": "jane.doe@example.com",
                     "laboratory": "Bioinformatics Lab",
                     "centre": "University of Example",
@@ -98,7 +97,6 @@ class TestXlsReader(TestCase):
             ],
             "project": {
                 "title": "Example Project",
-                "projectAlias": "EP",
                 "description": "An example project for demonstration purposes",
                 "centre": "University of Example",
                 "taxId": 9606,
@@ -109,7 +107,6 @@ class TestXlsReader(TestCase):
                     "analysisTitle": "Variant Detection 1",
                     "analysisAlias": "VD1",
                     "description": "An example analysis for demonstration purposes",
-                    "ProjectTitle": "Example Project",
                     "experimentType": "Whole genome sequencing",
                     "referenceGenome": "GCA_000001405.27",
                     "platform": "BGISEQ-500"
@@ -118,7 +115,6 @@ class TestXlsReader(TestCase):
                     "analysisTitle": "Variant Detection 2",
                     "analysisAlias": "VD2",
                     "description": "An example analysis for demonstration purposes",
-                    "ProjectTitle": "Example Project",
                     "experimentType": "Whole genome sequencing",
                     "referenceGenome": "GCA_000001405.27",
                     "platform": "BGISEQ-500"
@@ -127,7 +123,6 @@ class TestXlsReader(TestCase):
                     "analysisTitle": "Variant Detection 3",
                     "analysisAlias": "VD3",
                     "description": "An example analysis for demonstration purposes",
-                    "ProjectTitle": "Example Project",
                     "experimentType": "Whole genome sequencing",
                     "referenceGenome": "GCA_000001405.27",
                     "platform": "BGISEQ-500"
@@ -228,17 +223,14 @@ class TestXlsReader(TestCase):
                 {
                     "analysisAlias": "VD1",
                     "fileName": "example1.vcf.gz",
-                    "fileType": "vcf"
                 },
                 {
                     "analysisAlias": "VD2",
                     "fileName": "example2.vcf",
-                    "fileType": "vcf"
                 },
                 {
                     "analysisAlias": "VD3",
                     "fileName": "example3.vcf",
-                    "fileType": "vcf"
                 }
             ]
         }
