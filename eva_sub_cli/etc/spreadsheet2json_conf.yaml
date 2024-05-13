@@ -20,17 +20,16 @@ Submitter Details:
   required:
     Last Name: lastName
     First Name: firstName
-    Telephone Number: telephone
     Email Address: email
     Laboratory: laboratory
     Center: centre
+  optional:
     Address: address
 
 # List of field for Projects
 Project:
   required:
     Project Title: title
-    Project Alias: projectAlias
     Description: description
     Center: centre
     Tax ID: taxId
@@ -51,7 +50,6 @@ Analysis:
     Analysis Title: analysisTitle
     Analysis Alias: analysisAlias
     Description: description
-    Project Title: ProjectTitle
     Experiment Type: experimentType
     Reference: referenceGenome
   optional:
@@ -122,5 +120,3 @@ Files:
   required:
     Analysis Alias: analysisAlias
     File Name: fileName
-    File Type: fileType
-    MD5: md5
