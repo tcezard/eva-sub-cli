@@ -41,16 +41,12 @@ def validate_command_line_arguments(args, argparser):
 def get_version():
     base_dir = os.path.abspath(os.path.dirname(main.__file__))
     version = open(os.path.join(base_dir, 'VERSION')).read().strip()
-    from eva_sub_cli.validators import docker_validator
-    return ' -- '.join([
-        f'eva-sub-cli: {version}',
-        f'docker image: {docker_validator.container_image}:{docker_validator.container_tag}'
-    ])
+    return f'{version}'
 
 
 if __name__ == "__main__":
     argparser = ArgumentParser(prog='eva-sub-cli', description='EVA Submission CLI - validate and submit data to EVA')
-    argparser.add_argument('--version', action='version', version=f'{get_version()}')
+    argparser.add_argument('--version', action='version', version=f'%(prog)s {get_version()}')
     argparser.add_argument('--submission_dir', required=True, type=str,
                            help='Full path to the directory where all processing will be done '
                                 'and submission info is/will be stored')
