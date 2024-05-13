@@ -1,9 +1,13 @@
 #!/usr/bin/env python
+import sys
+
+if not sys.warnoptions:
+    import warnings
+    warnings.simplefilter("ignore")
+
 import logging
 import os
-import sys
 from argparse import ArgumentParser
-
 from ebi_eva_common_pyutils.logger import logging_config
 
 from eva_sub_cli import main
@@ -34,8 +38,15 @@ def validate_command_line_arguments(args, argparser):
         sys.exit(1)
 
 
+def get_version():
+    base_dir = os.path.abspath(os.path.dirname(main.__file__))
+    version = open(os.path.join(base_dir, 'VERSION')).read().strip()
+    return f'{version}'
+
+
 if __name__ == "__main__":
-    argparser = ArgumentParser(description='EVA Submission CLI - validate and submit data to EVA')
+    argparser = ArgumentParser(prog='eva-sub-cli', description='EVA Submission CLI - validate and submit data to EVA')
+    argparser.add_argument('--version', action='version', version=f'%(prog)s {get_version()}')
     argparser.add_argument('--submission_dir', required=True, type=str,
                            help='Full path to the directory where all processing will be done '
                                 'and submission info is/will be stored')
@@ -53,9 +64,9 @@ if __name__ == "__main__":
     metadata_group = argparser.add_argument_group('Metadata', 'Specify the metadata in a spreadsheet or in a JSON file')
     metadata_group = metadata_group.add_mutually_exclusive_group(required=True)
     metadata_group.add_argument("--metadata_json",
-                               help="Json file that describe the project, analysis, samples and files")
+                                help="Json file that describe the project, analysis, samples and files")
     metadata_group.add_argument("--metadata_xlsx",
-                               help="Excel spreadsheet  that describe the project, analysis, samples and files")
+                                help="Excel spreadsheet  that describe the project, analysis, samples and files")
     argparser.add_argument('--tasks', nargs='*', choices=[VALIDATE, SUBMIT], default=[SUBMIT], type=str.lower,
                            help='Select a task to perform. Selecting VALIDATE will run the validation regardless of the'
                                 ' outcome of previous runs. Selecting SUBMIT will run validate only if the validation'
