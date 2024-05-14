@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import shutil
 from functools import lru_cache, cached_property
 
 import yaml
@@ -33,9 +34,11 @@ def resolve_single_file_path(file_path):
 
 class Validator(AppLogger):
 
-    def __init__(self, mapping_file, output_dir, metadata_json=None, metadata_xlsx=None,
+    def __init__(self, mapping_file, submission_dir, metadata_json=None, metadata_xlsx=None,
                  submission_config: WritableConfig = None):
-        self.output_dir = output_dir
+        # validator write to the validation output directory
+        # If the submission_config is not set it will also be written to the VALIDATION_OUTPUT_DIR
+        self.output_dir = os.path.join(submission_dir, VALIDATION_OUTPUT_DIR)
         self.mapping_file = mapping_file
         vcf_files, fasta_files = self._find_vcf_and_fasta_files()
         self.vcf_files = vcf_files
@@ -48,7 +51,7 @@ class Validator(AppLogger):
         if submission_config:
             self.sub_config = submission_config
         else:
-            config_file = os.path.join(output_dir, SUB_CLI_CONFIG_FILE)
+            config_file = os.path.join(submission_dir, SUB_CLI_CONFIG_FILE)
             self.sub_config = WritableConfig(config_file, version=__version__)
 
     def __enter__(self):
@@ -86,16 +89,31 @@ class Validator(AppLogger):
         self.report()
 
     def validate(self):
+        self.set_up_output_dir()
         self.verify_files_present()
         self._validate()
         self._collect_validation_workflow_results()
 
     def report(self):
-        self.create_reports()
+        report_path = self.create_reports()
         self.update_config_with_validation_result()
+        self.clean_up_output_dir(report_path)
 
     def _validate(self):
         raise NotImplementedError
+
+    def set_up_output_dir(self):
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
+        os.makedirs(self.output_dir, exist_ok=True)
+
+    def clean_up_output_dir(self, report_path):
+        # Move everything that's not report.html into a subdir
+        subdir = os.path.join(self.output_dir, 'other_validations')
+        os.mkdir(subdir)
+        for filename in os.listdir(self.output_dir):
+            if os.path.isfile(filename) and not report_path.endswith(filename):
+                os.rename(filename, f'other_validations/{filename}')
 
     @staticmethod
     def _validation_file_path_for(file_path):
@@ -498,7 +516,6 @@ class Validator(AppLogger):
             if json_data:
                 with open(self.metadata_json_post_validation, 'w') as open_file:
                     json.dump(json_data, open_file)
-
 
     def create_reports(self):
         report_html = generate_html_report(self.results, self.validation_date, self.project_title)

@@ -1,7 +1,7 @@
 import os.path
 from unittest import TestCase
 
-from eva_sub_cli.validators.validator import Validator
+from eva_sub_cli.validators.validator import Validator, VALIDATION_OUTPUT_DIR
 from tests.test_utils import create_mapping_file
 
 
@@ -25,8 +25,8 @@ class TestValidator(TestCase):
     def tearDown(self) -> None:
         files_from_tests = [
             self.mapping_file,
-            os.path.join(self.output_dir, 'metadata_spreadsheet_validation.txt'),
-            os.path.join(self.output_dir, 'report.html')
+            os.path.join(self.output_dir, VALIDATION_OUTPUT_DIR, 'metadata_spreadsheet_validation.txt'),
+            os.path.join(self.output_dir, VALIDATION_OUTPUT_DIR, 'report.html')
         ]
         for f in files_from_tests:
             if os.path.exists(f):
