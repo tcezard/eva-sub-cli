@@ -111,9 +111,10 @@ class Validator(AppLogger):
         # Move everything that's not report.html into a subdir
         subdir = os.path.join(self.output_dir, 'other_validations')
         os.mkdir(subdir)
-        for filename in os.listdir(self.output_dir):
-            if os.path.isfile(filename) and not report_path.endswith(filename):
-                os.rename(filename, f'other_validations/{filename}')
+        for file_name in os.listdir(self.output_dir):
+            file_path = os.path.join(self.output_dir, file_name)
+            if os.path.isfile(file_path) and file_path != report_path:
+                os.rename(file_path, os.path.join(subdir, file_name))
 
     @staticmethod
     def _validation_file_path_for(file_path):
