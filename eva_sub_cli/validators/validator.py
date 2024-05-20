@@ -14,6 +14,7 @@ from ebi_eva_common_pyutils.command_utils import run_command_with_output
 from ebi_eva_common_pyutils.config import WritableConfig
 
 from eva_sub_cli import ETC_DIR, SUB_CLI_CONFIG_FILE, __version__
+from eva_sub_cli.file_utils import backup_file_or_directory
 from eva_sub_cli.report import generate_html_report
 from ebi_eva_common_pyutils.logger import logging_config, AppLogger
 
@@ -92,28 +93,28 @@ class Validator(AppLogger):
         self.set_up_output_dir()
         self.verify_files_present()
         self._validate()
+        self.clean_up_output_dir()
         self._collect_validation_workflow_results()
 
     def report(self):
-        report_path = self.create_reports()
+        self.create_reports()
         self.update_config_with_validation_result()
-        self.clean_up_output_dir(report_path)
 
     def _validate(self):
         raise NotImplementedError
 
     def set_up_output_dir(self):
         if os.path.exists(self.output_dir):
-            shutil.rmtree(self.output_dir)
+            backup_file_or_directory(self.output_dir, max_backups=9)
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def clean_up_output_dir(self, report_path):
-        # Move everything that's not report.html into a subdir
+    def clean_up_output_dir(self):
+        # Move intermediate validation outputs into a subdir
         subdir = os.path.join(self.output_dir, 'other_validations')
         os.mkdir(subdir)
         for file_name in os.listdir(self.output_dir):
             file_path = os.path.join(self.output_dir, file_name)
-            if os.path.isfile(file_path) and file_path != report_path:
+            if os.path.isfile(file_path):
                 os.rename(file_path, os.path.join(subdir, file_name))
 
     @staticmethod
@@ -334,12 +335,13 @@ class Validator(AppLogger):
 
     @cached_property
     def _sample_check_yaml(self):
-        return resolve_single_file_path(os.path.join(self.output_dir, 'sample_checker.yml'))
+        return resolve_single_file_path(os.path.join(self.output_dir, 'other_validations', 'sample_checker.yml'))
 
     def _load_fasta_check_results(self):
         for fasta_file in self.fasta_files:
             fasta_file_name = os.path.basename(fasta_file)
-            fasta_check = resolve_single_file_path(os.path.join(self.output_dir, f'{fasta_file_name}_check.yml'))
+            fasta_check = resolve_single_file_path(os.path.join(self.output_dir, 'other_validations',
+                                                                f'{fasta_file_name}_check.yml'))
             self.results['fasta_check'] = {}
             if not fasta_check:
                 continue
@@ -363,7 +365,8 @@ class Validator(AppLogger):
         self._collect_md5sum_to_metadata()
 
     def _load_spreadsheet_conversion_errors(self):
-        errors_file = resolve_single_file_path(os.path.join(self.output_dir, 'metadata_conversion_errors.yml'))
+        errors_file = resolve_single_file_path(os.path.join(self.output_dir, 'other_validations',
+                                                            'metadata_conversion_errors.yml'))
         if not errors_file:
             return
         with open(errors_file) as open_yaml:
@@ -373,7 +376,8 @@ class Validator(AppLogger):
         """
         Read the biovalidator's report and extract the list of validation errors
         """
-        metadata_check_file = resolve_single_file_path(os.path.join(self.output_dir, 'metadata_validation.txt'))
+        metadata_check_file = resolve_single_file_path(os.path.join(self.output_dir, 'other_validations',
+                                                                    'metadata_validation.txt'))
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
         def clean_read(ifile):
@@ -482,7 +486,7 @@ class Validator(AppLogger):
                 return attribute
 
     def _collect_md5sum_to_metadata(self):
-        md5sum_file = resolve_single_file_path(os.path.join(self.output_dir, 'md5sums.txt'))
+        md5sum_file = resolve_single_file_path(os.path.join(self.output_dir, 'other_validations', 'md5sums.txt'))
         file_path_2_md5 = {}
         file_name_2_md5 = {}
         if md5sum_file:

@@ -25,7 +25,7 @@ class TestValidator(TestCase):
     def tearDown(self) -> None:
         files_from_tests = [
             self.mapping_file,
-            os.path.join(self.output_dir, VALIDATION_OUTPUT_DIR, 'metadata_spreadsheet_validation.txt'),
+            os.path.join(self.output_dir, VALIDATION_OUTPUT_DIR, 'other_validations', 'metadata_spreadsheet_validation.txt'),
             os.path.join(self.output_dir, VALIDATION_OUTPUT_DIR, 'report.html')
         ]
         for f in files_from_tests:
