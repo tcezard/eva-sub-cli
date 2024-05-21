@@ -21,7 +21,7 @@ class TestDockerValidator(TestCase):
     metadata_json = os.path.join(test_run_dir, 'sub_metadata.json')
     metadata_xlsx = os.path.join(test_run_dir, 'sub_metadata.xlsx')
 
-    output_dir = test_run_dir
+    submission_dir = test_run_dir
 
     def setUp(self):
         os.makedirs(self.test_run_dir, exist_ok=True)
@@ -48,7 +48,7 @@ class TestDockerValidator(TestCase):
             json.dump(sub_metadata, open_metadata)
         self.validator = DockerValidator(
             mapping_file=self.mapping_file,
-            output_dir=self.output_dir,
+            submission_dir=self.submission_dir,
             metadata_json=self.metadata_json,
             container_name='eva-sub-cli-test'
         )
@@ -59,7 +59,7 @@ class TestDockerValidator(TestCase):
 
         self.validator_from_excel = DockerValidator(
             mapping_file=self.mapping_file,
-            output_dir=self.output_dir,
+            submission_dir=self.submission_dir,
             metadata_xlsx=self.metadata_xlsx,
             container_name='eva-sub-cli-test'
         )
