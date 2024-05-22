@@ -16,13 +16,8 @@ from eva_sub_cli.file_utils import is_submission_dir_writable
 
 
 def validate_command_line_arguments(args, argparser):
-    if args.vcf_files_mapping and (args.vcf_files or args.assembly_fasta):
-        print("Specify vcf_files and assembly_fasta OR a vcf_files_mapping in CSV. Not both")
-        argparser.print_usage()
-        sys.exit(1)
-
-    if (args.vcf_files and not args.assembly_fasta) or (not args.vcf_files and args.assembly_fasta):
-        print("When using --vcf_files and --assembly_fasta, both need to be specified")
+    if (args.vcf_files and not args.reference_fasta) or (not args.vcf_files and args.reference_fasta):
+        print("When using --vcf_files and --reference_fasta, both need to be specified")
         argparser.print_usage()
         sys.exit(1)
 
@@ -56,10 +51,8 @@ if __name__ == "__main__":
         "for different VCF files then use --vcf_file_mapping"
     )
     vcf_group.add_argument('--vcf_files', nargs='+', help="One or several vcf files to validate")
-    vcf_group.add_argument('--assembly_fasta',
+    vcf_group.add_argument('--reference_fasta',
                            help="The fasta file containing the reference genome from which the variants were derived")
-    vcf_group.add_argument("--vcf_files_mapping",
-                           help="csv file with the mappings for vcf files, fasta and assembly report")
 
     metadata_group = argparser.add_argument_group('Metadata', 'Specify the metadata in a spreadsheet or in a JSON file')
     metadata_group = metadata_group.add_mutually_exclusive_group(required=True)
@@ -88,5 +81,8 @@ if __name__ == "__main__":
     logging_config.add_stdout_handler()
     logging_config.add_file_handler(os.path.join(args.submission_dir, 'eva_submission.log'), logging.DEBUG)
 
-    # Pass on all the arguments
-    main.orchestrate_process(**args.__dict__)
+    try:
+        # Pass on all the arguments
+        main.orchestrate_process(**args.__dict__)
+    except FileNotFoundError as fne:
+        print(fne)

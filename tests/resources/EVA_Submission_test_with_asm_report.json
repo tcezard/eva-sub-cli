@@ -35,7 +35,8 @@
       "ProjectTitle": "Example Project",
       "experimentType": "Whole genome sequencing",
       "referenceGenome": "GCA_000001405.27",
-	  "referenceFasta": "GCA_000001405.27_fasta.fa",
+      "referenceFasta": "GCA_000001405.27_fasta.fa",
+      "assemblyReport": "GCA_000001405.27_report.txt",
       "platform": "BGISEQ-500"
     },
     {
@@ -45,7 +46,8 @@
       "ProjectTitle": "Example Project",
       "experimentType": "Whole genome sequencing",
       "referenceGenome": "GCA_000001405.27",
-	  "referenceFasta": "GCA_000001405.27_fasta.fa",
+      "referenceFasta": "GCA_000001405.27_fasta.fa",
+      "assemblyReport": "GCA_000001405.27_report.txt",
       "platform": "BGISEQ-500"
     },
     {
@@ -55,7 +57,8 @@
       "ProjectTitle": "Example Project",
       "experimentType": "Whole genome sequencing",
       "referenceGenome": "GCA_000001405.27",
-	  "referenceFasta": "GCA_000001405.27_fasta.fa",
+      "referenceFasta": "GCA_000001405.27_fasta.fa",
+      "assemblyReport": "GCA_000001405.27_report.txt",
       "platform": "BGISEQ-500"
     }
   ],
