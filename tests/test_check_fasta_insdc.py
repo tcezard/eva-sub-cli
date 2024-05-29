@@ -61,6 +61,7 @@ class TestFastaChecker(TestCase):
             m_get_assemblies.side_effect = requests.HTTPError('500 Internal Server Error')
             results = assess_fasta(input_fasta, ['analysis'], None)
             assert results == {
+                'all_insdc': True,
                 'sequences': [{'sequence_name': 'I', 'sequence_md5': '6681ac2f62509cfc220d78751b8dc524', 'insdc': True}],
                 'error': '500 Internal Server Error'
             }

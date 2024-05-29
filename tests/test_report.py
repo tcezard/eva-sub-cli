@@ -115,11 +115,15 @@ validation_results = {
         },
         'metadata_error.fa': {
             'report_path': '/path/to/metadata_error.yml',
+            'all_insdc': True,
             'sequences': [
                 {'sequence_name': '1', 'sequence_md5': 'hsjvchdhdo3ate83jdfd76rp2', 'insdc': True},
                 {'sequence_name': '2', 'sequence_md5': 'hjfdoijsfc47hfg0gh9qwjrve', 'insdc': True}
             ],
+            'metadata_assembly_compatible': True,
             'possible_assemblies': {'GCA_1'},
+            'assembly_in_metadata': 'GCA_1',
+            'associated_analyses': ['Analysis C'],
             'error': '500 Server Error: Internal Server Error for url: https://www.ebi.ac.uk/eva/webservices/contig-alias/v1/chromosomes/md5checksum/hjfdoijsfc47hfg0gh9qwjrve'
         }
     },
@@ -166,6 +170,7 @@ class TestReport(TestCase):
     test_vcf_fasta_analysis_mapping.append({'vcf_file': 'input_fail.vcf', 'fasta_file': 'input_fail.fa', 'analysis': 'A'})
     test_vcf_fasta_analysis_mapping.append({'vcf_file': 'input_pass.vcf', 'fasta_file': 'input_pass.fa', 'analysis': 'B'})
     test_vcf_fasta_analysis_mapping.append({'vcf_file': 'input_test.vcf', 'fasta_file': 'input_test.fa', 'analysis': 'could not be linked'})
+
     def test_generate_html_report(self):
         report = generate_html_report(validation_results, self.test_validation_date, self.test_submission_dir,
                                       self.test_vcf_fasta_analysis_mapping, self.test_project_name)

@@ -125,11 +125,9 @@ def assess_fasta(input_fasta, analyses, assembly_in_metadata):
                 possible_assemblies &= containing_assemblies
     except HTTPError as e:
         # Server errors from either ENA refget or EVA contig alias will halt the check prematurely.
-        # Report the error and incomplete results (any sequences found to be INSDC and any compatible assemblies so far)
+        # Report the error but do not return from the method, so that incomplete results can be reported
+        # (i.e. any sequences found to be INSDC and any compatible assemblies so far)
         results['error'] = str(e)
-        if possible_assemblies:
-            results['possible_assemblies'] = possible_assemblies
-        return results
 
     # Always report whether everything is INSDC
     results['all_insdc'] = all_insdc

@@ -3,7 +3,7 @@
     {% set results_for_fasta = validation_results['fasta_check'][file_name] %}
 
     {% if results_for_fasta.get('error') %}
-        <div class="description">
+        <div class="report-section fail">
             <strong>Warning:</strong> The following results may be incomplete due to problems with external services. Please try again later for
             complete results.
             <br><strong>Error message:</strong> {{ results_for_fasta.get('error') }}
