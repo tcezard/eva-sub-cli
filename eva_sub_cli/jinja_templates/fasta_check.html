@@ -1,8 +1,17 @@
 
 {% macro fasta_check_report(validation_results, file_name) -%}
     {% set results_for_fasta = validation_results['fasta_check'][file_name] %}
-    {% set expand_icon = "" %}
+
+    {% if results_for_fasta.get('error') %}
+        <div class="description">
+            <strong>Warning:</strong> The following results may be incomplete due to problems with external services. Please try again later for
+            complete results.
+            <br><strong>Error message:</strong> {{ results_for_fasta.get('error') }}
+        </div>
+    {% endif %}
+
     <!-- All INSDC check results -->
+    {% set expand_icon = "" %}
     {% if results_for_fasta.get('all_insdc') %}
         {% set icon = "&#10004;" %}
         {% set row_class = "report-section pass" %}
