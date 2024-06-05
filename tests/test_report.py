@@ -124,7 +124,7 @@ validation_results = {
             'possible_assemblies': {'GCA_1'},
             'assembly_in_metadata': 'GCA_1',
             'associated_analyses': ['Analysis C'],
-            'error': '500 Server Error: Internal Server Error for url: https://www.ebi.ac.uk/eva/webservices/contig-alias/v1/chromosomes/md5checksum/hjfdoijsfc47hfg0gh9qwjrve'
+            'connection_error': '500 Server Error: Internal Server Error for url: https://www.ebi.ac.uk/eva/webservices/contig-alias/v1/chromosomes/md5checksum/hjfdoijsfc47hfg0gh9qwjrve'
         }
     },
     'metadata_check': {
