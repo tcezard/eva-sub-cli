@@ -1,5 +1,8 @@
 import os
 from unittest import TestCase
+from unittest.mock import patch
+
+import requests as requests
 
 from bin.check_fasta_insdc import assess_fasta, get_analyses_and_reference_genome_from_metadata
 
@@ -51,3 +54,14 @@ class TestFastaChecker(TestCase):
         analyses, reference = get_analyses_and_reference_genome_from_metadata([vcf_file], metadata_json)
         assert analyses == {'VD1'}
         assert reference == 'GCA_000001405.27'
+
+    def test_assess_fasta_http_error(self):
+        input_fasta = os.path.join(self.resource_dir, 'fasta_files', 'Saccharomyces_cerevisiae_I.fa')
+        with patch('bin.check_fasta_insdc._get_containing_assemblies_paged', autospec=True) as m_get_assemblies:
+            m_get_assemblies.side_effect = requests.HTTPError('500 Internal Server Error')
+            results = assess_fasta(input_fasta, ['analysis'], None)
+            assert results == {
+                'all_insdc': True,
+                'sequences': [{'sequence_name': 'I', 'sequence_md5': '6681ac2f62509cfc220d78751b8dc524', 'insdc': True}],
+                'connection_error': '500 Internal Server Error'
+            }

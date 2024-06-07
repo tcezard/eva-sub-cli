@@ -4,13 +4,11 @@ import argparse
 import gzip
 import hashlib
 import json
-
 from itertools import groupby
 
 import requests
-from ebi_eva_common_pyutils.logger import logging_config
-
 import yaml
+from ebi_eva_common_pyutils.logger import logging_config
 from requests import HTTPError
 from retry import retry
 
@@ -107,23 +105,29 @@ def assess_fasta(input_fasta, analyses, assembly_in_metadata):
     results = {'sequences': []}
     all_insdc = True
     possible_assemblies = set()
-    for header, sequence in fasta_iter(input_fasta):
-        # Check sequence is INSDC
-        name = header.split()[0]
-        md5_digest = refget_md5_digest(sequence)
-        sequence_metadata = get_refget_metadata(md5_digest)
-        is_insdc = bool(sequence_metadata)
-        results['sequences'].append({'sequence_name': name, 'sequence_md5': md5_digest, 'insdc': is_insdc})
-        all_insdc = all_insdc and is_insdc
-        # Get possible assemblies for sequence
-        containing_assemblies = get_containing_assemblies(md5_digest)
-        if len(containing_assemblies) == 0:
-            if is_insdc:
-                logger.warning(f'Sequence with this MD5 is INSDC but not found in contig alias: {md5_digest}')
-        elif len(possible_assemblies) == 0:
-            possible_assemblies = containing_assemblies
-        else:
-            possible_assemblies &= containing_assemblies
+    try:
+        for header, sequence in fasta_iter(input_fasta):
+            # Check sequence is INSDC
+            name = header.split()[0]
+            md5_digest = refget_md5_digest(sequence)
+            sequence_metadata = get_refget_metadata(md5_digest)
+            is_insdc = bool(sequence_metadata)
+            results['sequences'].append({'sequence_name': name, 'sequence_md5': md5_digest, 'insdc': is_insdc})
+            all_insdc = all_insdc and is_insdc
+            # Get possible assemblies for sequence
+            containing_assemblies = get_containing_assemblies(md5_digest)
+            if len(containing_assemblies) == 0:
+                if is_insdc:
+                    logger.warning(f'Sequence with this MD5 is INSDC but not found in contig alias: {md5_digest}')
+            elif len(possible_assemblies) == 0:
+                possible_assemblies = containing_assemblies
+            else:
+                possible_assemblies &= containing_assemblies
+    except HTTPError as e:
+        # Server errors from either ENA refget or EVA contig alias will halt the check prematurely.
+        # Report the error but do not return from the method, so that incomplete results can be reported
+        # (i.e. any sequences found to be INSDC and any compatible assemblies so far)
+        results['connection_error'] = str(e)
 
     # Always report whether everything is INSDC
     results['all_insdc'] = all_insdc
