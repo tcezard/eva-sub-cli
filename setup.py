@@ -1,6 +1,7 @@
 import glob
 from distutils.core import setup
 from os.path import join, abspath, dirname
+from setuptools import find_packages
 
 base_dir = abspath(dirname(__file__))
 requirements_txt = join(base_dir, 'requirements.txt')
@@ -10,7 +11,7 @@ version = open(join(base_dir, 'eva_sub_cli', 'VERSION')).read().strip()
 
 setup(
     name='eva_sub_cli',
-    packages=['eva_sub_cli', 'eva_sub_cli.validators'],
+    packages=find_packages(),
     package_data={'eva_sub_cli': ['nextflow/*', 'etc/*', 'VERSION', 'jinja_templates/*']},
     version=version,
     license='Apache',
