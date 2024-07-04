@@ -1,7 +1,8 @@
-pyyaml
+ebi_eva_common_pyutils==0.6.3
 jinja2
+jsonschema
 minify_html==0.11.1
 openpyxl
+pyyaml
 requests
-jsonschema
-ebi_eva_common_pyutils==0.6.3
+retry

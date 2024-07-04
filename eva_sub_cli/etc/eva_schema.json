@@ -94,18 +94,18 @@
           "items": true
         },
         "parentProject": {
-          "type": "string"
+          "$ref": "#/definitions/projectAccession"
         },
         "childProjects": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/projectAccession"
           }
         },
         "peerProjects": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/projectAccession"
           }
         },
         "links": {
@@ -348,6 +348,13 @@
           }
         }
       }
+    }
+  },
+  "definitions": {
+    "projectAccession": {
+      "type": "string",
+      "description": "ENA project accession",
+      "pattern": "^PRJ(EB|NA)\\d+$"
     }
   }
 }
