@@ -95,4 +95,3 @@ class StudySubmitter(AppLogger):
         # Complete the submission
         self.info(f'Complete submission')
         self._complete_submission()
-

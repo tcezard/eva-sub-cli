@@ -296,8 +296,12 @@
         ],
         "properties": {
           "analysisAlias": {
-            "type": "string",
-            "description": "Alias of the analysis performed on this sample."
+            "type": "array",
+            "description": "Aliases of the analyses performed on this sample",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
           },
           "sampleInVCF": {
             "type": "string",
