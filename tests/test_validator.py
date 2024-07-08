@@ -59,15 +59,21 @@ class TestValidator(TestCase):
             },
             'metadata_check': {
                 'json_errors': [
-                    {'property': '.files', 'description': "should have required property 'files'"},
-                    {'property': '/project.title', 'description': "should have required property 'title'"},
+                    {'property': '/files', 'description': "should have required property 'files'"},
+                    {'property': '/project/title', 'description': "should have required property 'title'"},
                     {'property': '/project/taxId', 'description': "must have required property 'taxId'"},
                     {'property': '/project/holdDate', 'description': 'must match format "date"'},
-                    {'property': '/analysis/0.description', 'description': "should have required property 'description'"},
-                    {'property': '/analysis/0.referenceGenome', 'description': "should have required property 'referenceGenome'"},
-                    {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
-                    {'property': '/sample/0.bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
-                    {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
+                    {'property': '/analysis/0/description', 'description': "should have required property 'description'"},
+                    {'property': '/analysis/0/referenceGenome', 'description': "should have required property 'referenceGenome'"},
+                    {'property': '/sample/0/bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
+                    {'property': '/sample/0/bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
+                    {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'},
+                    {'property': '/project/childProjects/1', 'description': 'PRJEBNA does not exist or is private'},
+                    {'property': '/sample/2/bioSampleObject/characteristics/taxId',
+                     'description': '1234 is not a valid taxonomy code'},
+                    {'property': '/sample/analysisAlias', 'description': 'alias1 present in Analysis not in Samples'},
+                    {'property': '/sample/analysisAlias',
+                     'description': 'alias_1,alias_2 present in Samples not in Analysis'},
                 ],
                 'spreadsheet_errors': [
                     # NB. Wouldn't normally get conversion error + validation errors together, but it is supported.
@@ -79,13 +85,21 @@ class TestValidator(TestCase):
                     {'sheet': 'Project', 'row': '', 'column': 'Tax ID',
                      'description': 'In sheet "Project", column "Tax ID" is not populated'},
                     {'sheet': 'Project', 'row': '', 'column': 'Hold Date',
-                     'description': 'In sheet "Project", column "Hold Date" is not populated'},
+                     'description': 'must match format "date"'},
                     {'sheet': 'Analysis', 'row': 2, 'column': 'Description',
                      'description': 'In sheet "Analysis", row "2", column "Description" is not populated'},
                     {'sheet': 'Analysis', 'row': 2, 'column': 'Reference',
                      'description': 'In sheet "Analysis", row "2", column "Reference" is not populated'},
                     {'sheet': 'Sample', 'row': 3, 'column': 'Sample Accession',
                      'description': 'In sheet "Sample", row "3", column "Sample Accession" is not populated'},
+                    {'sheet': 'Project', 'row': '', 'column': 'Child Project(s)',
+                     'description': 'PRJEBNA does not exist or is private'},
+                    {'sheet': 'Sample', 'row': 5, 'column': 'Tax Id',
+                     'description': '1234 is not a valid taxonomy code'},
+                    {'sheet': 'Sample', 'row': '', 'column': 'Analysis Alias',
+                     'description': 'alias1 present in Analysis not in Samples'},
+                    {'sheet': 'Sample', 'row': '', 'column': 'Analysis Alias',
+                     'description': 'alias_1,alias_2 present in Samples not in Analysis'}
                 ]
             }
         }
@@ -121,33 +135,40 @@ class TestValidator(TestCase):
         self.validator.results['metadata_check'] = {}
         self.validator._parse_biovalidator_validation_results()
         assert self.validator.results['metadata_check']['json_errors'] == [
-            {'property': '.files', 'description': "should have required property 'files'"},
-            {'property': '/project.title', 'description': "should have required property 'title'"},
+            {'property': '/files', 'description': "should have required property 'files'"},
+            {'property': '/project/title', 'description': "should have required property 'title'"},
             {'property': '/project/taxId', 'description': "must have required property 'taxId'"},
             {'property': '/project/holdDate', 'description': 'must match format "date"'},
-            {'property': '/analysis/0.description', 'description': "should have required property 'description'"},
-            {'property': '/analysis/0.referenceGenome', 'description': "should have required property 'referenceGenome'"},
-            {'property': '/sample/0.bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
-            {'property': '/sample/0.bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
+            {'property': '/analysis/0/description', 'description': "should have required property 'description'"},
+            {'property': '/analysis/0/referenceGenome', 'description': "should have required property 'referenceGenome'"},
+            {'property': '/sample/0/bioSampleAccession', 'description': "should have required property 'bioSampleAccession'"},
+            {'property': '/sample/0/bioSampleObject', 'description': "should have required property 'bioSampleObject'"},
             {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
         ]
 
     def test_convert_biovalidator_validation_to_spreadsheet(self):
         self.validator.results['metadata_check'] = {
             'json_errors': [
-                {'property': '.files', 'description': "should have required property 'files'"},
-                {'property': '/project.title', 'description': "should have required property 'title'"},
+                {'property': '/files', 'description': "should have required property 'files'"},
+                {'property': '/project/title', 'description': "should have required property 'title'"},
                 {'property': '/project/taxId', 'description': "must have required property 'taxId'"},
                 {'property': '/project/holdDate', 'description': 'must match format "date"'},
-                {'property': '/analysis/0.description',
+                {'property': '/analysis/0/description',
                  'description': "should have required property 'description'"},
-                {'property': '/analysis/0.referenceGenome',
+                {'property': '/analysis/0/referenceGenome',
                  'description': "should have required property 'referenceGenome'"},
-                {'property': '/sample/0.bioSampleAccession',
+                {'property': '/sample/0/bioSampleAccession',
                  'description': "should have required property 'bioSampleAccession'"},
-                {'property': '/sample/0.bioSampleObject',
+                {'property': '/sample/0/bioSampleObject',
                  'description': "should have required property 'bioSampleObject'"},
-                {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'}
+                {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'},
+                # Semantic checks
+                {'property': '/project/childProjects/1', 'description': 'PRJEBNA does not exist or is private'},
+                {'property': '/sample/2/bioSampleObject/characteristics/taxId',
+                 'description': '1234 is not a valid taxonomy code'},
+                {'property': '/sample/analysisAlias', 'description': 'alias1 present in Analysis not in Samples'},
+                {'property': '/sample/analysisAlias',
+                 'description': 'alias_1,alias_2 present in Samples not in Analysis'}
             ]
         }
         self.validator._convert_biovalidator_validation_to_spreadsheet()
@@ -159,13 +180,20 @@ class TestValidator(TestCase):
             {'sheet': 'Project', 'row': '', 'column': 'Tax ID',
              'description': 'In sheet "Project", column "Tax ID" is not populated'},
             {'sheet': 'Project', 'row': '', 'column': 'Hold Date',
-             'description': 'In sheet "Project", column "Hold Date" is not populated'},
+             'description': 'must match format "date"'},
             {'sheet': 'Analysis', 'row': 2, 'column': 'Description',
              'description': 'In sheet "Analysis", row "2", column "Description" is not populated'},
             {'sheet': 'Analysis', 'row': 2, 'column': 'Reference',
              'description': 'In sheet "Analysis", row "2", column "Reference" is not populated'},
             {'sheet': 'Sample', 'row': 3, 'column': 'Sample Accession',
-             'description': 'In sheet "Sample", row "3", column "Sample Accession" is not populated'}
+             'description': 'In sheet "Sample", row "3", column "Sample Accession" is not populated'},
+            {'sheet': 'Project', 'row': '', 'column': 'Child Project(s)',
+             'description': 'PRJEBNA does not exist or is private'},
+            {'sheet': 'Sample', 'row': 5, 'column': 'Tax Id', 'description': '1234 is not a valid taxonomy code'},
+            {'sheet': 'Sample', 'row': '', 'column': 'Analysis Alias',
+             'description': 'alias1 present in Analysis not in Samples'},
+            {'sheet': 'Sample', 'row': '', 'column': 'Analysis Alias',
+             'description': 'alias_1,alias_2 present in Samples not in Analysis'}
         ]
 
     def test_parse_assembly_check_log(self):

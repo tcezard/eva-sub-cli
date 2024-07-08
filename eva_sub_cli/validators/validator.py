@@ -412,13 +412,23 @@ class Validator(AppLogger):
 
     def _parse_metadata_property(self, property_str):
         if property_str.startswith('.'):
-            return property_str.strip('.'), None, None
+            return property_str.strip('./'), None, None
+        # First attempt to parse as BioSample object
+        sheet, row, col = self._parse_sample_metadata_property(property_str)
+        if sheet is not None and row is not None and col is not None:
+            return sheet, row, col
         match = re.match(r'/(\w+)(/(\d+))?([./](\w+))?', property_str)
         if match:
             return match.group(1), match.group(3), match.group(5)
         else:
             logger.error(f'Cannot parse {property_str} in JSON metadata error')
             return None, None, None
+
+    def _parse_sample_metadata_property(self, property_str):
+        match = re.match(r'/sample/(\d+)/bioSampleObject/characteristics/(\w+)', property_str)
+        if match:
+            return 'sample', match.group(1), match.group(2)
+        return None, None, None
 
     def _parse_semantic_metadata_results(self):
         errors_file = resolve_single_file_path(os.path.join(self.output_dir, 'other_validations',
@@ -446,13 +456,19 @@ class Validator(AppLogger):
             if row_json is None and attribute_json is None:
                 new_description = f'Sheet "{sheet}" is missing'
             elif row_json is None:
-                new_description = f'In sheet "{sheet}", column "{column}" is not populated'
+                if 'have required' not in error['description']:
+                    new_description = error['description']
+                else:
+                    new_description = f'In sheet "{sheet}", column "{column}" is not populated'
             elif attribute_json and column:
-                new_description = f'In sheet "{sheet}", row "{row}", column "{column}" is not populated'
+                if 'have required' not in error['description']:
+                    new_description = error['description']
+                else:
+                    new_description = f'In sheet "{sheet}", row "{row}", column "{column}" is not populated'
             else:
                 new_description = error["description"].replace(sheet_json, sheet)
             if column is None:
-                # We do not know this attribute. It's most likely about bioSampleObject
+                # We do not know this attribute.
                 continue
             if 'schema' in new_description:
                 # This is an error specific to json schema

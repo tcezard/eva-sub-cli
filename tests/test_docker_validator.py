@@ -35,7 +35,7 @@ class TestDockerValidator(TestCase):
             "submitterDetails": [],
             "project": {},
             "sample": [
-                {"analysisAlias":  "AA", "sampleInVCF":  "HG00096", "BioSampleAccession": "SAME0000096"}
+                {"analysisAlias": "AA", "sampleInVCF": "HG00096", "bioSampleAccession": "SAME0000096"}
             ],
             "analysis": [
                 {"analysisAlias": "AA"}

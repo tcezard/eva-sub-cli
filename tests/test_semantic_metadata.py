@@ -53,7 +53,7 @@ class TestSemanticMetadata(TestCase):
             checker.check_all_taxonomy_codes()
             self.assertEqual(checker.errors, [
                 {
-                    'property': '/sample/2.bioSampleObject/characteristics/taxId',
+                    'property': '/sample/2/bioSampleObject/characteristics/taxId',
                     'description': '1234 is not a valid taxonomy code'
                 }
             ])

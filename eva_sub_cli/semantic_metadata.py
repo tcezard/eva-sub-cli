@@ -57,7 +57,7 @@ class SemanticMetadataChecker(AppLogger):
         for idx, sample in enumerate(self.metadata[SAMPLE_KEY]):
             if BIOSAMPLE_OBJECT_KEY in sample:
                 self.check_taxonomy_code(sample[BIOSAMPLE_OBJECT_KEY][CHARACTERISTICS_KEY][TAX_ID_KEY],
-                                         f'/{SAMPLE_KEY}/{idx}.{BIOSAMPLE_OBJECT_KEY}/{CHARACTERISTICS_KEY}/{TAX_ID_KEY}')
+                                         f'/{SAMPLE_KEY}/{idx}/{BIOSAMPLE_OBJECT_KEY}/{CHARACTERISTICS_KEY}/{TAX_ID_KEY}')
 
     @retry(tries=4, delay=2, backoff=1.2, jitter=(1, 3))
     def check_project_accession(self, project_acc, json_path):
