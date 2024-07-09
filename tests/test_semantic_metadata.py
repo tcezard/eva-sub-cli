@@ -33,15 +33,14 @@ class TestSemanticMetadata(TestCase):
                 {
                     "bioSampleObject": {
                         "characteristics": {
-                            # TODO these might need to be lists of strings
-                            "taxId": 9447
+                            "taxId": [{"text": "9447"}]
                         }
                     }
                 },
                 {
                     "bioSampleObject": {
                         "characteristics": {
-                            "taxId": 1234
+                            "taxId": [{"text": "1234"}]
                         }
                     }
                 }

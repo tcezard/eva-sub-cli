@@ -198,7 +198,7 @@ class XlsxParser:
         project_data = self.get_rows()
         if len(project_data) > 1:
             logger.warning(f"{PROJECT} worksheet expects a single row of info but more than one found in the file. "
-                            f"Only the first row's data will be taken into consideration")
+                           f"Only the first row's data will be taken into consideration")
 
         first_row = project_data[0]
         first_row.pop('row_num')
@@ -213,25 +213,29 @@ class XlsxParser:
 
         # BioSample expects any of organism or species field
         data[SPECIES] = data[scientific_name]
-        # For some of the fields, BioSample expects value in arrays
-        data = {k: [v] if k in ['title', 'description', 'taxId', 'scientificName', 'commonName', SPECIES] else v
-                for k, v in data.items()}
+        # BioSample name goes in its own attribute, not part of characteristics
+        biosample_name = data.pop(sample_name)
+        # For all characteristics, BioSample expects value in arrays of objects
+        data = {k: [{'text': self.serialize(v)}] for k, v in data.items()}
 
         biosample_object = {
-            "name": data[sample_name],
+            "name": biosample_name,
             "characteristics": data
         }
 
         return biosample_object
 
+    @staticmethod
+    def serialize(value):
+        """Create a text representation of the value provided"""
+        if isinstance(value, datetime.date):
+            return value.strftime('%Y-%m-%d')
+        return str(value)
+
     def get_sample_data_with_split_analysis_alias(self, data, analysis_alias, sample_name_in_vcf):
         analysis_alias_list = data[analysis_alias].split(',')
         sample_in_vcf_val = data[sample_name_in_vcf]
-        sample_data = []
-        for aa in analysis_alias_list:
-            sample_data.append({analysis_alias: aa, sample_name_in_vcf: sample_in_vcf_val})
-
-        return sample_data
+        return {analysis_alias: analysis_alias_list, sample_name_in_vcf: sample_in_vcf_val}
 
     def get_sample_json_data(self):
         json_key = self.xlsx_conf[WORKSHEETS_KEY_NAME][SAMPLE]
@@ -243,13 +247,11 @@ class XlsxParser:
 
             analysis_alias = self.xlsx_conf[SAMPLE][REQUIRED_HEADERS_KEY_NAME][ANALYSIS_ALIAS_KEY]
             sample_name_in_vcf = self.xlsx_conf[SAMPLE][REQUIRED_HEADERS_KEY_NAME][SAMPLE_NAME_IN_VCF_KEY]
-            sample_data_with_split_aa = self.get_sample_data_with_split_analysis_alias(
-                json_value, analysis_alias, sample_name_in_vcf)
+            sample_data = self.get_sample_data_with_split_analysis_alias(json_value, analysis_alias, sample_name_in_vcf)
 
             if bio_sample_acc in json_value and json_value[bio_sample_acc]:
-                sample_data_with_biosample_acc = [dict(item, bioSampleAccession=json_value[bio_sample_acc]) for item in
-                                                  sample_data_with_split_aa]
-                sample_json[json_key].extend(sample_data_with_biosample_acc)
+                sample_data.update(bioSampleAccession=json_value[bio_sample_acc])
+                sample_json[json_key].append(sample_data)
             else:
                 json_value.pop(analysis_alias)
                 json_value.pop(sample_name_in_vcf)
@@ -269,9 +271,8 @@ class XlsxParser:
                     return None
 
                 biosample_obj = self.get_biosample_object(json_value)
-                sample_data_with_biosample_obj = [dict(item, bioSampleObject=biosample_obj) for item in
-                                                  sample_data_with_split_aa]
-                sample_json[json_key].extend(sample_data_with_biosample_obj)
+                sample_data.update(bioSampleObject=biosample_obj)
+                sample_json[json_key].append(sample_data)
 
         return sample_json
 

@@ -5,7 +5,6 @@ from ebi_eva_common_pyutils.ena_utils import download_xml_from_ena
 from ebi_eva_common_pyutils.logger import AppLogger
 
 
-# TODO check for a nicer way to do this
 PROJECT_KEY = 'project'
 ANALYSIS_KEY = 'analysis'
 SAMPLE_KEY = 'sample'
@@ -56,7 +55,7 @@ class SemanticMetadataChecker(AppLogger):
         # Check sample taxonomies for novel samples
         for idx, sample in enumerate(self.metadata[SAMPLE_KEY]):
             if BIOSAMPLE_OBJECT_KEY in sample:
-                self.check_taxonomy_code(sample[BIOSAMPLE_OBJECT_KEY][CHARACTERISTICS_KEY][TAX_ID_KEY],
+                self.check_taxonomy_code(sample[BIOSAMPLE_OBJECT_KEY][CHARACTERISTICS_KEY][TAX_ID_KEY][0]['text'],
                                          f'/{SAMPLE_KEY}/{idx}/{BIOSAMPLE_OBJECT_KEY}/{CHARACTERISTICS_KEY}/{TAX_ID_KEY}')
 
     @retry(tries=4, delay=2, backoff=1.2, jitter=(1, 3))
@@ -80,7 +79,6 @@ class SemanticMetadataChecker(AppLogger):
         :param property: JSON property of the error. This will be converted to sheet/row/column in spreadsheet if needed.
         :param description: description of the error.
         """
-        # Ensure that errors match the format of biovalidator errors
         self.errors.append({'property': property, 'description': description})
 
     def check_analysis_alias_coherence(self):
@@ -100,7 +98,7 @@ class SemanticMetadataChecker(AppLogger):
 
         :param list1: first list to compare
         :param list2: second list to compare
-        :param list1_desc: test description of first list, used only in error message
+        :param list1_desc: text description of first list, used only in error message
         :param list2_desc: text description of second list, used only in error message
         :param json_path: property where the error message will appear
         """
