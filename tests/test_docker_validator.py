@@ -33,7 +33,9 @@ class TestDockerValidator(TestCase):
                             [os.path.join(self.assembly_reports, 'input_passed.txt')])
         sub_metadata = {
             "submitterDetails": [],
-            "project": {},
+            "project": {
+                "parentProject": "PRJ_INVALID"
+            },
             "sample": [
                 {"analysisAlias": ["AA"], "sampleInVCF": "HG00096", "bioSampleAccession": "SAME0000096"}
             ],
@@ -130,6 +132,11 @@ class TestDockerValidator(TestCase):
                 {'analysisAlias': 'AA', 'fileName': 'input_passed.vcf', 'fileType': 'vcf',
                  'md5': '96a80c9368cc3c37095c86fbe6044fb2'}
             ]
+
+        # Check metadata errors
+        with open(os.path.join(self.validator.output_dir, 'other_validations', 'metadata_validation.txt')) as open_file:
+            metadata_val_lines = {l.strip() for l in open_file.readlines()}
+            assert 'must match pattern "^PRJ(EB|NA)\d+$"' in metadata_val_lines
 
     def test_validate_from_excel(self):
         self.validator_from_excel.validate()
