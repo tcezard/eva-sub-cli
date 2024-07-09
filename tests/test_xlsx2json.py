@@ -29,7 +29,14 @@ class TestXlsReader(TestCase):
         xls_filename = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
         self.parser = XlsxParser(xls_filename, self.conf_filename)
         output_json = os.path.join(self.resource_dir, 'EVA_Submission_test_output.json')
+        errors_yaml = os.path.join(self.resource_dir, 'EVA_Submission_test_errors.yml')
         self.parser.json(output_json)
+        self.parser.save_errors(errors_yaml)
+
+        # confirm no errors
+        with open(errors_yaml) as open_file:
+            errors_data = yaml.safe_load(open_file)
+            assert errors_data == []
 
         with open(output_json) as open_file:
             json_data = json.load(open_file)

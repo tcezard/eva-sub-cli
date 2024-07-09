@@ -241,7 +241,7 @@ class XlsxParser:
         json_key = self.xlsx_conf[WORKSHEETS_KEY_NAME][SAMPLE]
         sample_json = {json_key: []}
         for row in self.get_rows():
-            row.pop('row_num')
+            row_num = row.pop('row_num')
             json_value = {self.translate_header(SAMPLE, k): v for k, v in row.items() if v is not None}
             bio_sample_acc = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_ACCESSION_KEY]
 
@@ -262,12 +262,12 @@ class XlsxParser:
                 if sample_name not in json_value:
                     self.add_error(f'If BioSample Accession is not provided, the {SAMPLE} worksheet should have '
                                    f'{SAMPLE_NAME_KEY} populated',
-                                   sheet=SAMPLE, column=SAMPLE_NAME_KEY)
+                                   sheet=SAMPLE, row=row_num, column=SAMPLE_NAME_KEY)
                     return None
                 if scientific_name not in json_value:
                     self.add_error(f'If BioSample Accession is not provided, the {SAMPLE} worksheet should have '
                                    f'{SCIENTIFIC_NAME_KEY} populated',
-                                   sheet=SAMPLE, column=SCIENTIFIC_NAME_KEY)
+                                   sheet=SAMPLE, row=row_num, column=SCIENTIFIC_NAME_KEY)
                     return None
 
                 biosample_obj = self.get_biosample_object(json_value)

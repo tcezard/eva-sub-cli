@@ -64,90 +64,73 @@
   ],
   "sample": [
     {
-      "analysisAlias": "VD1",
+      "analysisAlias": [
+        "VD1",
+        "VD2",
+        "VD3"
+      ],
       "sampleInVCF": "sample1",
       "bioSampleAccession": "SAME00001"
     },
     {
-      "analysisAlias": "VD2",
-      "sampleInVCF": "sample1",
-      "bioSampleAccession": "SAME00001"
-    },
-    {
-      "analysisAlias": "VD3",
-      "sampleInVCF": "sample1",
-      "bioSampleAccession": "SAME00001"
-    },
-    {
-      "analysisAlias": "VD1",
+      "analysisAlias": [
+        "VD1",
+        "VD2",
+        "VD3"
+      ],
       "sampleInVCF": "sample2",
       "bioSampleAccession": "SAME00002"
     },
     {
-      "analysisAlias": "VD2",
-      "sampleInVCF": "sample2",
-      "bioSampleAccession": "SAME00002"
-    },
-    {
-      "analysisAlias": "VD3",
-      "sampleInVCF": "sample2",
-      "bioSampleAccession": "SAME00002"
-    },
-    {
-      "analysisAlias": "VD3",
+      "analysisAlias": [
+        "VD3"
+      ],
       "sampleInVCF": "sample3",
       "bioSampleAccession": "SAME00003"
     },
     {
-      "analysisAlias": "VD4",
+      "analysisAlias": [
+        "VD4",
+        "VD5"
+      ],
       "sampleInVCF": "sample4",
       "bioSampleObject": {
         "name": "Lm_17_S8",
         "characteristics": {
-          "bioSampleName": "Lm_17_S8",
           "title": [
-            "Bastet normal sample"
+            {
+              "text": "Bastet normal sample"
+            }
           ],
           "description": [
-            "Test Description"
+            {
+              "text": "Test Description"
+            }
           ],
           "taxId": [
-            9447
+            {
+              "text": "9447"
+            }
           ],
           "scientificName": [
-            "Lemur catta"
+            {
+              "text": "Lemur catta"
+            }
           ],
-          "sex": "Female",
-          "tissueType": "skin",
+          "sex": [
+            {
+              "text": "Female"
+            }
+          ],
+          "tissueType": [
+            {
+              "text": "skin"
+            }
+          ],
           "species": [
-            "Lemur catta"
-          ]
-        }
-      }
-    },
-    {
-      "analysisAlias": "VD5",
-      "sampleInVCF": "sample4",
-      "bioSampleObject": {
-        "name": "Lm_17_S8",
-        "characteristics": {
-          "bioSampleName": "Lm_17_S8",
-          "title": [
-            "Bastet normal sample"
-          ],
-          "description": [
-            "Test Description"
-          ],
-          "taxId": [
-            9447
-          ],
-          "scientificName": [
-            "Lemur catta"
-          ],
-          "sex": "Female",
-          "tissueType": "skin",
-          "species": [
-            "Lemur catta"
+            {
+              "text": "Lemur catta"
+            }
           ]
         }
       }
