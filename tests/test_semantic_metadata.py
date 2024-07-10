@@ -1,6 +1,8 @@
 from unittest import TestCase
 from unittest.mock import patch
 
+from ebi_eva_common_pyutils.biosamples_communicators import NoAuthHALCommunicator
+
 from eva_sub_cli.semantic_metadata import SemanticMetadataChecker
 
 
@@ -55,6 +57,48 @@ class TestSemanticMetadata(TestCase):
                 {
                     'property': '/sample/2/bioSampleObject/characteristics/taxId',
                     'description': '1234 is not a valid taxonomy code'
+                }
+            ])
+
+    def test_check_existing_biosamples(self):
+        metadata = {
+            "sample": [
+                {"bioSampleAccession": "SAME00001"},
+                {"bioSampleAccession": "SAME00002"},
+                {"bioSampleAccession": "SAME00003"}
+            ]
+        }
+        checker = SemanticMetadataChecker(metadata)
+        valid_sample = {
+            'accession': 'SAME00001',
+            'characteristics': {
+                'organism': [{'text': 'Viridiplantae'}],
+                'collection date': [{'text': '2018'}],
+                'geo loc name': [{'text': 'France: Montferrier-sur-Lez'}]
+            }
+        }
+        invalid_sample = {
+            'accession': 'SAME00003',
+            'characteristics': {
+                'organism': [{'text': 'Viridiplantae'}]
+            }
+        }
+
+        with patch.object(NoAuthHALCommunicator, 'follows_link',
+                          side_effect=[valid_sample, ValueError, invalid_sample]) as m_follows_link:
+            checker.check_existing_biosamples()
+            self.assertEqual(checker.errors, [
+                {
+                    'property': '/sample/1/bioSampleAccession',
+                    'description': 'SAME00002 does not exist or is private'
+                },
+                {
+                    'property': '/sample/2/bioSampleAccession',
+                    'description': 'Existing sample SAME00003 does not have a valid collection date'
+                },
+                {
+                    'property': '/sample/2/bioSampleAccession',
+                    'description': 'Existing sample SAME00003 does not have a valid geographic location'
                 }
             ])
 

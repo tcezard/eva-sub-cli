@@ -1,4 +1,4 @@
-ebi_eva_common_pyutils==0.6.3
+ebi_eva_common_pyutils==0.6.8.dev0
 jinja2
 jsonschema
 minify_html==0.11.1
