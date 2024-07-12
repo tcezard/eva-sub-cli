@@ -33,7 +33,7 @@ class TestSemanticMetadata(TestCase):
                 {
                     "bioSampleObject": {
                         "characteristics": {
-                            "taxId": [{"text": "9447"}]
+                            "taxId": [{"text": "9606"}]
                         }
                     }
                 },
@@ -48,7 +48,8 @@ class TestSemanticMetadata(TestCase):
         }
         checker = SemanticMetadataChecker(metadata)
         with patch('eva_sub_cli.semantic_metadata.download_xml_from_ena') as m_ena_download:
-            m_ena_download.side_effect = [True, True, Exception('problem downloading')]
+            # Mock should only be called once per taxonomy code
+            m_ena_download.side_effect = [True, Exception('problem downloading')]
             checker.check_all_taxonomy_codes()
             self.assertEqual(checker.errors, [
                 {

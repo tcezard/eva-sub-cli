@@ -28,6 +28,8 @@ class SemanticMetadataChecker(AppLogger):
     def __init__(self, metadata):
         self.metadata = metadata
         self.errors = []
+        # Caches whether taxonomy code is valid or not
+        self.taxonomy_valid = {}
 
     def write_result_yaml(self, output_path):
         with open(output_path, 'w') as open_yaml:
@@ -67,10 +69,17 @@ class SemanticMetadataChecker(AppLogger):
 
     @retry(tries=4, delay=2, backoff=1.2, jitter=(1, 3))
     def check_taxonomy_code(self, taxonomy_code, json_path):
-        try:
-            download_xml_from_ena(f'https://www.ebi.ac.uk/ena/browser/api/xml/{taxonomy_code}')
-        except Exception:
-            self.add_error(json_path, f'{taxonomy_code} is not a valid taxonomy code')
+        taxonomy_code = int(taxonomy_code)
+        if taxonomy_code in self.taxonomy_valid:
+            if self.taxonomy_valid[taxonomy_code] is False:
+                self.add_error(json_path, f'{taxonomy_code} is not a valid taxonomy code')
+        else:
+            try:
+                download_xml_from_ena(f'https://www.ebi.ac.uk/ena/browser/api/xml/{taxonomy_code}')
+                self.taxonomy_valid[taxonomy_code] = True
+            except Exception:
+                self.add_error(json_path, f'{taxonomy_code} is not a valid taxonomy code')
+                self.taxonomy_valid[taxonomy_code] = False
 
     def add_error(self, property, description):
         """
