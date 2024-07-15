@@ -1,9 +1,11 @@
 import yaml
 
 from retry import retry
+from ebi_eva_common_pyutils.biosamples_communicators import NoAuthHALCommunicator
 from ebi_eva_common_pyutils.ena_utils import download_xml_from_ena
 from ebi_eva_common_pyutils.logger import AppLogger
 
+from eva_sub_cli.date_utils import check_date
 
 PROJECT_KEY = 'project'
 ANALYSIS_KEY = 'analysis'
@@ -13,6 +15,7 @@ PARENT_PROJECT_KEY = 'parentProject'
 CHILD_PROJECTS_KEY = 'childProjects'
 PEER_PROJECTS_KEY = 'peerProjects'
 BIOSAMPLE_OBJECT_KEY = 'bioSampleObject'
+BIOSAMPLE_ACCESSION_KEY = 'bioSampleAccession'
 CHARACTERISTICS_KEY = 'characteristics'
 TAX_ID_KEY = 'taxId'
 ANALYSIS_ALIAS_KEY = 'analysisAlias'
@@ -30,6 +33,7 @@ class SemanticMetadataChecker(AppLogger):
         self.errors = []
         # Caches whether taxonomy code is valid or not
         self.taxonomy_valid = {}
+        self.communicator = NoAuthHALCommunicator(bsd_url='https://www.ebi.ac.uk/biosamples')
 
     def write_result_yaml(self, output_path):
         with open(output_path, 'w') as open_yaml:
@@ -38,6 +42,7 @@ class SemanticMetadataChecker(AppLogger):
     def check_all(self):
         self.check_all_project_accessions()
         self.check_all_taxonomy_codes()
+        self.check_existing_biosamples()
         self.check_analysis_alias_coherence()
 
     def check_all_project_accessions(self):
@@ -89,6 +94,34 @@ class SemanticMetadataChecker(AppLogger):
         :param description: description of the error.
         """
         self.errors.append({'property': property, 'description': description})
+
+    def check_existing_biosamples(self):
+        """Check that existing BioSamples are accessible and contain the required attributes."""
+        for idx, sample in enumerate(self.metadata[SAMPLE_KEY]):
+            if BIOSAMPLE_ACCESSION_KEY in sample:
+                sample_accession = sample[BIOSAMPLE_ACCESSION_KEY]
+                json_path = f'/{SAMPLE_KEY}/{idx}/{BIOSAMPLE_ACCESSION_KEY}'
+                try:
+                    sample_data = self.communicator.follows_link('samples', join_url=sample_accession)
+                    self.validate_existing_biosample(sample_data, sample_accession, json_path)
+                except ValueError:
+                    self.add_error(json_path, f'{sample_accession} does not exist or is private')
+
+    def validate_existing_biosample(self, sample_data, accession, json_path):
+        """Check if the existing sample has the expected fields present"""
+        found_collection_date = False
+        for key in ['collection_date', 'collection date']:
+            if key in sample_data['characteristics'] and check_date(sample_data['characteristics'][key][0]['text']):
+                found_collection_date = True
+        if not found_collection_date:
+            self.add_error(json_path, f'Existing sample {accession} does not have a valid collection date')
+
+        found_geo_loc = False
+        for key in ['geographic location (country and/or sea)', 'geo loc name']:
+            if key in sample_data['characteristics'] and sample_data['characteristics'][key][0]['text']:
+                found_geo_loc = True
+        if not found_geo_loc:
+            self.add_error(json_path, f'Existing sample {accession} does not have a valid geographic location')
 
     def check_analysis_alias_coherence(self):
         """Check that the same analysis aliases are used in analysis, sample, and files."""
