@@ -29,7 +29,8 @@ params.executable = [
 params.python_scripts = [
     "samples_checker": "samples_checker.py",
     "fasta_checker": "check_fasta_insdc.py",
-    "xlsx2json": "xlsx2json.py"
+    "xlsx2json": "xlsx2json.py",
+    "semantic_checker": "check_metadata_semantics.py"
 ]
 // prefix to prepend to all provided path
 params.base_dir = ""
@@ -253,5 +254,23 @@ process insdc_checker {
     script:
     """
     $params.python_scripts.fasta_checker --metadata_json $metadata_json --vcf_files $vcf_files --input_fasta $fasta_file --output_yaml ${fasta_file}_check.yml
+    """
+}
+
+
+process metadata_semantic_check {
+    publishDir output_dir,
+            overwrite: true,
+            mode: "copy"
+
+    input:
+    path(metadata_json)
+
+    output:
+    path "metadata_semantic_check.yml", emit: metadata_semantic_check_yml
+
+    script:
+    """
+    $params.python_scripts.semantic_checker --metadata_json $metadata_json --output_yaml metadata_semantic_check.yml
     """
 }

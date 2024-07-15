@@ -360,6 +360,7 @@ class Validator(AppLogger):
         self.results['metadata_check'] = {}
         self._load_spreadsheet_conversion_errors()
         self._parse_biovalidator_validation_results()
+        self._parse_semantic_metadata_results()
         self._convert_biovalidator_validation_to_spreadsheet()
         self._write_spreadsheet_validation_results()
         self._collect_md5sum_to_metadata()
@@ -411,13 +412,34 @@ class Validator(AppLogger):
 
     def _parse_metadata_property(self, property_str):
         if property_str.startswith('.'):
-            return property_str.strip('.'), None, None
+            return property_str.strip('./'), None, None
+        # First attempt to parse as BioSample object
+        sheet, row, col = self._parse_sample_metadata_property(property_str)
+        if sheet is not None and row is not None and col is not None:
+            return sheet, row, col
         match = re.match(r'/(\w+)(/(\d+))?([./](\w+))?', property_str)
         if match:
             return match.group(1), match.group(3), match.group(5)
         else:
             logger.error(f'Cannot parse {property_str} in JSON metadata error')
             return None, None, None
+
+    def _parse_sample_metadata_property(self, property_str):
+        match = re.match(r'/sample/(\d+)/bioSampleObject/characteristics/(\w+)', property_str)
+        if match:
+            return 'sample', match.group(1), match.group(2)
+        return None, None, None
+
+    def _parse_semantic_metadata_results(self):
+        errors_file = resolve_single_file_path(os.path.join(self.output_dir, 'other_validations',
+                                                            'metadata_semantic_check.yml'))
+        if not errors_file:
+            return
+        with open(errors_file) as open_yaml:
+            # errors is a list of dicts matching format of biovalidator errors
+            errors = yaml.safe_load(open_yaml)
+            # biovalidator error parsing always places a list here, even if no errors
+            self.results['metadata_check']['json_errors'] += errors
 
     def _convert_biovalidator_validation_to_spreadsheet(self):
         config_file = os.path.join(ETC_DIR, "spreadsheet2json_conf.yaml")
@@ -434,13 +456,19 @@ class Validator(AppLogger):
             if row_json is None and attribute_json is None:
                 new_description = f'Sheet "{sheet}" is missing'
             elif row_json is None:
-                new_description = f'In sheet "{sheet}", column "{column}" is not populated'
+                if 'have required' not in error['description']:
+                    new_description = error['description']
+                else:
+                    new_description = f'In sheet "{sheet}", column "{column}" is not populated'
             elif attribute_json and column:
-                new_description = f'In sheet "{sheet}", row "{row}", column "{column}" is not populated'
+                if 'have required' not in error['description']:
+                    new_description = error['description']
+                else:
+                    new_description = f'In sheet "{sheet}", row "{row}", column "{column}" is not populated'
             else:
                 new_description = error["description"].replace(sheet_json, sheet)
             if column is None:
-                # We do not know this attribute. It's most likely about bioSampleObject
+                # We do not know this attribute.
                 continue
             if 'schema' in new_description:
                 # This is an error specific to json schema

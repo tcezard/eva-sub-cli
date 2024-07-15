@@ -23,37 +23,17 @@
   },
   "sample": [
     {
-      "analysisAlias":  "VD1",
+      "analysisAlias":  ["VD1", "VD2", "VD3"],
       "sampleInVCF":  "sample1",
       "BioSampleAccession": "SAME00001"
     },
     {
-      "analysisAlias":  "VD1",
+      "analysisAlias":  ["VD1", "VD2", "VD3"],
       "sampleInVCF":  "sample2",
       "BioSampleAccession": "SAME00002"
     },
     {
-      "analysisAlias":  "VD2",
-      "sampleInVCF":  "sample1",
-      "BioSampleAccession": "SAME00001"
-    },
-    {
-      "analysisAlias":  "VD2",
-      "sampleInVCF":  "sample2",
-      "BioSampleAccession": "SAME00002"
-    },
-    {
-      "analysisAlias":  "VD3",
-      "sampleInVCF":  "sample1",
-      "BioSampleAccession": "SAME00001"
-    },
-    {
-      "analysisAlias":  "VD3",
-      "sampleInVCF":  "sample2",
-      "BioSampleAccession": "SAME00002"
-    },
-    {
-      "analysisAlias":  "VD3",
+      "analysisAlias":  ["VD3"],
       "sampleInVCF":  "sample3",
       "BioSampleAccession": "SAME00003"
     }

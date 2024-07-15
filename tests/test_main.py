@@ -33,7 +33,6 @@ class TestMain(unittest.TestCase):
         os.makedirs(self.test_sub_dir)
         shutil.copy(os.path.join(self.resource_dir, 'EVA_Submission_test.json'), self.metadata_json)
 
-
     def tearDown(self) -> None:
         shutil.rmtree(self.test_sub_dir)
 

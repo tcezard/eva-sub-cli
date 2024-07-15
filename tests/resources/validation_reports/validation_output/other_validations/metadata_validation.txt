@@ -8,21 +8,21 @@
 2023-06-29T10:03:45.008Z [info] Validation failed with errors: data should have required property 'files', data/project should have required property 'title', data/project should have required property 'description', data/project should have required property 'taxId', data/project should have required property 'centre', data/analysis/0 should have required property 'analysisTitle', data/analysis/0 should have required property 'description', data/analysis/0 should have required property 'experimentType', data/analysis/0 should have required property 'referenceGenome', data/sample/0 should have required property 'bioSampleAccession', data/sample/0 should have required property 'bioSampleObject', data/sample/0 should match exactly one schema in oneOf
 [1m[31m[40m Validation failed with following error(s):
  [0m
-[1m[31m[40m .files
+[1m[31m[40m /files
 	should have required property 'files'
-/project.title
+/project/title
 	should have required property 'title'
 /project/taxId
         must have required property 'taxId'
 /project/holdDate
         must match format "date"
-/analysis/0.description
+/analysis/0/description
 	should have required property 'description'
-/analysis/0.referenceGenome
+/analysis/0/referenceGenome
 	should have required property 'referenceGenome'
-/sample/0.bioSampleAccession
+/sample/0/bioSampleAccession
 	should have required property 'bioSampleAccession'
-/sample/0.bioSampleObject
+/sample/0/bioSampleObject
 	should have required property 'bioSampleObject'
 /sample/0
 	should match exactly one schema in oneOf

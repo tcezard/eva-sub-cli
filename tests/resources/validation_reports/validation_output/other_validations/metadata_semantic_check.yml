@@ -1,0 +1,8 @@
+- description: PRJEBNA does not exist or is private
+  property: /project/childProjects/1
+- description: 1234 is not a valid taxonomy code
+  property: /sample/2/bioSampleObject/characteristics/taxId
+- description: alias1 present in Analysis not in Samples
+  property: /sample/analysisAlias
+- description: alias_1,alias_2 present in Samples not in Analysis
+  property: /sample/analysisAlias

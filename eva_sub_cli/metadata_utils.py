@@ -10,7 +10,8 @@ def get_samples_per_analysis(metadata):
     """Returns mapping of analysis alias to sample names, based on metadata."""
     samples_per_analysis = defaultdict(list)
     for sample_info in metadata.get('sample', []):
-        samples_per_analysis[sample_info.get('analysisAlias')].append(sample_info.get('sampleInVCF'))
+        for analysis_alias in sample_info.get('analysisAlias', []):
+            samples_per_analysis[analysis_alias].append(sample_info.get('sampleInVCF'))
     return {
         analysis_alias: set(samples)
         for analysis_alias, samples in samples_per_analysis.items()

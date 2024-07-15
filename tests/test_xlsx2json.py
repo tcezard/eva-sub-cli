@@ -29,14 +29,20 @@ class TestXlsReader(TestCase):
         xls_filename = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
         self.parser = XlsxParser(xls_filename, self.conf_filename)
         output_json = os.path.join(self.resource_dir, 'EVA_Submission_test_output.json')
+        errors_yaml = os.path.join(self.resource_dir, 'EVA_Submission_test_errors.yml')
         self.parser.json(output_json)
+        self.parser.save_errors(errors_yaml)
+
+        # confirm no errors
+        with open(errors_yaml) as open_file:
+            errors_data = yaml.safe_load(open_file)
+            assert errors_data == []
 
         with open(output_json) as open_file:
             json_data = json.load(open_file)
             # assert json file is created with expected data
             assert sorted(json_data.keys()) == ['analysis', 'files', 'project', 'sample', 'submitterDetails']
-            print(self.get_expected_json())
-            self.assertTrue(self.get_expected_json() == json_data)
+            self.assertEqual(self.get_expected_json(), json_data)
 
         # assert json schema
         with open(self.eva_schema) as eva_schema_file:
@@ -45,7 +51,7 @@ class TestXlsReader(TestCase):
             biosample_json_schema = json.load(biosample_schema_file)
 
         # assert created json file sample field conforms to eva-biosamples schema
-        jsonschema.validate(json_data['sample'][7]['bioSampleObject'], biosample_json_schema)
+        jsonschema.validate(json_data['sample'][3]['bioSampleObject'], biosample_json_schema)
 
         # assert created json file conform to eva_schema
         resolver = jsonschema.RefResolver.from_schema(eva_json_schema)
@@ -133,92 +139,48 @@ class TestXlsReader(TestCase):
             ],
             "sample": [
                 {
-                    "analysisAlias": "VD1",
+                    "analysisAlias": ["VD1", "VD2", "VD3"],
                     "sampleInVCF": "sample1",
                     "bioSampleAccession": "SAME00001"
                 },
                 {
-                    "analysisAlias": "VD2",
-                    "sampleInVCF": "sample1",
-                    "bioSampleAccession": "SAME00001"
-                },
-                {
-                    "analysisAlias": "VD3",
-                    "sampleInVCF": "sample1",
-                    "bioSampleAccession": "SAME00001"
-                },
-                {
-                    "analysisAlias": "VD1",
+                    "analysisAlias": ["VD1", "VD2", "VD3"],
                     "sampleInVCF": "sample2",
                     "bioSampleAccession": "SAME00002"
                 },
                 {
-                    "analysisAlias": "VD2",
-                    "sampleInVCF": "sample2",
-                    "bioSampleAccession": "SAME00002"
-                },
-                {
-                    "analysisAlias": "VD3",
-                    "sampleInVCF": "sample2",
-                    "bioSampleAccession": "SAME00002"
-                },
-                {
-                    "analysisAlias": "VD3",
+                    "analysisAlias": ["VD3"],
                     "sampleInVCF": "sample3",
                     "bioSampleAccession": "SAME00003"
                 },
                 {
-                    "analysisAlias": "VD4",
+                    "analysisAlias": ["VD4", "VD5"],
                     "sampleInVCF": "sample4",
                     "bioSampleObject": {
-                      "name": "Lm_17_S8",
-                      "characteristics": {
-                        "bioSampleName": "Lm_17_S8",
-                        "title": [
-                          "Bastet normal sample"
-                        ],
-                        "description": [
-                          "Test Description"
-                        ],
-                        "taxId": [
-                          9447
-                        ],
-                        "scientificName": [
-                          "Lemur catta"
-                        ],
-                        "sex": "Female",
-                        "tissueType": "skin",
-                        "species": [
-                          "Lemur catta"
-                        ]
-                      }
-                    }
-                 },
-                {
-                    "analysisAlias": "VD5",
-                    "sampleInVCF": "sample4",
-                    "bioSampleObject": {
-                      "name": "Lm_17_S8",
-                      "characteristics": {
-                        "bioSampleName": "Lm_17_S8",
-                        "title": [
-                          "Bastet normal sample"
-                        ],
-                        "description": [
-                          "Test Description"
-                        ],
-                        "taxId": [
-                          9447
-                        ],
-                        "scientificName": [
-                          "Lemur catta"
-                        ],
-                        "sex": "Female",
-                        "tissueType": "skin",
-                        "species": [
-                          "Lemur catta"
-                        ]
-                      }
+                        "name": "Lm_17_S8",
+                        "characteristics": {
+                            "title": [
+                                {"text": "Bastet normal sample"}
+                            ],
+                            "description": [
+                                {"text": "Test Description"}
+                            ],
+                            "taxId": [
+                                {"text": "9447"}
+                            ],
+                            "scientificName": [
+                                {"text": "Lemur catta"}
+                            ],
+                            "sex": [
+                                {"text": "Female"}
+                            ],
+                            "tissueType": [
+                                {"text": "skin"}
+                            ],
+                            "species": [
+                                {"text": "Lemur catta"}
+                            ]
+                        }
                     }
                 }
             ],
