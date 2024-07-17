@@ -6,7 +6,7 @@ import jsonschema
 import yaml
 
 from eva_sub_cli import ETC_DIR
-from bin.xlsx2json import XlsxParser, create_xls_template_from_yaml
+from eva_sub_cli.executables.xlsx2json import XlsxParser, create_xls_template_from_yaml
 
 
 class TestXlsReader(TestCase):

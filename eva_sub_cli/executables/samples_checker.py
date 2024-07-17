@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import argparse
 import gzip
 import json
@@ -149,7 +148,3 @@ def main():
     args = arg_parser.parse_args()
     logging_config.add_stdout_handler()
     check_sample_name_concordance(args.metadata_json, args.vcf_files, args.output_yaml)
-
-
-if __name__ == "__main__":
-    main()

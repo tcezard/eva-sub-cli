@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 import requests as requests
 
-from bin.check_fasta_insdc import assess_fasta, get_analyses_and_reference_genome_from_metadata
+from eva_sub_cli.executables.check_fasta_insdc import assess_fasta, get_analyses_and_reference_genome_from_metadata
 
 
 class TestFastaChecker(TestCase):
@@ -20,8 +20,8 @@ class TestFastaChecker(TestCase):
 
     def test_assess_fasta_is_insdc(self):
         input_fasta = os.path.join(self.resource_dir, 'fasta_files', 'Saccharomyces_cerevisiae_I.fa')
-        with patch('bin.check_fasta_insdc.get_refget_metadata', autospec=True) as m_get_refget, \
-                patch('bin.check_fasta_insdc._get_containing_assemblies_paged', autospec=True) as m_get_assemblies:
+        with patch('eva_sub_cli.executables.check_fasta_insdc.get_refget_metadata', autospec=True) as m_get_refget, \
+                patch('eva_sub_cli.executables.check_fasta_insdc._get_containing_assemblies_paged', autospec=True) as m_get_assemblies:
             m_get_refget.return_value = {'sequence_name': 'chr1'}
             m_get_assemblies.return_value = {'GCA_000146045.2'}
             results = assess_fasta(input_fasta, ['analysis'], None)
@@ -30,8 +30,8 @@ class TestFastaChecker(TestCase):
                 'sequences': [{'sequence_name': 'I', 'sequence_md5': '6681ac2f62509cfc220d78751b8dc524', 'insdc': True}],
                 'possible_assemblies': {'GCA_000146045.2'}
             }
-        with patch('bin.check_fasta_insdc.get_refget_metadata', autospec=True) as m_get_refget, \
-                patch('bin.check_fasta_insdc._get_containing_assemblies_paged', autospec=True) as m_get_assemblies:
+        with patch('eva_sub_cli.executables.check_fasta_insdc.get_refget_metadata', autospec=True) as m_get_refget, \
+                patch('eva_sub_cli.executables.check_fasta_insdc._get_containing_assemblies_paged', autospec=True) as m_get_assemblies:
             m_get_refget.return_value = None
             m_get_assemblies.return_value = set()
             results = assess_fasta(input_fasta, ['analysis'], None)
@@ -42,8 +42,8 @@ class TestFastaChecker(TestCase):
 
     def test_assess_fasta_matches_metadata(self):
         input_fasta = os.path.join(self.resource_dir, 'fasta_files', 'Saccharomyces_cerevisiae_I.fa')
-        with patch('bin.check_fasta_insdc.get_refget_metadata', autospec=True) as m_get_refget, \
-                patch('bin.check_fasta_insdc._get_containing_assemblies_paged', autospec=True) as m_get_assemblies:
+        with patch('eva_sub_cli.executables.check_fasta_insdc.get_refget_metadata', autospec=True) as m_get_refget, \
+                patch('eva_sub_cli.executables.check_fasta_insdc._get_containing_assemblies_paged', autospec=True) as m_get_assemblies:
             m_get_refget.return_value = {'sequence_name': 'I'}
             m_get_assemblies.return_value = {'GCA_000146045.2'}
             results = assess_fasta(input_fasta, ['analysis'], 'GCA_000146045.2')
@@ -69,8 +69,8 @@ class TestFastaChecker(TestCase):
 
     def test_assess_fasta_http_error(self):
         input_fasta = os.path.join(self.resource_dir, 'fasta_files', 'Saccharomyces_cerevisiae_I.fa')
-        with patch('bin.check_fasta_insdc.get_refget_metadata', autospec=True) as m_get_refget, \
-                patch('bin.check_fasta_insdc._get_containing_assemblies_paged', autospec=True) as m_get_assemblies:
+        with patch('eva_sub_cli.executables.check_fasta_insdc.get_refget_metadata', autospec=True) as m_get_refget, \
+                patch('eva_sub_cli.executables.check_fasta_insdc._get_containing_assemblies_paged', autospec=True) as m_get_assemblies:
             m_get_refget.return_value = {'sequence_name': 'I'}
             m_get_assemblies.side_effect = requests.HTTPError('500 Internal Server Error')
             results = assess_fasta(input_fasta, ['analysis'], None)

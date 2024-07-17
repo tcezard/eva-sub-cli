@@ -1,0 +1,50 @@
+[build-system]
+requires = [
+    "setuptools >= 64",
+    "setuptools_scm[toml] >= 8",
+    "setuptools_scm_git_archive",
+    "wheel >= 0.29.0",
+]
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'eva_sub_cli'
+description = 'EBI EVA - validation and submission command line tool'
+dynamic = ["version", 'requires-python']
+readme = 'README.md'
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Environment :: Console',
+    'Intended Audience :: Science/Research',
+    'Natural Language :: English',
+    'Operating System :: POSIX :: Linux',
+    'Operating System :: MacOS :: MacOS X',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Topic :: Scientific/Engineering :: Bio-Informatics',
+    'Topic :: Communications :: File Sharing',
+    'License :: OSI Approved :: Apache',
+]
+[project.scripts]
+'eva-sub-cli.py'='eva_sub_cli.executables.cli:main'
+'check_fasta_insdc.py'='eva_sub_cli.executables.check_fasta_insdc:main'
+'check_metadata_semantics.py'='eva_sub_cli.executables.check_metadata_semantics:main'
+'samples_checker.py'='eva_sub_cli.executables.samples_checker:main'
+'xlsx2json.py'='eva_sub_cli.executables.xlsx2json:main'
+
+[tool.setuptools]
+packages = ['eva_sub_cli', 'eva_sub_cli.executables']
+
+[tool.setuptools.package-data]
+'eva_sub_cli'=['nextflow/*', 'etc/*', 'jinja_templates/*']
+
+[tool.setuptools.dynamic]
+dependencies = {file = 'requirements.txt'}
+
+
+[tool.setuptools_scm]
+write_to = 'eva_sub_cli/_version.py'
+

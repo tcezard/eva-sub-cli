@@ -2,6 +2,7 @@ import os
 import datetime
 from unittest import TestCase
 
+import eva_sub_cli
 from eva_sub_cli.report import generate_html_report
 
 validation_results = {
@@ -190,7 +191,10 @@ class TestReport(TestCase):
             open_file.write(report)
 
         with open(self.expected_report) as open_html:
-            assert report == open_html.read()
+            expected_report_text = open_html.read()
+            # Inject the version in the expected report
+            expected_report_text = expected_report_text.replace('cligeneratedversion', eva_sub_cli.__version__)
+            assert report == expected_report_text
 
         # Remove output file if assert passes
         if os.path.exists('report.html'):

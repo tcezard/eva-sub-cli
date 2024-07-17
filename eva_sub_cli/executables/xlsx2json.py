@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import argparse
 import datetime
 import json
@@ -368,7 +367,3 @@ def main():
         parser.add_error(e)
     finally:
         parser.save_errors(args.errors_yaml)
-
-
-if __name__ == "__main__":
-    main()

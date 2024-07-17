@@ -16,7 +16,3 @@ def main():
         checker = SemanticMetadataChecker(metadata)
         checker.check_all()
         checker.write_result_yaml(args.output_yaml)
-
-
-if __name__ == "__main__":
-    main()

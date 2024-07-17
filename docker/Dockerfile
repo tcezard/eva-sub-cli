@@ -25,4 +25,4 @@ RUN curl -L "https://github.com/nextflow-io/nextflow/releases/download/v${NXF_VE
 
 COPY . /opt/
 
-RUN pip install .
+RUN python -m pip install .

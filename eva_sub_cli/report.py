@@ -3,6 +3,8 @@ import os.path
 
 from jinja2 import Environment, FileSystemLoader
 
+import eva_sub_cli
+
 current_dir = os.path.dirname(__file__)
 
 
@@ -22,6 +24,7 @@ def generate_html_report(validation_results, validation_date, submission_dir, vc
         loader=FileSystemLoader(os.path.join(current_dir, 'jinja_templates'))
     ).get_template('html_report.html')
     rendered_template = template.render(
+        cli_version=eva_sub_cli.__version__,
         logo_data=get_logo_data(),
         project_title=project_title,
         validation_date=validation_date,
