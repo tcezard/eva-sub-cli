@@ -44,7 +44,6 @@ packages = ['eva_sub_cli', 'eva_sub_cli.executables']
 [tool.setuptools.dynamic]
 dependencies = {file = 'requirements.txt'}
 
-
 [tool.setuptools_scm]
 write_to = 'eva_sub_cli/_version.py'
 
