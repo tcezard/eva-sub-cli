@@ -33,8 +33,8 @@ unzip eva-sub-cli.zip && mv eva-sub-cli-* eva-sub-cli
 Then install the library and its dependencies as follows (e.g. in a virtual environment):
 ```bash
 cd eva-sub-cli
-pip install -r requirements.txt
-python setup.py install
+# Activate your virtual environment 
+python -m pip install .
 ```
 
 To check it is installed correctly, you can run:
