@@ -10,7 +10,7 @@ build-backend = 'setuptools.build_meta'
 [project]
 name = 'eva_sub_cli'
 description = 'EBI EVA - validation and submission command line tool'
-dynamic = ["version", 'requires-python']
+dynamic = ["version", 'requires-python', 'dependencies']
 readme = 'README.md'
 classifiers = [
     'Development Status :: 5 - Production/Stable',
@@ -28,6 +28,7 @@ classifiers = [
     'Topic :: Communications :: File Sharing',
     'License :: OSI Approved :: Apache',
 ]
+
 [project.scripts]
 'eva-sub-cli.py'='eva_sub_cli.executables.cli:main'
 'check_fasta_insdc.py'='eva_sub_cli.executables.check_fasta_insdc:main'

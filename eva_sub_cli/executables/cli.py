@@ -13,8 +13,8 @@ import os
 from argparse import ArgumentParser
 from ebi_eva_common_pyutils.logger import logging_config
 
-from eva_sub_cli import main
-from eva_sub_cli.main import VALIDATE, SUBMIT, DOCKER, NATIVE
+from eva_sub_cli import orchestrator
+from eva_sub_cli.orchestrator import VALIDATE, SUBMIT, DOCKER, NATIVE
 from eva_sub_cli.file_utils import is_submission_dir_writable
 
 
@@ -77,7 +77,7 @@ def main():
 
     try:
         # Pass on all the arguments
-        main.orchestrate_process(**args.__dict__)
+        orchestrator.orchestrate_process(**args.__dict__)
     except FileNotFoundError as fne:
         print(fne)
     except SubmissionNotFoundException as snfe:
