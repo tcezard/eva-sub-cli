@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import argparse
 import gzip
 import hashlib
@@ -186,6 +184,3 @@ def main():
     results = assess_fasta(args.input_fasta, analyses, metadata_insdc)
     write_result_yaml(args.output_yaml, results)
 
-
-if __name__ == "__main__":
-    main()

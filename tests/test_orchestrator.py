@@ -10,12 +10,12 @@ from requests import HTTPError
 from eva_sub_cli import SUB_CLI_CONFIG_FILE
 from eva_sub_cli.exceptions.submission_not_found_exception import SubmissionNotFoundException
 from eva_sub_cli.exceptions.submission_status_exception import SubmissionStatusException
-from eva_sub_cli.main import orchestrate_process, VALIDATE, SUBMIT, DOCKER, check_validation_required
+from eva_sub_cli.orchestrator import orchestrate_process, VALIDATE, SUBMIT, DOCKER, check_validation_required
 from eva_sub_cli.submit import SUB_CLI_CONFIG_KEY_SUBMISSION_ID
 from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
 
 
-class TestMain(unittest.TestCase):
+class TestOrchestrator(unittest.TestCase):
     project_title = 'Example Project'
     resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
     test_sub_dir = os.path.join(resource_dir, 'test_sub_dir')
@@ -68,10 +68,10 @@ class TestMain(unittest.TestCase):
                 check_validation_required(tasks, sub_config)
 
     def test_orchestrate_validate(self):
-        with patch('eva_sub_cli.main.get_vcf_files') as m_get_vcf,  \
-                patch('eva_sub_cli.main.WritableConfig') as m_config, \
-                patch('eva_sub_cli.main.get_project_title_and_create_vcf_files_mapping') as m_get_project_title_and_create_vcf_files_mapping, \
-                patch('eva_sub_cli.main.DockerValidator') as m_docker_validator:
+        with patch('eva_sub_cli.orchestrator.get_vcf_files') as m_get_vcf,  \
+                patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
+                patch('eva_sub_cli.orchestrator.get_project_title_and_create_vcf_files_mapping') as m_get_project_title_and_create_vcf_files_mapping, \
+                patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator:
             m_get_project_title_and_create_vcf_files_mapping.return_value = self.project_title, self.mapping_file
             orchestrate_process(self.test_sub_dir, None, None, self.metadata_json,
                                 self.metadata_xlsx, tasks=[VALIDATE], executor=DOCKER)
@@ -84,11 +84,11 @@ class TestMain(unittest.TestCase):
             m_docker_validator().validate_and_report.assert_called_once_with()
 
     def test_orchestrate_validate_submit(self):
-        with patch('eva_sub_cli.main.get_vcf_files') as m_get_vcf, \
-                patch('eva_sub_cli.main.WritableConfig') as m_config, \
-                patch('eva_sub_cli.main.get_project_title_and_create_vcf_files_mapping') as m_get_project_title_and_create_vcf_files_mapping, \
-                patch('eva_sub_cli.main.DockerValidator') as m_docker_validator, \
-                patch('eva_sub_cli.main.StudySubmitter') as m_submitter:
+        with patch('eva_sub_cli.orchestrator.get_vcf_files') as m_get_vcf, \
+                patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
+                patch('eva_sub_cli.orchestrator.get_project_title_and_create_vcf_files_mapping') as m_get_project_title_and_create_vcf_files_mapping, \
+                patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator, \
+                patch('eva_sub_cli.orchestrator.StudySubmitter') as m_submitter:
             # Empty config
             config = WritableConfig()
             m_config.return_value = config
@@ -111,11 +111,11 @@ class TestMain(unittest.TestCase):
                 submitter.submit.assert_called_once_with()
 
     def test_orchestrate_submit_no_validate(self):
-        with patch('eva_sub_cli.main.get_vcf_files') as m_get_vcf, \
-                patch('eva_sub_cli.main.WritableConfig') as m_config, \
-                patch('eva_sub_cli.main.get_project_title_and_create_vcf_files_mapping') as m_get_project_title_and_create_vcf_files_mapping, \
-                patch('eva_sub_cli.main.DockerValidator') as m_docker_validator, \
-                patch('eva_sub_cli.main.StudySubmitter') as m_submitter:
+        with patch('eva_sub_cli.orchestrator.get_vcf_files') as m_get_vcf, \
+                patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
+                patch('eva_sub_cli.orchestrator.get_project_title_and_create_vcf_files_mapping') as m_get_project_title_and_create_vcf_files_mapping, \
+                patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator, \
+                patch('eva_sub_cli.orchestrator.StudySubmitter') as m_submitter:
             # Empty config
             m_config.return_value = {READY_FOR_SUBMISSION_TO_EVA: True}
             m_get_project_title_and_create_vcf_files_mapping.return_value = self.project_title, self.mapping_file
@@ -133,8 +133,8 @@ class TestMain(unittest.TestCase):
                 submitter.submit.assert_called_once_with()
 
     def test_orchestrate_with_vcf_files(self):
-        with patch('eva_sub_cli.main.WritableConfig') as m_config, \
-                patch('eva_sub_cli.main.DockerValidator') as m_docker_validator:
+        with patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
+                patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator:
             orchestrate_process( self.test_sub_dir, self.vcf_files, self.reference_fasta, self.metadata_json,
                                  self.metadata_xlsx, tasks=[VALIDATE], executor=DOCKER)
             # Mapping file was created from the vcf and assembly files
@@ -152,8 +152,8 @@ class TestMain(unittest.TestCase):
 
 
     def test_orchestrate_with_metadata_json_without_asm_report(self):
-        with patch('eva_sub_cli.main.WritableConfig') as m_config, \
-                patch('eva_sub_cli.main.DockerValidator') as m_docker_validator:
+        with patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
+                patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator:
             orchestrate_process(self.test_sub_dir, None, None, self.metadata_json,
                                 None, tasks=[VALIDATE], executor=DOCKER)
             # Mapping file was created from the metadata_json
@@ -172,8 +172,8 @@ class TestMain(unittest.TestCase):
     def test_orchestrate_with_metadata_json_with_asm_report(self):
         shutil.copy(os.path.join(self.resource_dir, 'EVA_Submission_test_with_asm_report.json'), self.metadata_json)
 
-        with patch('eva_sub_cli.main.WritableConfig') as m_config, \
-                patch('eva_sub_cli.main.DockerValidator') as m_docker_validator:
+        with patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
+                patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator:
             orchestrate_process(self.test_sub_dir, None, None, self.metadata_json, None,
                 tasks=[VALIDATE], executor=DOCKER)
             # Mapping file was created from the metadata_json
@@ -193,8 +193,8 @@ class TestMain(unittest.TestCase):
     def test_orchestrate_vcf_files_takes_precedence_over_metadata(self):
         shutil.copy(os.path.join(self.resource_dir, 'EVA_Submission_test_with_asm_report.json'), self.metadata_json)
 
-        with patch('eva_sub_cli.main.WritableConfig') as m_config, \
-                patch('eva_sub_cli.main.DockerValidator') as m_docker_validator:
+        with patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
+                patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator:
             orchestrate_process(self.test_sub_dir, self.vcf_files, self.reference_fasta, self.metadata_json,
                                 None, tasks=[VALIDATE], executor=DOCKER, resume=False)
             # Mapping file was created from the metadata_json
@@ -215,8 +215,8 @@ class TestMain(unittest.TestCase):
     def test_orchestrate_with_metadata_xlsx(self):
         shutil.copy(os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx'), self.metadata_xlsx)
 
-        with patch('eva_sub_cli.main.WritableConfig') as m_config, \
-                patch('eva_sub_cli.main.DockerValidator') as m_docker_validator:
+        with patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
+                patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator:
             orchestrate_process(self.test_sub_dir, None, None, None, self.metadata_xlsx,
                 tasks=[VALIDATE], executor=DOCKER)
             # Mapping file was created from the metadata_xlsx

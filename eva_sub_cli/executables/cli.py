@@ -1,6 +1,6 @@
-#!/usr/bin/env python
 import sys
 
+import eva_sub_cli
 from eva_sub_cli.exceptions.submission_not_found_exception import SubmissionNotFoundException
 from eva_sub_cli.exceptions.submission_status_exception import SubmissionStatusException
 
@@ -13,8 +13,8 @@ import os
 from argparse import ArgumentParser
 from ebi_eva_common_pyutils.logger import logging_config
 
-from eva_sub_cli import main
-from eva_sub_cli.main import VALIDATE, SUBMIT, DOCKER, NATIVE
+from eva_sub_cli import orchestrator
+from eva_sub_cli.orchestrator import VALIDATE, SUBMIT, DOCKER, NATIVE
 from eva_sub_cli.file_utils import is_submission_dir_writable
 
 
@@ -36,15 +36,9 @@ def validate_command_line_arguments(args, argparser):
         sys.exit(1)
 
 
-def get_version():
-    base_dir = os.path.abspath(os.path.dirname(main.__file__))
-    version = open(os.path.join(base_dir, 'VERSION')).read().strip()
-    return f'{version}'
-
-
-if __name__ == "__main__":
+def main():
     argparser = ArgumentParser(prog='eva-sub-cli', description='EVA Submission CLI - validate and submit data to EVA')
-    argparser.add_argument('--version', action='version', version=f'%(prog)s {get_version()}')
+    argparser.add_argument('--version', action='version', version=f'%(prog)s {eva_sub_cli.__version__}')
     argparser.add_argument('--submission_dir', required=True, type=str,
                            help='Full path to the directory where all processing will be done '
                                 'and submission info is/will be stored')
@@ -83,7 +77,7 @@ if __name__ == "__main__":
 
     try:
         # Pass on all the arguments
-        main.orchestrate_process(**args.__dict__)
+        orchestrator.orchestrate_process(**args.__dict__)
     except FileNotFoundError as fne:
         print(fne)
     except SubmissionNotFoundException as snfe:

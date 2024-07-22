@@ -580,7 +580,6 @@ class Validator(AppLogger):
         else:
             self.error('Error building validation report : Metadata file not present')
 
-
     def create_reports(self):
         report_html = generate_html_report(self.results, self.validation_date, self.submission_dir,
                                            self.get_vcf_fasta_analysis_mapping(), self.project_title)

@@ -130,3 +130,6 @@ dmypy.json
 
 # PyCharm
 .idea/
+
+#setuptools_scm version file
+_version.py
