@@ -11,6 +11,7 @@ The VCF file must adhere to official VCF specifications, and the metadata spread
 # VCF File
 
 A VCF (Variant Call Format) file is a type of file used in bioinformatics to store information about genetic variants. It includes data about the differences (or variants) between a sample's DNA and a reference genome. Typically, generating a VCF file involves several steps: preparing your sample, sequencing the DNA, aligning it to a reference genome, identifying variants, and finally, formatting this information into a VCF file. The overall goal is to systematically capture and record genetic differences in a standardised format. A VCF file consists of two main parts: the header and the body.
+
 Header: The header contains metadata about the file, such as the format version, reference genome information, and descriptions of the data fields. Each line in the header starts with a double ##, except for the last header line which starts with a single #.
 
 File format version
@@ -41,7 +42,7 @@ The spreadsheet provides comprehensive contextual information about the dataset,
 | Project           | The objective of this sheet is to gather general information about the Project including submitter, submitting centre, collaborators, project title, description and publications. |
 | Sample            | Projects consist of analyses that are run on samples. We accept sample information in the form of BioSample, ENA or EGA accession(s). We also accept BioSamples sampleset accessions. If your samples are not yet accessioned, and are therefore novel, please use the "Novel sample(s)" sections of the Sample(s) worksheet to have them registered at BioSample |
 | Analysis          | For EVA, each analysis is one vcf file, plus an unlimited number of ancillary files. This sheet allows EVA to link vcf files to a project and to other EVA analyses. Additionally, this worksheet contains experimental meta-data detailing the methodology of each analysis. Important to note; one project can have multiple associated analyses          |
-| Files             | Filenames and associated checking data associated with this EVA submission should be entered into this worksheet. Each file should be linked to one, or more, analysis.            |
+| Files             | Filenames and associated checking data associated with this EVA submission should be entered into this worksheet. Each file should be linked to exactly one analysis.            |
 
 
 # Validation checks 
@@ -51,11 +52,11 @@ The CLI tool performs the following validation checks and generates correspondin
 - Metadata check to ensure that the metadata fields have been correctly filled in
 - VCF check to ensure that the VCF file follows the VCF format specification
 - Assembly check to ensure that the genome and the VCF match
-- Sample name check to ensure that the samples in the metadata can be associated with the sames in the VCF
+- Sample name check to ensure that the samples in the metadata can be associated with the sample in the VCF
 
 In the following sections, we will examine each of these checks in detail, starting with the Metadata check.
 
-# Metadata check
+## Metadata check
 
 Once the user passes the metadata spreadsheet for validation checks, the eva-sub-cli tool verifies that all mandatory columns, marked in bold in the spreadsheet, are filled in. This data is crucial for further validation processes, such as retrieving the INDSC accession of the reference genome used to call the variants, and for sample and project metadata. If any mandatory columns or sheets are missing, the CLI tool will raise errors.
 
@@ -113,12 +114,12 @@ Key points to note before validating your data with the eva-sub-cli Tool:
 
 The sample name concordance check ensures that the sample names in the metadata spreadsheet match those in the VCF file. This is achieved by cross-checking the 'Sample name in VCF' column in the spreadsheet with the sample names registered in the VCF file. Any discrepancies must be addressed by the submitter when the CLI tool generates a report of the  mismatches found.
 
-Key Points to note Before validating your data with the eva-sub-cli Tool:
+Key points to note before validating your data with the eva-sub-cli tool:
 
 - Ensure that sample names between the VCF file and the metadata spreadsheet match. This comparison is case-sensitive.
 - Ensure there are no extra spaces in the sample names.
 
-Common Errors Seen with Sample Concordance Checks:
+Common errors seen with sample concordance checks:
 
 - Link between “Sample” and “File” provided via the Analysis alias is not correctly defined in the metadata which causes the sample name concordance check to fail.
 - Extra white spaces in the sample names can lead to mismatches.
