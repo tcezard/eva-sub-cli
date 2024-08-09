@@ -161,7 +161,7 @@ process generate_file_size_and_md5_digests {
     script:
     // Capture the realpath of the vcf to be able to resolve the file based on path instead of name
     """
-     echo "\$(md5sum $vcf_file | awk '{print \$1}') \$(stat -c%s $vcf_file) \$(readlink -f $vcf_file)" > ${vcf_file}_file_size_and_digest_info.txt
+     echo "\$(md5sum $vcf_file | awk '{print \$1}') \$(stat -c%s \$(readlink -f $vcf_file)) \$(readlink -f $vcf_file)" > ${vcf_file}_file_size_and_digest_info.txt
     """
 }
 

@@ -1,3 +1,6 @@
+import json
+from copy import deepcopy
+
 import yaml
 
 from retry import retry
@@ -28,7 +31,8 @@ def cast_list(l, type_to_cast=str):
 
 class SemanticMetadataChecker(AppLogger):
 
-    def __init__(self, metadata):
+    def __init__(self, metadata, sample_checklist='ERC000011'):
+        self.sample_checklist = sample_checklist
         self.metadata = metadata
         self.errors = []
         # Caches whether taxonomy code is valid or not
@@ -95,6 +99,9 @@ class SemanticMetadataChecker(AppLogger):
         """
         self.errors.append({'property': property, 'description': description})
 
+    def _get_biosample(self, sample_accession):
+        return self.communicator.follows_link('samples', join_url=sample_accession)
+
     def check_existing_biosamples(self):
         """Check that existing BioSamples are accessible and contain the required attributes."""
         for idx, sample in enumerate(self.metadata[SAMPLE_KEY]):
@@ -102,12 +109,39 @@ class SemanticMetadataChecker(AppLogger):
                 sample_accession = sample[BIOSAMPLE_ACCESSION_KEY]
                 json_path = f'/{SAMPLE_KEY}/{idx}/{BIOSAMPLE_ACCESSION_KEY}'
                 try:
-                    sample_data = self.communicator.follows_link('samples', join_url=sample_accession)
-                    self.validate_existing_biosample(sample_data, sample_accession, json_path)
+                    sample_data = self._get_biosample(sample_accession)
+                    if self.sample_checklist:
+                        self._validate_biosample_against_checklist(sample_data, json_path, sample_accession)
+                    else:
+                        self._local_validate_existing_biosample(sample_data, json_path, sample_accession)
+
                 except ValueError:
                     self.add_error(json_path, f'{sample_accession} does not exist or is private')
 
-    def validate_existing_biosample(self, sample_data, accession, json_path):
+    def _validate_biosample_against_checklist(self, sample_data, json_path, accession=None):
+        pre_acceptable_code = self.communicator.acceptable_code
+        try:
+            # Allow the communicator to accept failure
+            self.communicator.acceptable_code = [200, 400]
+            sample_data = deepcopy(sample_data)
+            # Add checklist to the sample
+            if 'characteristics' not in sample_data:
+                sample_data['characteristics'] = {}
+            if 'checklist' not in sample_data['characteristics']:
+                sample_data['characteristics']['checklist'] = []
+            sample_data['characteristics']['checklist'].append({'text': self.sample_checklist})
+            text = self.communicator.follows_link('samples', join_url='validate', method='POST', json=sample_data,
+                                                  text_only=True)
+            if text.startswith('Checklist validation failed: Sample validation failed: '):
+                for error_dict in json.loads(text[len('Checklist validation failed: Sample validation failed: '):]):
+                    if accession:
+                        self.add_error(json_path, f'Existing sample {accession} {error_dict["errors"][0]}')
+                    else:
+                        self.add_error(json_path, error_dict["errors"][0])
+        finally:
+            self.communicator.acceptable_code = pre_acceptable_code
+
+    def _local_validate_existing_biosample(self, sample_data, json_path, accession):
         """Check if the existing sample has the expected fields present"""
         found_collection_date = False
         for key in ['collection_date', 'collection date']:

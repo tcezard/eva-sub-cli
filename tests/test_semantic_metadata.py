@@ -5,6 +5,29 @@ from ebi_eva_common_pyutils.biosamples_communicators import NoAuthHALCommunicato
 
 from eva_sub_cli.semantic_metadata import SemanticMetadataChecker
 
+metadata = {
+    "sample": [
+        {"bioSampleAccession": "SAME00001"},
+        {"bioSampleAccession": "SAME00002"},
+        {"bioSampleAccession": "SAME00003"}
+    ]
+}
+valid_sample = {
+    'accession': 'SAME00001',
+    'name': 'sample1',
+    'characteristics': {
+        'organism': [{'text': 'Viridiplantae'}],
+        'collection date': [{'text': '2018'}],
+        'geo loc name': [{'text': 'France: Montferrier-sur-Lez'}]
+    }
+}
+invalid_sample = {
+    'accession': 'SAME00003',
+    'name': 'sample3',
+    'characteristics': {
+        'organism': [{'text': 'Viridiplantae'}]
+    }
+}
 
 class TestSemanticMetadata(TestCase):
 
@@ -60,30 +83,24 @@ class TestSemanticMetadata(TestCase):
                 }
             ])
 
-    def test_check_existing_biosamples(self):
-        metadata = {
-            "sample": [
-                {"bioSampleAccession": "SAME00001"},
-                {"bioSampleAccession": "SAME00002"},
-                {"bioSampleAccession": "SAME00003"}
-            ]
-        }
+    def test_check_existing_biosamples_with_checklist(self):
         checker = SemanticMetadataChecker(metadata)
-        valid_sample = {
-            'accession': 'SAME00001',
-            'characteristics': {
-                'organism': [{'text': 'Viridiplantae'}],
-                'collection date': [{'text': '2018'}],
-                'geo loc name': [{'text': 'France: Montferrier-sur-Lez'}]
-            }
-        }
-        invalid_sample = {
-            'accession': 'SAME00003',
-            'characteristics': {
-                'organism': [{'text': 'Viridiplantae'}]
-            }
-        }
+        with patch.object(SemanticMetadataChecker, '_get_biosample',
+                          side_effect=[valid_sample, ValueError, invalid_sample]) as m_get_sample:
+            checker.check_existing_biosamples()
+            self.assertEqual(checker.errors, [
+                {'property': '/sample/0/bioSampleAccession',
+                 'description': "Existing sample SAME00001 should have required property 'geographic location (country and/or sea)'"},
+                {'property': '/sample/1/bioSampleAccession',
+                 'description': 'SAME00002 does not exist or is private'},
+                {'property': '/sample/2/bioSampleAccession',
+                 'description': "Existing sample SAME00003 should have required property 'collection date'"},
+                {'property': '/sample/2/bioSampleAccession',
+                 'description': "Existing sample SAME00003 should have required property 'geographic location (country and/or sea)'"}
+            ])
 
+    def test_check_existing_biosamples(self):
+        checker = SemanticMetadataChecker(metadata, sample_checklist=None)
         with patch.object(NoAuthHALCommunicator, 'follows_link',
                           side_effect=[valid_sample, ValueError, invalid_sample]) as m_follows_link:
             checker.check_existing_biosamples()
