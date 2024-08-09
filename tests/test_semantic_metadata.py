@@ -43,7 +43,7 @@ class TestSemanticMetadata(TestCase):
             m_ena_download.side_effect = [True, True, Exception('problem downloading')]
             checker.check_all_project_accessions()
             self.assertEqual(checker.errors, [
-                {'property': '/project/childProjects/1', 'description': 'PRJEBNA does not exist or is private'}
+                {'property': '/project/childProjects/1', 'description': 'Project PRJEBNA does not exist in ENA or is private'}
             ])
 
     def test_check_all_taxonomy_codes(self):
