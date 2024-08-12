@@ -77,11 +77,7 @@ class SemanticMetadataChecker(AppLogger):
             json_path = f'/{ANALYSIS_KEY}/{idx}/{ANALYSIS_RUNS_KEY}'
             if analysis[ANALYSIS_RUNS_KEY]:
                 for run_acc in analysis[ANALYSIS_RUNS_KEY]:
-                    match = re.match('(E|D|S)RR[0-9]{6,}', run_acc)
-                    if not match:
-                        self.add_error(json_path, f'Invalid run accession format for {run_acc}')
-                    else:
-                        self.check_accession_in_ena(run_acc, 'Run', json_path)
+                    self.check_accession_in_ena(run_acc, 'Run', json_path)
 
     @retry(tries=4, delay=2, backoff=1.2, jitter=(1, 3))
     def check_accession_in_ena(self, ena_accession, accession_type, json_path):

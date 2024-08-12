@@ -163,11 +163,9 @@ class TestSemanticMetadata(TestCase):
         checker.check_all_analysis_run_accessions()
         assert checker.errors == []
 
-        metadata["analysis"].append({'runAccessions': ['SRR00000A']})
         metadata["analysis"].append({'runAccessions': ['SRR00000000001']})
 
         checker.check_all_analysis_run_accessions()
         assert checker.errors == [
-            {'property': '/analysis/1/runAccessions', 'description': 'Invalid run accession format for SRR00000A'},
-            {'property': '/analysis/2/runAccessions', 'description': 'Run SRR00000000001 does not exist in ENA or is private'}]
+            {'property': '/analysis/1/runAccessions', 'description': 'Run SRR00000000001 does not exist in ENA or is private'}]
 

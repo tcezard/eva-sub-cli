@@ -266,7 +266,8 @@
           "runAccessions": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^(E|D|S)RR[0-9]{6,}$"
             },
             "description": "List of run accessions linking to the raw data used in this analysis if applicable (e.g. SRR576651, SRR576652)"
           }
