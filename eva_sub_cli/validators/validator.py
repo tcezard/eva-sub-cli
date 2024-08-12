@@ -109,10 +109,12 @@ class Validator(AppLogger):
         os.makedirs(self.output_dir, exist_ok=True)
 
     def clean_up_output_dir(self):
-        # Move intermediate validation outputs into a subdir
+        # Move intermediate validation outputs into a subdir except metadata.json
         subdir = os.path.join(self.output_dir, 'other_validations')
         os.mkdir(subdir)
         for file_name in os.listdir(self.output_dir):
+            if file_name == 'metadata.json':
+                continue
             file_path = os.path.join(self.output_dir, file_name)
             if os.path.isfile(file_path):
                 os.rename(file_path, os.path.join(subdir, file_name))
