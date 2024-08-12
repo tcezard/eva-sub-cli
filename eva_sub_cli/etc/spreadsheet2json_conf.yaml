@@ -75,8 +75,6 @@ Analysis:
     Phasing: boolean
     Date: date
 
-
-
 Sample:
   header_row: 3
   required:
