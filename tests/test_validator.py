@@ -275,8 +275,8 @@ class TestValidator(TestCase):
         mismatch_list, nb_mismatch, error_list, nb_error = self.validator.parse_assembly_check_report(assembly_check_report)
         assert mismatch_list[0] == "Line 43: Chromosome chr1, position 955679, reference allele 'T' does not match the reference sequence, expected 'C'"
         assert nb_mismatch == 12
-        assert error_list == []
-        assert nb_error == 0
+        assert error_list == ['Chromosome scaffold_chr1 is not present in FASTA file']
+        assert nb_error == 1
 
     def test_collect_conversion_errors(self):
         self.validator.results['metadata_check'] = {}
