@@ -191,6 +191,15 @@ class Validator(AppLogger):
                     nb_error += 1
                     if nb_error < 11:
                         error_list.append(line.strip())
+                # Contig not found in FASTA is reported here rather than in logs when no assembly report is used.
+                # Count and report once per contig name rather than once per line, to avoid redundant errors.
+                elif 'is not present in FASTA file' in line:
+                    line_num, error_msg = line.split(': ')
+                    error_msg = error_msg.strip()
+                    if error_msg not in error_list:
+                        nb_error += 1
+                        if nb_error < 11:
+                            error_list.append(error_msg)
         return mismatch_list, nb_mismatch, error_list, nb_error
 
     def parse_vcf_check_report(self, vcf_check_report):

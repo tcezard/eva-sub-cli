@@ -57,7 +57,7 @@
     {% set nb_total = assembly_check_result.get("total", 0) %}
     {% set match_percentage = nb_match / nb_total * 100 if nb_total else 0 %}
     {% set expand_icon = "" %}
-    {% if assembly_check_result.get("nb_mismatch", 0) > 0 %}
+    {% if assembly_check_result.get("nb_mismatch", 0) > 0 or nb_total == 0 %}
         {% set expand_icon = "&#9654;" %}
         {% set icon = "&#10060;" %}
         {% set row_class = "report-section fail collapsible" %}
