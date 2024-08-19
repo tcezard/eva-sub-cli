@@ -92,6 +92,7 @@ workflow {
     if (metadata_json) {
         // Metadata checks and concordance checks
         metadata_json_validation(metadata_json)
+        metadata_semantic_check(metadata_json)
         sample_name_concordance(metadata_json, vcf_files.collect())
         fasta_to_vcfs = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
             .splitCsv(header:true)
