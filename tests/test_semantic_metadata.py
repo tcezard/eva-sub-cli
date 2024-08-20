@@ -18,16 +18,18 @@ valid_sample = {
     'characteristics': {
         'organism': [{'text': 'Viridiplantae'}],
         'collection date': [{'text': '2018'}],
-        'geo loc name': [{'text': 'France: Montferrier-sur-Lez'}]
+        'geographic location (country and/or sea)': [{'text': 'France'}]
     }
 }
 invalid_sample = {
     'accession': 'SAME00003',
     'name': 'sample3',
     'characteristics': {
-        'organism': [{'text': 'Viridiplantae'}]
+        'organism': [{'text': 'Viridiplantae'}],
+        'geographic location (country and/or sea)': [{'text': 'France: Montferrier-sur-Lez'}]
     }
 }
+
 
 class TestSemanticMetadata(TestCase):
 
@@ -88,16 +90,18 @@ class TestSemanticMetadata(TestCase):
         with patch.object(SemanticMetadataChecker, '_get_biosample',
                           side_effect=[valid_sample, ValueError, invalid_sample]) as m_get_sample:
             checker.check_existing_biosamples()
-            self.assertEqual(checker.errors, [
-                {'property': '/sample/0/bioSampleAccession',
-                 'description': "Existing sample SAME00001 should have required property 'geographic location (country and/or sea)'"},
-                {'property': '/sample/1/bioSampleAccession',
-                 'description': 'SAME00002 does not exist or is private'},
+            self.assertEqual(
+                checker.errors[0],
+                {'property': '/sample/1/bioSampleAccession', 'description': 'SAME00002 does not exist or is private'}
+            )
+            self.assertEqual(
+                checker.errors[1],
                 {'property': '/sample/2/bioSampleAccession',
-                 'description': "Existing sample SAME00003 should have required property 'collection date'"},
-                {'property': '/sample/2/bioSampleAccession',
-                 'description': "Existing sample SAME00003 should have required property 'geographic location (country and/or sea)'"}
-            ])
+                 'description': "Existing sample SAME00003 should have required property 'collection date'"}
+            )
+            # Final error message lists all possible geographic locations
+            self.assertTrue(checker.errors[2]['description'].startswith(
+                'Existing sample SAME00003 should be equal to one of the allowed values:'))
 
     def test_check_existing_biosamples(self):
         checker = SemanticMetadataChecker(metadata, sample_checklist=None)
@@ -112,10 +116,6 @@ class TestSemanticMetadata(TestCase):
                 {
                     'property': '/sample/2/bioSampleAccession',
                     'description': 'Existing sample SAME00003 does not have a valid collection date'
-                },
-                {
-                    'property': '/sample/2/bioSampleAccession',
-                    'description': 'Existing sample SAME00003 does not have a valid geographic location'
                 }
             ])
 
@@ -168,4 +168,3 @@ class TestSemanticMetadata(TestCase):
         checker.check_all_analysis_run_accessions()
         assert checker.errors == [
             {'property': '/analysis/1/runAccessions', 'description': 'Run SRR00000000001 does not exist in ENA or is private'}]
-

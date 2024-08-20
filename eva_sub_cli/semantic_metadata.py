@@ -146,8 +146,10 @@ class SemanticMetadataChecker(AppLogger):
             sample_data['characteristics']['checklist'].append({'text': self.sample_checklist})
             text = self.communicator.follows_link('samples', join_url='validate', method='POST', json=sample_data,
                                                   text_only=True)
-            if text.startswith('Checklist validation failed: Sample validation failed: '):
-                for error_dict in json.loads(text[len('Checklist validation failed: Sample validation failed: '):]):
+            response = json.loads(text)
+            # Successful response returns the sample object, error response has a list of error objects.
+            if isinstance(response, list):
+                for error_dict in response:
                     if accession:
                         self.add_error(json_path, f'Existing sample {accession} {error_dict["errors"][0]}')
                     else:
