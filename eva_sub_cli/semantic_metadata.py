@@ -64,7 +64,8 @@ class SemanticMetadataChecker(AppLogger):
     def check_all_taxonomy_codes(self):
         """Check that taxonomy IDs are valid according to ENA."""
         project = self.metadata[PROJECT_KEY]
-        self.check_taxonomy_code(project[TAX_ID_KEY], f'/{PROJECT_KEY}/{TAX_ID_KEY}')
+        if TAX_ID_KEY in project:
+            self.check_taxonomy_code(project[TAX_ID_KEY], f'/{PROJECT_KEY}/{TAX_ID_KEY}')
         # Check sample taxonomies for novel samples
         for idx, sample in enumerate(self.metadata[SAMPLE_KEY]):
             if BIOSAMPLE_OBJECT_KEY in sample:
