@@ -45,7 +45,7 @@ def main():
     vcf_group = argparser.add_argument_group(
         'Input VCF and assembly',
         "Specify the VCF files and associated assembly with the following options. If you used different assemblies "
-        "for different VCF files then use --vcf_file_mapping"
+        "for different VCF files then include these in the metadata file."
     )
     vcf_group.add_argument('--vcf_files', nargs='+', help="One or several vcf files to validate")
     vcf_group.add_argument('--reference_fasta',

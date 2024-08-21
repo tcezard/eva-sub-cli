@@ -37,7 +37,7 @@ class TestDockerValidator(TestCase):
                 "parentProject": "PRJ_INVALID"
             },
             "sample": [
-                {"analysisAlias": ["AA"], "sampleInVCF": "HG00096", "bioSampleAccession": "SAME0000096"}
+                {"analysisAlias": ["AA"], "sampleInVCF": "HG00096", "bioSampleAccession": "SAME123"}
             ],
             "analysis": [
                 {"analysisAlias": "AA"}
@@ -137,6 +137,14 @@ class TestDockerValidator(TestCase):
         with open(os.path.join(self.validator.output_dir, 'other_validations', 'metadata_validation.txt')) as open_file:
             metadata_val_lines = {l.strip() for l in open_file.readlines()}
             assert 'must match pattern "^PRJ(EB|NA)\\d+$"' in metadata_val_lines
+
+        # Check semantic metadata errors
+        semantic_yaml_file = os.path.join(self.validator.output_dir, 'other_validations', 'metadata_semantic_check.yml')
+        self.assertTrue(os.path.isfile(semantic_yaml_file))
+        with open(semantic_yaml_file) as open_yaml:
+            semantic_output = yaml.safe_load(open_yaml)
+            assert semantic_output[1] == {'description': 'SAME123 does not exist or is private',
+                                          'property': '/sample/0/bioSampleAccession'}
 
     def test_validate_from_excel(self):
         self.validator_from_excel.validate()

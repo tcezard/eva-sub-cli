@@ -96,7 +96,7 @@ class TestSubmit(unittest.TestCase):
         assert os.path.exists(self.config_file)
         # assert backup file is created
         assert os.path.exists(f"{self.config_file}.1")
-        with (open(self.config_file, 'r') as f):
+        with open(self.config_file, 'r') as f:
             sub_config_data = yaml.safe_load(f)
             assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_ID] == "mock_submission_id"
             assert sub_config_data[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL] == "directory to use for upload"
