@@ -22,8 +22,7 @@ def get_files_per_analysis(metadata):
     """Returns mapping of analysis alias to filenames, based on metadata."""
     files_per_analysis = defaultdict(list)
     for file_info in metadata.get('files', []):
-        if file_info.get('fileType') == 'vcf':
-            files_per_analysis[file_info.get('analysisAlias')].append(file_info.get('fileName'))
+        files_per_analysis[file_info.get('analysisAlias')].append(file_info.get('fileName'))
     return {
         analysis_alias: set(filepaths)
         for analysis_alias, filepaths in files_per_analysis.items()

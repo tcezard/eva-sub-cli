@@ -40,7 +40,7 @@ def main():
     argparser = ArgumentParser(prog='eva-sub-cli', description='EVA Submission CLI - validate and submit data to EVA')
     argparser.add_argument('--version', action='version', version=f'%(prog)s {eva_sub_cli.__version__}')
     argparser.add_argument('--submission_dir', required=True, type=str,
-                           help='Full path to the directory where all processing will be done '
+                           help='Path to the directory where all processing will be done '
                                 'and submission info is/will be stored')
     vcf_group = argparser.add_argument_group(
         'Input VCF and assembly',
@@ -57,7 +57,7 @@ def main():
                                 help="Json file that describe the project, analysis, samples and files")
     metadata_group.add_argument("--metadata_xlsx",
                                 help="Excel spreadsheet  that describe the project, analysis, samples and files")
-    argparser.add_argument('--tasks', nargs='*', choices=[VALIDATE, SUBMIT], default=[SUBMIT], type=str.lower,
+    argparser.add_argument('--tasks', nargs='+', choices=[VALIDATE, SUBMIT], default=[SUBMIT], type=str.lower,
                            help='Select a task to perform. Selecting VALIDATE will run the validation regardless of the'
                                 ' outcome of previous runs. Selecting SUBMIT will run validate only if the validation'
                                 ' was not performed successfully before and then run the submission.')
@@ -67,12 +67,18 @@ def main():
                                                                   'upload to the EVA')
     credential_group.add_argument("--username", help="Username used for connecting to the ENA webin account")
     credential_group.add_argument("--password", help="Password used for connecting to the ENA webin account")
+    argparser.add_argument('--debug', action='store_true', default=False, help='Set the script to output debug messages')
 
     args = argparser.parse_args()
 
     validate_command_line_arguments(args, argparser)
 
-    logging_config.add_stdout_handler()
+    args.submission_dir = os.path.abspath(args.submission_dir)
+
+    if args.debug:
+        logging_config.add_stdout_handler(logging.DEBUG)
+    else:
+        logging_config.add_stdout_handler()
     logging_config.add_file_handler(os.path.join(args.submission_dir, 'eva_submission.log'), logging.DEBUG)
 
     try:

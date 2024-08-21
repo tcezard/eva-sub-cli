@@ -43,19 +43,19 @@ class SubmissionWSClient(AppLogger):
 
     def mark_submission_uploaded(self, submission_id, metadata_json):
         response = requests.put(self._submission_uploaded_url(submission_id),
-                                headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer ' + self.auth.token},
+                                headers={'Accept': 'application/json', 'Authorization': 'Bearer ' + self.auth.token},
                                 data=metadata_json)
         response.raise_for_status()
         return response.json()
 
     def initiate_submission(self):
-        response = requests.post(self._submission_initiate_url(), headers={'Accept': 'application/hal+json',
+        response = requests.post(self._submission_initiate_url(), headers={'Accept': 'application/json',
                                                                            'Authorization': 'Bearer ' + self.auth.token})
         response.raise_for_status()
         return response.json()
 
     @retry(exceptions=(HTTPError,), tries=3, delay=2, backoff=1.2, jitter=(1, 3))
     def get_submission_status(self, submission_id):
-        response = requests.get(self.get_submission_status_url(submission_id))
+        response = requests.get(self._submission_status_url(submission_id))
         response.raise_for_status()
         return response.text

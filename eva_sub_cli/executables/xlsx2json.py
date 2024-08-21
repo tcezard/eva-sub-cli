@@ -372,6 +372,6 @@ def main():
     try:
         parser.json(args.metadata_json)
     except Exception as e:
-        parser.add_error(e)
+        parser.add_error(f'An Error was raised while converting the spreadsheet to JSON: {repr(e)}')
     finally:
         parser.save_errors(args.errors_yaml)
