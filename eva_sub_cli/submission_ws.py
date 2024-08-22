@@ -44,7 +44,7 @@ class SubmissionWSClient(AppLogger):
     def mark_submission_uploaded(self, submission_id, metadata_json):
         response = requests.put(self._submission_uploaded_url(submission_id),
                                 headers={'Accept': 'application/json', 'Authorization': 'Bearer ' + self.auth.token},
-                                data=metadata_json)
+                                json=metadata_json)
         response.raise_for_status()
         return response.json()
 
