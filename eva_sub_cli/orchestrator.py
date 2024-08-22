@@ -109,9 +109,9 @@ def get_project_and_vcf_fasta_mapping_from_metadata_xlsx(metadata_xlsx, mapping_
             files_headers[cell.value] = cell.column - 1
 
         for row in files_sheet.iter_rows(min_row=2, values_only=True):
-            file_name = row[files_headers['File Name']]
+            file_name = os.path.abspath(row[files_headers['File Name']])
             analysis_alias = row[files_headers['Analysis Alias']]
-            reference_fasta = analysis_alias_dict[analysis_alias]
+            reference_fasta = os.path.abspath(analysis_alias_dict[analysis_alias])
             if not (file_name and os.path.isfile(file_name)):
                 raise FileNotFoundError(f'The variant file {file_name} provided in spreadsheet {metadata_xlsx} does not exist')
             if not (reference_fasta and os.path.isfile(reference_fasta)):
