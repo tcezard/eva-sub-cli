@@ -64,7 +64,6 @@ class TestSubmit(unittest.TestCase):
                     os.path.join(test_submission_ws_client.SUBMISSION_WS_URL, 'submission/mock_submission_id/uploaded'),
                     headers={'Accept': 'application/json', 'Authorization': 'Bearer a token'},
                     json=self.metadata_json)
-                print(mock_put.mock_calls)
 
     def test_submit_with_config(self):
         mock_initiate_response = MagicMock()
