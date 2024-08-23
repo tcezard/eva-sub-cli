@@ -36,9 +36,8 @@ class TestOrchestrator(unittest.TestCase):
         shutil.copy(os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx'), self.metadata_xlsx)
         for file_name in ['example1.vcf.gz', 'example2.vcf', 'example3.vcf', 'GCA_000001405.27_fasta.fa']:
             touch(os.path.join(self.test_sub_dir, file_name))
-        self.curr_wd = os.curdir
+        self.curr_wd = os.getcwd()
         os.chdir(self.test_sub_dir)
-
 
     def tearDown(self) -> None:
         os.chdir(self.curr_wd)
@@ -159,7 +158,6 @@ class TestOrchestrator(unittest.TestCase):
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
-
     def test_orchestrate_with_metadata_json_without_asm_report(self):
         with patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
                 patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator:
@@ -197,7 +195,6 @@ class TestOrchestrator(unittest.TestCase):
                 submission_config=m_config.return_value
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
-
 
     def test_orchestrate_vcf_files_takes_precedence_over_metadata(self):
         shutil.copy(os.path.join(self.resource_dir, 'EVA_Submission_test_with_asm_report.json'), self.metadata_json)
