@@ -239,11 +239,13 @@ class TestOrchestrator(unittest.TestCase):
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
-
     def test_metadata_file_does_not_exist_error(self):
         with self.assertRaises(Exception) as context:
-            orchestrate_process(self.test_sub_dir, None, None, None, self.metadata_xlsx,
-                    tasks=[VALIDATE], executor=DOCKER)
-        self.assertRegex(str(context.exception),r"The provided metadata file .*/resources/test_sub_dir/sub_metadata.xlsx does not exist")
+            orchestrate_process(self.test_sub_dir, None, None, None, 'Non_existing_metadata.xlsx',
+                                tasks=[VALIDATE], executor=DOCKER)
+        self.assertRegex(
+            str(context.exception),
+            r"The provided metadata file .*/resources/test_sub_dir/Non_existing_metadata.xlsx does not exist"
+        )
 
 

@@ -155,7 +155,7 @@ def orchestrate_process(submission_dir, vcf_files, reference_fasta, metadata_jso
 
     metadata_file = metadata_json or metadata_xlsx
     if not os.path.exists(os.path.abspath(metadata_file)):
-        raise FileNotFoundError(f'The provided metadata file {metadata_file} does not exist')
+        raise FileNotFoundError(f'The provided metadata file {os.path.abspath(metadata_file)} does not exist')
 
     if metadata_json:
         metadata_json = os.path.abspath(metadata_json)
