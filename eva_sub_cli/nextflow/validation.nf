@@ -195,12 +195,13 @@ process convert_xlsx_2_json {
     output:
     path "metadata.json", emit: metadata_json, optional: true
     path "metadata_conversion_errors.yml", emit: errors_yaml
+    path "xlsx2json.log", emit: xlsx2json_log
 
     script:
     metadata_json = metadata_xlsx.getBaseName() + '.json'
 
     """
-    $params.python_scripts.xlsx2json --metadata_xlsx $metadata_xlsx --metadata_json metadata.json --errors_yaml metadata_conversion_errors.yml --conversion_configuration $conversion_configuration
+    $params.python_scripts.xlsx2json --metadata_xlsx $metadata_xlsx --metadata_json metadata.json --errors_yaml metadata_conversion_errors.yml --conversion_configuration $conversion_configuration > xlsx2json.log 2>&1
     """
 }
 
@@ -217,7 +218,7 @@ process metadata_json_validation {
 
     script:
     """
-    $params.executable.biovalidator --schema $schema_dir/eva_schema.json --ref $schema_dir/eva-biosamples.json --data $metadata_json > metadata_validation.txt
+    $params.executable.biovalidator --schema $schema_dir/eva_schema.json --ref $schema_dir/eva-biosamples.json --data $metadata_json > metadata_validation.txt 2>&1
     """
 }
 
@@ -232,10 +233,11 @@ process sample_name_concordance {
 
     output:
     path "sample_checker.yml", emit: sample_checker_yml
+    path "sample_checker.log", emit: sample_checker_log
 
     script:
     """
-    $params.python_scripts.samples_checker --metadata_json $metadata_json --vcf_files $vcf_files --output_yaml sample_checker.yml
+    $params.python_scripts.samples_checker --metadata_json $metadata_json --vcf_files $vcf_files --output_yaml sample_checker.yml > sample_checker.log 2>&1
     """
 }
 
@@ -251,10 +253,11 @@ process insdc_checker {
 
     output:
     path "${fasta_file}_check.yml", emit: fasta_checker_yml
+    path "fasta_checker.log", emit: fasta_checker_log
 
     script:
     """
-    $params.python_scripts.fasta_checker --metadata_json $metadata_json --vcf_files $vcf_files --input_fasta $fasta_file --output_yaml ${fasta_file}_check.yml
+    $params.python_scripts.fasta_checker --metadata_json $metadata_json --vcf_files $vcf_files --input_fasta $fasta_file --output_yaml ${fasta_file}_check.yml > fasta_checker.log 2>&1
     """
 }
 
@@ -269,9 +272,10 @@ process metadata_semantic_check {
 
     output:
     path "metadata_semantic_check.yml", emit: metadata_semantic_check_yml
+    path "semantic_checker.log", emit: semantic_checker_log
 
     script:
     """
-    $params.python_scripts.semantic_checker --metadata_json $metadata_json --output_yaml metadata_semantic_check.yml
+    $params.python_scripts.semantic_checker --metadata_json $metadata_json --output_yaml metadata_semantic_check.yml > semantic_checker.log 2>&1
     """
 }

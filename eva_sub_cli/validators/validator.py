@@ -545,6 +545,10 @@ class Validator(AppLogger):
                     file_name_2_md5[os.path.basename(vcf_file)] = md5sum
                     file_path_2_file_size[vcf_file] = file_size
                     file_name_2_file_size[os.path.basename(vcf_file)] = file_size
+        else:
+            self.error(
+                f"Cannot locate file_info.txt at {os.path.join(self.output_dir, 'other_validations', 'file_info.txt')}"
+            )
         if self.metadata_json_post_validation:
             with open(self.metadata_json_post_validation) as open_file:
                 try:
@@ -553,12 +557,11 @@ class Validator(AppLogger):
                     files_from_metadata = json_data.get('files', [])
                     if files_from_metadata:
                         for file_dict in json_data.get('files', []):
-                            if file_dict.get('fileType') == 'vcf':
-                                file_path = self._validation_file_path_for(file_dict.get('fileName'))
-                                file_dict['md5'] = file_path_2_md5.get(file_path) or \
-                                                   file_name_2_md5.get(file_dict.get('fileName')) or ''
-                                file_dict['fileSize'] = file_path_2_file_size.get(file_path) or \
-                                                   file_name_2_file_size.get(file_dict.get('fileName')) or ''
+                            file_path = self._validation_file_path_for(file_dict.get('fileName'))
+                            file_dict['md5'] = file_path_2_md5.get(file_path) or \
+                                               file_name_2_md5.get(file_dict.get('fileName')) or ''
+                            file_dict['fileSize'] = file_path_2_file_size.get(file_path) or \
+                                               file_name_2_file_size.get(file_dict.get('fileName')) or ''
                             file_rows.append(file_dict)
                     else:
                         self.error('No file found in metadata and multiple analysis alias exist: '
@@ -570,6 +573,8 @@ class Validator(AppLogger):
             if json_data:
                 with open(self.metadata_json_post_validation, 'w') as open_file:
                     json.dump(json_data, open_file)
+        else:
+            self.error(f'Cannot locate the metadata in JSON format in {os.path.join(self.output_dir, "metadata.json")}')
 
     def get_vcf_fasta_analysis_mapping(self):
         vcf_fasta_analysis_mapping = []

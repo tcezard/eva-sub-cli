@@ -24,11 +24,15 @@ class NativeValidator(Validator):
 
     def run_validator(self):
         self.verify_executables_installed()
+        curr_wd = os.getcwd()
         try:
             command = self.get_validation_cmd()
+            os.chdir(self.submission_dir)
             self._run_quiet_command("Run Validation using Nextflow", command)
         except subprocess.CalledProcessError as ex:
             logger.error(ex)
+        finally:
+            os.chdir(curr_wd)
 
     def get_validation_cmd(self):
         if self.metadata_xlsx and not self.metadata_json:

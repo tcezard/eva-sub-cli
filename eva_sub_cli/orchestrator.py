@@ -54,7 +54,7 @@ def get_project_title_and_create_vcf_files_mapping(submission_dir, vcf_files, re
             project_title, vcf_files_mapping = get_project_and_vcf_fasta_mapping_from_metadata_xlsx(metadata_xlsx, True)
 
         for mapping in vcf_files_mapping:
-            writer.writerow(mapping);
+            writer.writerow(mapping)
 
     return project_title, mapping_file
 
@@ -79,6 +79,7 @@ def get_project_and_vcf_fasta_mapping_from_metadata_json(metadata_json, mapping_
                 vcf_fasta_report_mapping.append([os.path.abspath(file['fileName']), os.path.abspath(reference_fasta), os.path.abspath(assembly_report) if assembly_report else ''])
 
     return project_title, vcf_fasta_report_mapping
+
 
 def get_project_and_vcf_fasta_mapping_from_metadata_xlsx(metadata_xlsx, mapping_req=False):
     workbook = load_workbook(metadata_xlsx)
@@ -108,15 +109,19 @@ def get_project_and_vcf_fasta_mapping_from_metadata_xlsx(metadata_xlsx, mapping_
             files_headers[cell.value] = cell.column - 1
 
         for row in files_sheet.iter_rows(min_row=2, values_only=True):
-            file_name = row[files_headers['File Name']]
+            file_name = os.path.abspath(row[files_headers['File Name']])
             analysis_alias = row[files_headers['Analysis Alias']]
-            reference_fasta = analysis_alias_dict[analysis_alias]
+            reference_fasta = os.path.abspath(analysis_alias_dict[analysis_alias])
+            if not (file_name and os.path.isfile(file_name)):
+                raise FileNotFoundError(f'The variant file {file_name} provided in spreadsheet {metadata_xlsx} does not exist')
+            if not (reference_fasta and os.path.isfile(reference_fasta)):
+                raise FileNotFoundError(f'The reference fasta {reference_fasta} in spreadsheet {metadata_xlsx} does not exist')
             vcf_fasta_report_mapping.append([os.path.abspath(file_name), os.path.abspath(reference_fasta), ''])
 
     return project_title, vcf_fasta_report_mapping
 
 
-def check_validation_required(tasks, sub_config):
+def check_validation_required(tasks, sub_config, username=None, password=None):
     # Validation is mandatory so if submit is requested then VALIDATE must have run before or be requested as well
     if SUBMIT in tasks:
         if not sub_config.get(READY_FOR_SUBMISSION_TO_EVA, False):
@@ -124,7 +129,7 @@ def check_validation_required(tasks, sub_config):
         submission_id = sub_config.get(SUB_CLI_CONFIG_KEY_SUBMISSION_ID, None)
         if submission_id:
             try:
-                submission_status = SubmissionWSClient().get_submission_status(submission_id)
+                submission_status = SubmissionWSClient(username, password).get_submission_status(submission_id)
                 if submission_status == 'FAILED':
                     return True
                 else:
@@ -150,13 +155,20 @@ def orchestrate_process(submission_dir, vcf_files, reference_fasta, metadata_jso
 
     metadata_file = metadata_json or metadata_xlsx
     if not os.path.exists(os.path.abspath(metadata_file)):
-        raise FileNotFoundError(f'The provided metadata file {metadata_file} does not exist')
+        raise FileNotFoundError(f'The provided metadata file {os.path.abspath(metadata_file)} does not exist')
+
+    if metadata_json:
+        metadata_json = os.path.abspath(metadata_json)
+    if metadata_xlsx:
+        metadata_xlsx = os.path.abspath(metadata_xlsx)
 
     # Get the provided Project Title and VCF files mapping (VCF, Fasta and Report)
-    project_title, vcf_files_mapping = get_project_title_and_create_vcf_files_mapping(submission_dir, vcf_files, reference_fasta, metadata_json, metadata_xlsx)
+    project_title, vcf_files_mapping = get_project_title_and_create_vcf_files_mapping(
+        submission_dir, vcf_files, reference_fasta, metadata_json, metadata_xlsx
+    )
     vcf_files = get_vcf_files(vcf_files_mapping)
 
-    if VALIDATE not in tasks and check_validation_required(tasks, sub_config):
+    if VALIDATE not in tasks and check_validation_required(tasks, sub_config, username, password):
         tasks.append(VALIDATE)
 
     if VALIDATE in tasks:

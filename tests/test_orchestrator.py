@@ -13,6 +13,7 @@ from eva_sub_cli.exceptions.submission_status_exception import SubmissionStatusE
 from eva_sub_cli.orchestrator import orchestrate_process, VALIDATE, SUBMIT, DOCKER, check_validation_required
 from eva_sub_cli.submit import SUB_CLI_CONFIG_KEY_SUBMISSION_ID
 from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
+from tests.test_utils import touch
 
 
 class TestOrchestrator(unittest.TestCase):
@@ -32,9 +33,16 @@ class TestOrchestrator(unittest.TestCase):
             shutil.rmtree(self.test_sub_dir)
         os.makedirs(self.test_sub_dir)
         shutil.copy(os.path.join(self.resource_dir, 'EVA_Submission_test.json'), self.metadata_json)
+        shutil.copy(os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx'), self.metadata_xlsx)
+        for file_name in ['example1.vcf.gz', 'example2.vcf', 'example3.vcf', 'GCA_000001405.27_fasta.fa']:
+            touch(os.path.join(self.test_sub_dir, file_name))
+        self.curr_wd = os.getcwd()
+        os.chdir(self.test_sub_dir)
 
     def tearDown(self) -> None:
-        shutil.rmtree(self.test_sub_dir)
+        os.chdir(self.curr_wd)
+        if os.path.exists(self.test_sub_dir):
+            shutil.rmtree(self.test_sub_dir)
 
     def test_check_validation_required(self):
         tasks = ['submit']
@@ -150,7 +158,6 @@ class TestOrchestrator(unittest.TestCase):
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
-
     def test_orchestrate_with_metadata_json_without_asm_report(self):
         with patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
                 patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator:
@@ -189,7 +196,6 @@ class TestOrchestrator(unittest.TestCase):
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
-
     def test_orchestrate_vcf_files_takes_precedence_over_metadata(self):
         shutil.copy(os.path.join(self.resource_dir, 'EVA_Submission_test_with_asm_report.json'), self.metadata_json)
 
@@ -213,8 +219,6 @@ class TestOrchestrator(unittest.TestCase):
 
 
     def test_orchestrate_with_metadata_xlsx(self):
-        shutil.copy(os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx'), self.metadata_xlsx)
-
         with patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
                 patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator:
             orchestrate_process(self.test_sub_dir, None, None, None, self.metadata_xlsx,
@@ -232,11 +236,13 @@ class TestOrchestrator(unittest.TestCase):
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
-
     def test_metadata_file_does_not_exist_error(self):
         with self.assertRaises(Exception) as context:
-            orchestrate_process(self.test_sub_dir, None, None, None, self.metadata_xlsx,
-                    tasks=[VALIDATE], executor=DOCKER)
-        self.assertRegex(str(context.exception),r"The provided metadata file .*/resources/test_sub_dir/sub_metadata.xlsx does not exist")
+            orchestrate_process(self.test_sub_dir, None, None, None, 'Non_existing_metadata.xlsx',
+                                tasks=[VALIDATE], executor=DOCKER)
+        self.assertRegex(
+            str(context.exception),
+            r"The provided metadata file .*/resources/test_sub_dir/Non_existing_metadata.xlsx does not exist"
+        )
 
 

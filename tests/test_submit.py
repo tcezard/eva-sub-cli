@@ -58,13 +58,12 @@ class TestSubmit(unittest.TestCase):
 
                 mock_post.assert_called_once_with(
                     os.path.join(test_submission_ws_client.SUBMISSION_WS_URL, 'submission/initiate'),
-                    headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'})
+                    headers={'Accept': 'application/json', 'Authorization': 'Bearer a token'})
 
                 mock_put.assert_called_once_with(
                     os.path.join(test_submission_ws_client.SUBMISSION_WS_URL, 'submission/mock_submission_id/uploaded'),
-                    headers={'Accept': 'application/hal+json', 'Authorization': 'Bearer a token'},
-                    data=self.metadata_json)
-                print(mock_put.mock_calls)
+                    headers={'Accept': 'application/json', 'Authorization': 'Bearer a token'},
+                    json=self.metadata_json)
 
     def test_submit_with_config(self):
         mock_initiate_response = MagicMock()
