@@ -35,6 +35,7 @@ classifiers = [
 'check_metadata_semantics.py'='eva_sub_cli.executables.check_metadata_semantics:main'
 'samples_checker.py'='eva_sub_cli.executables.samples_checker:main'
 'xlsx2json.py'='eva_sub_cli.executables.xlsx2json:main'
+'trim_down.py'='eva_sub_cli.executables.trim_down:main'
 
 [tool.setuptools]
 packages = ['eva_sub_cli', 'eva_sub_cli.exceptions', 'eva_sub_cli.executables', 'eva_sub_cli.validators']

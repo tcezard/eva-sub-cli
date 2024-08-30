@@ -11,9 +11,11 @@ logger = logging_config.get_logger(__name__)
 class NativeValidator(Validator):
 
     def __init__(self, mapping_file, submission_dir, project_title, metadata_json=None, metadata_xlsx=None,
-                 vcf_validator_path='vcf_validator', assembly_checker_path='vcf_assembly_checker',
-                 biovalidator_path='biovalidator', submission_config=None):
-        super().__init__(mapping_file, submission_dir, project_title, metadata_json=metadata_json, metadata_xlsx=metadata_xlsx,
+                 shallow_validation=False, vcf_validator_path='vcf_validator',
+                 assembly_checker_path='vcf_assembly_checker', biovalidator_path='biovalidator',
+                 submission_config=None):
+        super().__init__(mapping_file, submission_dir, project_title, metadata_json=metadata_json,
+                         metadata_xlsx=metadata_xlsx, shallow_validation=shallow_validation,
                          submission_config=submission_config)
         self.vcf_validator_path = vcf_validator_path
         self.assembly_checker_path = assembly_checker_path
@@ -46,6 +48,7 @@ class NativeValidator(Validator):
             f"--vcf_files_mapping {self.mapping_file} "
             f"{metadata_flag} "
             f"--output_dir {self.output_dir} "
+            f"--shallow_validation true "
             f"--executable.vcf_validator {self.vcf_validator_path} "
             f"--executable.vcf_assembly_checker {self.assembly_checker_path} "
             f"--executable.biovalidator {self.biovalidator_path}"

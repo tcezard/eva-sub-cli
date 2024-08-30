@@ -12,7 +12,7 @@ from eva_sub_cli.validators.validator import Validator
 logger = logging_config.get_logger(__name__)
 
 container_image = 'ebivariation/eva-sub-cli'
-container_tag = 'v0.0.1.dev15'
+container_tag = 'v0.0.1.dev16'
 container_validation_dir = '/opt/vcf_validation'
 container_validation_output_dir = 'vcf_validation_output'
 
@@ -20,10 +20,10 @@ container_validation_output_dir = 'vcf_validation_output'
 class DockerValidator(Validator):
 
     def __init__(self, mapping_file, submission_dir, project_title, metadata_json=None,
-                 metadata_xlsx=None, container_name=None, docker_path='docker', submission_config=None):
+                 metadata_xlsx=None, shallow_validation=False, container_name=None, docker_path='docker', submission_config=None):
         super().__init__(mapping_file, submission_dir, project_title,
                          metadata_json=metadata_json, metadata_xlsx=metadata_xlsx,
-                         submission_config=submission_config)
+                         shallow_validation=shallow_validation, submission_config=submission_config)
         self.docker_path = docker_path
         self.container_name = container_name
         if self.container_name is None:

@@ -1,5 +1,7 @@
+import gzip
 import os
 import shutil
+from itertools import groupby
 
 
 def is_submission_dir_writable(submission_dir):
@@ -32,3 +34,30 @@ def backup_file_or_directory(file_name, max_backups=None):
         else:
             os.rename(f'{file_name}.{i - 1}', f'{file_name}.{i}')
     os.rename(file_name, file_name + '.1')
+
+
+def open_gzip_if_required(input_file):
+    """Open a file in read mode using gzip if the file extension says .gz"""
+    if input_file.endswith('.gz'):
+        return gzip.open(input_file, 'rt')
+    else:
+        return open(input_file, 'r')
+
+
+def fasta_iter(input_fasta):
+    """
+    Given a fasta file. yield tuples of header, sequence
+    """
+    # first open the file outside
+    with open_gzip_if_required(input_fasta) as open_file:
+        # ditch the boolean (x[0]) and just keep the header or sequence since
+        # we know they alternate.
+        faiter = (x[1] for x in groupby(open_file, lambda line: line[0] == ">"))
+
+        for header in faiter:
+            # drop the ">"
+            headerStr = header.__next__()[1:].strip()
+
+            # join all sequence lines to one.
+            seq = "".join(s.strip() for s in faiter.__next__())
+            yield (headerStr, seq)

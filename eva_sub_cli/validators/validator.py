@@ -35,7 +35,7 @@ def resolve_single_file_path(file_path):
 class Validator(AppLogger):
 
     def __init__(self, mapping_file, submission_dir, project_title=None, metadata_json=None, metadata_xlsx=None,
-                 submission_config: WritableConfig = None):
+                 shallow_validation=False, submission_config: WritableConfig = None):
         # validator write to the validation output directory
         # If the submission_config is not set it will also be written to the VALIDATION_OUTPUT_DIR
         self.submission_dir = submission_dir

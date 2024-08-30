@@ -7,16 +7,10 @@ from ebi_eva_common_pyutils.logger import logging_config
 
 import yaml
 
+from eva_sub_cli.file_utils import open_gzip_if_required
 from eva_sub_cli.metadata_utils import get_samples_per_analysis, get_files_per_analysis, get_analysis_for_vcf_file
 
 logger = logging_config.get_logger(__name__)
-
-
-def open_gzip_if_required(input_file):
-    if input_file.endswith('.gz'):
-        return gzip.open(input_file, 'rt')
-    else:
-        return open(input_file, 'r')
 
 
 def get_samples_from_vcf(vcf_file):

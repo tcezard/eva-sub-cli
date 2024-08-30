@@ -35,8 +35,7 @@ def validate_command_line_arguments(args, argparser):
         print(f"'{args.submission_dir}' does not have write permissions or is not a directory.")
         sys.exit(1)
 
-
-def main():
+def parse_args(args):
     argparser = ArgumentParser(prog='eva-sub-cli', description='EVA Submission CLI - validate and submit data to EVA')
     argparser.add_argument('--version', action='version', version=f'%(prog)s {eva_sub_cli.__version__}')
     argparser.add_argument('--submission_dir', required=True, type=str,
@@ -69,9 +68,16 @@ def main():
     credential_group.add_argument("--password", help="Password used for connecting to the ENA webin account")
     argparser.add_argument('--debug', action='store_true', default=False, help='Set the script to output debug messages')
 
+    argparser.add_argument('--debug', action='store_true', default=False,
+                           help='Set the script to output debug messages')
     args = argparser.parse_args()
-
     validate_command_line_arguments(args, argparser)
+    return args
+
+
+def main():
+
+    args = parse_args(sys.argv[1:])
 
     args.submission_dir = os.path.abspath(args.submission_dir)
 

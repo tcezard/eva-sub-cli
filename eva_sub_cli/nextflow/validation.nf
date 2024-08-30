@@ -30,12 +30,14 @@ params.python_scripts = [
     "samples_checker": "samples_checker.py",
     "fasta_checker": "check_fasta_insdc.py",
     "xlsx2json": "xlsx2json.py",
-    "semantic_checker": "check_metadata_semantics.py"
+    "semantic_checker": "check_metadata_semantics.py",
+    "trim_down": "trim_down.py"
 ]
 // prefix to prepend to all provided path
 params.base_dir = ""
 // help
 params.help = null
+params.shallow_validation = false
 
 // Show help message
 if (params.help) exit 0, helpMessage()
@@ -63,20 +65,23 @@ output_dir = joinBasePath(params.output_dir)
 
 workflow {
     // Prepare the file path
-    vcf_channel = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
+    vcf_and_ref_ch = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
         .splitCsv(header:true)
         .map{row -> tuple(
             file(joinBasePath(row.vcf)),
             file(joinBasePath(row.fasta)),
             file(joinBasePath(row.report))
         )}
-    vcf_files = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
-        .splitCsv(header:true)
-        .map{row -> file(joinBasePath(row.vcf))}
-
+    if (params.shallow_validation){
+        // create a smaller vcf and fasta then replace the channel
+        trim_down_vcf(vcf_and_ref_ch)
+        vcf_and_ref_ch = trim_down_vcf.out.vcf_and_ref
+    }
+    vcf_files = vcf_and_ref_ch.map{row -> row[0]}
+    fasta_to_vcfs = vcf_and_ref_ch.map{row -> tuple(row[1], row[0])}.groupTuple(by:0)
     // VCF checks
-    check_vcf_valid(vcf_channel)
-    check_vcf_reference(vcf_channel)
+    check_vcf_valid(vcf_and_ref_ch)
+    check_vcf_reference(vcf_and_ref_ch)
 
     generate_file_size_and_md5_digests(vcf_files)
     collect_file_size_and_md5(generate_file_size_and_md5_digests.out.file_size_and_digest_info.collect())
@@ -94,12 +99,27 @@ workflow {
         metadata_json_validation(metadata_json)
         metadata_semantic_check(metadata_json)
         sample_name_concordance(metadata_json, vcf_files.collect())
-        fasta_to_vcfs = Channel.fromPath(joinBasePath(params.vcf_files_mapping))
-            .splitCsv(header:true)
-            .map{row -> tuple(file(joinBasePath(row.fasta)), file(joinBasePath(row.vcf)))}
-            .groupTuple(by:0)
         insdc_checker(metadata_json, fasta_to_vcfs)
     }
+}
+
+
+process trim_down_vcf {
+    publishDir output_dir,
+            overwrite: false,
+            mode: "copy",
+            pattern: "*.log"
+    input:
+    tuple path(vcf), path(fasta), path(report)
+
+    output:
+    tuple path("output/$vcf"), path("output/$fasta"), path(report), emit: vcf_and_ref
+
+    """
+    mkdir output
+    $params.python_scripts.trim_down --vcf_file $vcf  --output_vcf_file output/$vcf --fasta_file $fasta --output_fasta_file output/$fasta > trim_down.log
+    """
+
 }
 
 /*
