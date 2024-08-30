@@ -276,6 +276,6 @@ process metadata_semantic_check {
 
     script:
     """
-    $params.python_scripts.semantic_checker --metadata_json $metadata_json --output_yaml metadata_semantic_check.yml > semantic_checker.log
+    $params.python_scripts.semantic_checker --metadata_json $metadata_json --output_yaml metadata_semantic_check.yml > semantic_checker.log 2>&1
     """
 }
