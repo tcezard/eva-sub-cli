@@ -237,7 +237,7 @@ process sample_name_concordance {
 
     script:
     """
-    $params.python_scripts.samples_checker --metadata_json $metadata_json --vcf_files $vcf_files --output_yaml sample_checker.yml > sample_checker.log
+    $params.python_scripts.samples_checker --metadata_json $metadata_json --vcf_files $vcf_files --output_yaml sample_checker.yml > sample_checker.log 2>&1
     """
 }
 

@@ -65,7 +65,7 @@ class StudySubmitter(AppLogger):
         base_name = os.path.basename(input_file)
         self.debug(f'Transfer {base_name} to EVA FTP')
         with open(input_file, 'rb') as f:
-            r = requests.put(os.path.join(submission_upload_url, base_name), data=open(input_file, 'rb'))
+            r = requests.put(os.path.join(submission_upload_url, base_name), data=f)
         r.raise_for_status()
         self.debug(f'Upload of {base_name} completed')
 
