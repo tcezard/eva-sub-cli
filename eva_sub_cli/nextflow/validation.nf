@@ -118,6 +118,7 @@ process trim_down_vcf {
     """
     mkdir output
     $params.python_scripts.trim_down --vcf_file $vcf  --output_vcf_file output/$vcf --fasta_file $fasta --output_fasta_file output/$fasta > trim_down.log
+    touch $report
     """
 
 }

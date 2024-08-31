@@ -148,7 +148,7 @@ def check_validation_required(tasks, sub_config, username=None, password=None):
 
 
 def orchestrate_process(submission_dir, vcf_files, reference_fasta, metadata_json, metadata_xlsx,
-                        tasks, executor, username=None, password=None, **kwargs):
+                        tasks, executor, username=None, password=None, shallow_validation=False, **kwargs):
     # load config
     config_file_path = os.path.join(submission_dir, SUB_CLI_CONFIG_FILE)
     sub_config = WritableConfig(config_file_path, version=__version__)
@@ -174,11 +174,11 @@ def orchestrate_process(submission_dir, vcf_files, reference_fasta, metadata_jso
     if VALIDATE in tasks:
         if executor == DOCKER:
             validator = DockerValidator(vcf_files_mapping, submission_dir, project_title, metadata_json, metadata_xlsx,
-                                        submission_config=sub_config)
+                                        shallow_validation=shallow_validation, submission_config=sub_config)
         # default to native execution
         else:
             validator = NativeValidator(vcf_files_mapping, submission_dir, project_title, metadata_json, metadata_xlsx,
-                                        submission_config=sub_config)
+                                        shallow_validation=shallow_validation, submission_config=sub_config)
         with validator:
             validator.validate_and_report()
             if not metadata_json:

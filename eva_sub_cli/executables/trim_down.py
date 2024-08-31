@@ -37,8 +37,9 @@ def trim_down_fasta(fasta_file, output_fasta, ref_seq_names):
             name = header.split()[0]
             if name in ref_seq_names:
                 found_sequences.add(name)
-                fasta_out.write(header)
-                fasta_out.write(sequence)
+                print(f'>{header}', file=fasta_out)
+                for i in range(0, len(sequence), 80):
+                    print(sequence[i:i+80], file=fasta_out)
     return found_sequences
 
 

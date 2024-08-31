@@ -49,6 +49,7 @@ class Validator(AppLogger):
         self.validation_date = datetime.datetime.now()
         self.metadata_json = metadata_json
         self.metadata_xlsx = metadata_xlsx
+        self.shallow_validation = shallow_validation
         if submission_config:
             self.sub_config = submission_config
         else:

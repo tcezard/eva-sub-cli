@@ -66,8 +66,9 @@ def parse_args(args):
                                                                   'upload to the EVA')
     credential_group.add_argument("--username", help="Username used for connecting to the ENA webin account")
     credential_group.add_argument("--password", help="Password used for connecting to the ENA webin account")
-    argparser.add_argument('--debug', action='store_true', default=False, help='Set the script to output debug messages')
-
+    argparser.add_argument('--shallow', action='store_true', default=False,
+                           help='Set the validaiotn to be perform on a the first 10000  record of the VCF. '
+                                'Only applies if the number of record exceed 10000')
     argparser.add_argument('--debug', action='store_true', default=False,
                            help='Set the script to output debug messages')
     args = argparser.parse_args()

@@ -38,21 +38,24 @@ class DockerValidator(Validator):
 
     def get_docker_validation_cmd(self):
         if self.metadata_xlsx and not self.metadata_json:
-            docker_cmd = (
-                f"{self.docker_path} exec {self.container_name} nextflow run eva_sub_cli/nextflow/validation.nf "
-                f"--base_dir {container_validation_dir} "
-                f"--vcf_files_mapping {self.mapping_file} "
-                f"--metadata_xlsx {self.metadata_xlsx} "
+            docker_cmd = ''.join([
+                f"{self.docker_path} exec {self.container_name} nextflow run eva_sub_cli/nextflow/validation.nf ",
+                f"--base_dir {container_validation_dir} ",
+                f"--vcf_files_mapping {self.mapping_file} ",
+                f"--metadata_xlsx {self.metadata_xlsx} ",
+                f"--shallow_validation true " if self.shallow_validation else "",
                 f"--output_dir {container_validation_output_dir}"
-            )
+            ])
         else:
-            docker_cmd = (
-                f"{self.docker_path} exec {self.container_name} nextflow run eva_sub_cli/nextflow/validation.nf "
-                f"--base_dir {container_validation_dir} "
-                f"--vcf_files_mapping {self.mapping_file} "
-                f"--metadata_json {self.metadata_json} "
+            docker_cmd = ''.join([
+                f"{self.docker_path} exec {self.container_name} nextflow run eva_sub_cli/nextflow/validation.nf ",
+                f"--base_dir {container_validation_dir} ",
+                f"--vcf_files_mapping {self.mapping_file} ",
+                f"--metadata_json {self.metadata_json} ",
+                f"--shallow_validation true " if self.shallow_validation else "",
                 f"--output_dir {container_validation_output_dir}"
-            )
+            ])
+        print(docker_cmd)
         return docker_cmd
 
     def run_docker_validator(self):
@@ -213,29 +216,3 @@ class DockerValidator(Validator):
                 # report is optional
                 if row.get('report'):
                     _copy('assembly report files', row['report'])
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run pre-submission validation checks on VCF files', add_help=False)
-    parser.add_argument("--docker_path", help="Full path to the docker installation, "
-                                              "not required if docker is available on path", required=False)
-    parser.add_argument("--container_name", help="Name of the docker container", required=False)
-    parser.add_argument("--vcf_files_mapping",
-                        help="csv file with the mappings for vcf files, fasta and assembly report", required=True)
-    parser.add_argument("--output_dir", help="Directory where the validation output reports will be made available",
-                        required=True)
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--metadata_json",
-                       help="Json file that describe the project, analysis, samples and files")
-    group.add_argument("--metadata_xlsx",
-                       help="Excel spreadsheet  that describe the project, analysis, samples and files")
-    args = parser.parse_args()
-
-    docker_path = args.docker_path if args.docker_path else 'docker'
-    docker_container_name = args.container_name if args.container_name else container_image
-
-    logging_config.add_stdout_handler()
-    validator = DockerValidator(args.vcf_files_mapping, args.output_dir, args.metadata_json, args.metadata_xlsx,
-                                docker_container_name, docker_path)
-    validator.validate()
-    validator.create_reports()
