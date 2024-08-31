@@ -158,8 +158,18 @@ class Validator(AppLogger):
         self.sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=self.verify_ready_for_submission_to_eva())
 
     def verify_ready_for_submission_to_eva(self):
-        # TODO:  check validation results and confirm if they are good enough for submitting to EVA
-        return True
+        return all((
+            self.results.get('vcf_check', {}).get('critical_count', 1) == 0,
+            self.results.get('assembly_check', {}).get('nb_mismatch', 1) == 0,
+            self.results.get('assembly_check', {}).get('nb_error', 1) == 0,
+            all((
+                fa_file_check.get('all_insdc', False) is True
+                for fa_file, fa_file_check in self.results.get('fasta_check', {}).items()
+            )),
+            self.results.get('sample_check', {}).get('overall_differences', True) is False,
+            len(self.results.get('metadata_check', {}).get('spreadsheet_errors', [])) == 0,
+            self.shallow_validation is False
+        ))
 
     def parse_assembly_check_log(self, assembly_check_log):
         error_list = []
@@ -317,6 +327,7 @@ class Validator(AppLogger):
             os.path.join(self.output_dir, 'assembly_check', vcf_name + '*text_assembly_report*')
         )
 
+
     def _collect_assembly_check_results(self):
         # detect output files for assembly check
         self.results['assembly_check'] = {}
@@ -359,6 +370,8 @@ class Validator(AppLogger):
                 continue
             with open(fasta_check) as open_yaml:
                 self.results['fasta_check'][fasta_file_name] = yaml.safe_load(open_yaml)
+
+
 
     def _load_sample_check_results(self):
         self.results['sample_check'] = {}
