@@ -55,7 +55,6 @@ class DockerValidator(Validator):
                 f"--shallow_validation true " if self.shallow_validation else "",
                 f"--output_dir {container_validation_output_dir}"
             ])
-        print(docker_cmd)
         return docker_cmd
 
     def run_docker_validator(self):
