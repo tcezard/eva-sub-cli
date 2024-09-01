@@ -105,19 +105,21 @@ workflow {
 
 
 process trim_down_vcf {
-    publishDir output_dir,
-            overwrite: false,
-            mode: "copy",
-            pattern: "*.log"
+    publishDir output_dir, overwrite: false, mode: "copy", pattern: "*.log"
+    publishDir output_dir, overwrite: false, mode: "copy", pattern: "*.yml"
+
     input:
     tuple path(vcf), path(fasta), path(report)
 
     output:
     tuple path("output/$vcf"), path("output/$fasta"), path(report), emit: vcf_and_ref
+    path "${vcf.getBaseName()}_trim_down.log", emit: trim_down_log
+    path "${vcf.getBaseName()}_trim_down.yml", emit: trim_down_metric
 
     """
     mkdir output
-    $params.python_scripts.trim_down --vcf_file $vcf  --output_vcf_file output/$vcf --fasta_file $fasta --output_fasta_file output/$fasta > trim_down.log
+    $params.python_scripts.trim_down --vcf_file $vcf  --output_vcf_file output/$vcf --fasta_file $fasta --output_fasta_file output/$fasta --output_yaml_file ${vcf.getBaseName()}_trim_down.yml > ${vcf.getBaseName()}_trim_down.log
+    # This is needed to ensure that a missing (NO_FILE) report can still be passed down to subsequent steps
     touch $report
     """
 

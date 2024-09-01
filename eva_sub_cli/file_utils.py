@@ -1,7 +1,16 @@
+import glob
 import gzip
 import os
 import shutil
 from itertools import groupby
+
+
+def resolve_single_file_path(file_path):
+    files = glob.glob(file_path)
+    if len(files) == 0:
+        return None
+    elif len(files) > 0:
+        return files[0]
 
 
 def is_submission_dir_writable(submission_dir):

@@ -1,3 +1,4 @@
+import copy
 import os
 import datetime
 from unittest import TestCase
@@ -316,6 +317,7 @@ class TestReport(TestCase):
     resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
     expected_report_metadata_xlsx = os.path.join(resource_dir, 'validation_reports', 'expected_report_metadata_xlsx.html')
     expected_report_metadata_json = os.path.join(resource_dir, 'validation_reports', 'expected_report_metadata_json.html')
+    expected_report_metadata_xlsx_shallow = os.path.join(resource_dir, 'validation_reports', 'expected_shallow_metadata_xlsx_report.html')
     test_project_name = "My cool project"
     test_validation_date = datetime.datetime(2023, 8, 31, 12, 34, 56)
     test_submission_dir = "/test/submission/dir"
@@ -324,34 +326,46 @@ class TestReport(TestCase):
     test_vcf_fasta_analysis_mapping.append({'vcf_file': 'input_pass.vcf', 'fasta_file': 'input_pass.fa', 'analysis': 'B'})
     test_vcf_fasta_analysis_mapping.append({'vcf_file': 'input_test.vcf', 'fasta_file': 'input_test.fa', 'analysis': 'could not be linked'})
 
-    def test_generate_html_report_metadata_xlsx(self):
-        report = generate_html_report(validation_results_xlsx, self.test_validation_date, self.test_submission_dir,
+    def check_report_vs_expected(self, validation_results, output_report, expected_report):
+        report = generate_html_report(validation_results, self.test_validation_date, self.test_submission_dir,
                                       self.test_vcf_fasta_analysis_mapping, self.test_project_name)
-        with open('metadata_xlsx_report.html', 'w') as open_file:
+        with open(output_report, 'w') as open_file:
             open_file.write(report)
 
-        with open(self.expected_report_metadata_xlsx) as open_html:
+        with open(expected_report) as open_html:
             expected_report_text = open_html.read()
             # Inject the version in the expected report
             expected_report_text = expected_report_text.replace('cligeneratedversion', eva_sub_cli.__version__)
             assert report == expected_report_text
 
         # Remove output file if assert passes
-        if os.path.exists('metadata_xlsx_report.html'):
-            os.remove('metadata_xlsx_report.html')
+        if os.path.exists(output_report):
+            os.remove(output_report)
+
+    def test_generate_html_report_metadata_xlsx(self):
+        self.check_report_vs_expected(
+            validation_results_xlsx,
+            'metadata_xlsx_report.html',
+            self.expected_report_metadata_xlsx
+        )
 
     def test_generate_html_report_metadata_json(self):
-        report = generate_html_report(validation_results_json, self.test_validation_date, self.test_submission_dir,
-                                      self.test_vcf_fasta_analysis_mapping, self.test_project_name)
-        with open('metadata_json_report.html', 'w') as open_file:
-            open_file.write(report)
+        self.check_report_vs_expected(
+            validation_results_json,
+            'metadata_json_report.html',
+            self.expected_report_metadata_json
+        )
 
-        with open(self.expected_report_metadata_json) as open_html:
-            expected_report_text = open_html.read()
-            # Inject the version in the expected report
-            expected_report_text = expected_report_text.replace('cligeneratedversion', eva_sub_cli.__version__)
-            assert report == expected_report_text
-
-        # Remove output file if assert passes
-        if os.path.exists('metadata_json_report.html'):
-            os.remove('metadata_json_report.html')
+    def test_generate_html_report_metadata_xlsx_shallow(self):
+        shallow_validation_results_xlsx = copy.deepcopy(validation_results_xlsx)
+        shallow_validation_results_xlsx['shallow_validation'] = {
+            'required': True, 'requested': True,
+            'metrics': {
+                'input_fail.vcf': {'trim_down_vcf_record': 10000, 'number_sequence_found': 24, 'trim_down_required': True},
+                'input_passed.vcf': {'trim_down_vcf_record': 10000, 'number_sequence_found': 24, 'trim_down_required': True}
+            }}
+        self.check_report_vs_expected(
+            shallow_validation_results_xlsx,
+            'shallow_metadata_xlsx_report.html',
+            self.expected_report_metadata_xlsx_shallow
+        )

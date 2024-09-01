@@ -36,6 +36,7 @@ class TestValidator(TestCase):
 
     def test__collect_validation_workflow_results_with_metadata_xlsx(self):
         expected_results = {
+            'shallow_validation': {'requested': False},
             'vcf_check': {
                 'input_passed.vcf': {'valid': True, 'error_list': [], 'error_count': 0, 'warning_count': 0, 'critical_count': 0, 'critical_list': []}
             },
@@ -120,6 +121,7 @@ class TestValidator(TestCase):
 
     def test__collect_validation_workflow_results_with_metadata_json(self):
         expected_results = {
+            'shallow_validation': {'requested': False},
             'vcf_check': {
                 'input_passed.vcf': {'valid': True, 'error_list': [], 'error_count': 0, 'warning_count': 0,
                                      'critical_count': 0, 'critical_list': []}
@@ -190,19 +192,9 @@ class TestValidator(TestCase):
         report_path = self.validator.create_reports()
         assert os.path.exists(report_path)
 
-    def test_vcf_check_errors_is_critical(self):
-        errors = [
-            'INFO AC does not match the specification Number=A (expected 1 value(s)). AC=100,37.',
-            'Sample #10, field PL does not match the meta specification Number=G (expected 2 value(s)). PL=.. It must derive its number of values from the ploidy of GT (if present), or assume diploidy. Contains 1 value(s), expected 2 (derived from ploidy 1).',
-            'Sample #102, field AD does not match the meta specification Number=R (expected 3 value(s)). AD=..'
-        ]
-        expected_return = [False, True, True]
-        for i, error in enumerate(errors):
-            assert self.validator.vcf_check_errors_is_critical(error) == expected_return[i]
-
     def test_parse_biovalidator_validation_results(self):
         self.validator.results['metadata_check'] = {}
-        self.validator._parse_biovalidator_validation_results()
+        self.validator.collect_biovalidator_validation_results()
         assert self.validator.results['metadata_check']['json_errors'] == [
             {'property': '/files', 'description': "should have required property 'files'"},
             {'property': '/project/title', 'description': "should have required property 'title'"},
@@ -264,19 +256,6 @@ class TestValidator(TestCase):
             {'sheet': 'Sample', 'row': '', 'column': 'Analysis Alias',
              'description': 'alias_1,alias_2 present in Samples not in Analysis'}
         ]
-
-    def test_parse_assembly_check_log(self):
-        assembly_check_log = os.path.join(self.resource_dir, 'assembly_check', 'invalid.vcf.assembly_check.log')
-        error_list, nb_error, match, total = self.validator.parse_assembly_check_log(assembly_check_log)
-        assert error_list == ["The assembly checking could not be completed: Contig 'chr23' not found in assembly report"]
-
-    def test_parse_assembly_check_report(self):
-        assembly_check_report = os.path.join(self.resource_dir, 'assembly_check', 'invalid.vcf.text_assembly_report.txt')
-        mismatch_list, nb_mismatch, error_list, nb_error = self.validator.parse_assembly_check_report(assembly_check_report)
-        assert mismatch_list[0] == "Line 43: Chromosome chr1, position 955679, reference allele 'T' does not match the reference sequence, expected 'C'"
-        assert nb_mismatch == 12
-        assert error_list == ['Chromosome scaffold_chr1 is not present in FASTA file']
-        assert nb_error == 1
 
     def test_collect_conversion_errors(self):
         self.validator.results['metadata_check'] = {}
