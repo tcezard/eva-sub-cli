@@ -53,12 +53,13 @@ class XlsxParser:
             self.workbook = load_workbook(xlsx_filename, read_only=True)
         except Exception as e:
             self.add_error(f'Error loading {xlsx_filename}: {e}')
+            self.file_loaded = False
             return
-        self.worksheets = None
+        self.worksheets = self.valid_worksheets()
         self._active_worksheet = None
         self.row_offset = {}
         self.headers = {}
-        self.valid = None
+        self.file_loaded = True
         self.errors = []
 
     @property
@@ -77,7 +78,7 @@ class XlsxParser:
 
     def valid_worksheets(self):
         """
-        Get the list of the names of worksheets which have all the configured required headers
+        Get the list of the names of worksheets which have at least the expected header row.
         :return: list of valid worksheet names in the Excel file
         :rtype: list
         """
@@ -97,31 +98,12 @@ class XlsxParser:
             header_row = self.xlsx_conf[title].get(HEADERS_KEY_ROW, 1)
             if worksheet.max_row < header_row + 1:
                 continue
-            # Check required headers are present
+            # Store headers and worksheet title
             self.headers[title] = [cell.value if cell.value is None else cell.value.strip()
                                    for cell in worksheet[header_row]]
-            required_headers = self.xlsx_conf[title].get(REQUIRED_HEADERS_KEY_NAME, [])
-            if set(required_headers) <= set(self.headers[title]):  # issubset
-                self.worksheets.append(title)
-            else:
-                missing_headers = set(required_headers) - set(self.headers[title])
-                for header in missing_headers:
-                    self.add_error(f'Worksheet {title} is missing required header {header}',
-                                   sheet=title, column=header)
+            self.worksheets.append(title)
 
         return self.worksheets
-
-    def is_valid(self):
-        """
-        Check that is all the worksheets contain required headers
-        :return: True if all the worksheets contain required headers. False otherwise
-        :rtype: bool
-        """
-        if self.valid is None:
-            self.valid = True
-            self.valid_worksheets()
-
-        return self.valid
 
     @staticmethod
     def cast_value(value, type_name):
@@ -219,16 +201,17 @@ class XlsxParser:
         scientific_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SCIENTIFIC_NAME_KEY]
 
         # BioSample expects any of organism or species field
-        data[SPECIES] = data[scientific_name]
+        if scientific_name in data:
+            data[SPECIES] = data[scientific_name]
         # BioSample name goes in its own attribute, not part of characteristics
-        biosample_name = data.pop(sample_name)
-        # For all characteristics, BioSample expects value in arrays of objects
-        data = {k: [{'text': self.serialize(v)}] for k, v in data.items()}
+        biosample_name = data.pop(sample_name, None)
 
+        # For all characteristics, BioSample expects value in arrays of objects
         biosample_object = {
-            "name": biosample_name,
-            "characteristics": data
+            'characteristics': {k: [{'text': self.serialize(v)}] for k, v in data.items()}
         }
+        if biosample_name is not None:
+            biosample_object['name'] = biosample_name
 
         return biosample_object
 
@@ -263,20 +246,6 @@ class XlsxParser:
                 json_value.pop(analysis_alias)
                 json_value.pop(sample_name_in_vcf)
 
-                # Check for headers that are required only in this case
-                sample_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SAMPLE_NAME_KEY]
-                scientific_name = self.xlsx_conf[SAMPLE][OPTIONAL_HEADERS_KEY_NAME][SCIENTIFIC_NAME_KEY]
-                if sample_name not in json_value:
-                    self.add_error(f'If BioSample Accession is not provided, the {SAMPLE} worksheet should have '
-                                   f'{SAMPLE_NAME_KEY} populated',
-                                   sheet=SAMPLE, row=row_num, column=SAMPLE_NAME_KEY)
-                    return None
-                if scientific_name not in json_value:
-                    self.add_error(f'If BioSample Accession is not provided, the {SAMPLE} worksheet should have '
-                                   f'{SCIENTIFIC_NAME_KEY} populated',
-                                   sheet=SAMPLE, row=row_num, column=SCIENTIFIC_NAME_KEY)
-                    return None
-
                 biosample_obj = self.get_biosample_object(json_value)
                 sample_data.update(bioSampleObject=biosample_obj)
                 sample_json[json_key].append(sample_data)
@@ -284,9 +253,8 @@ class XlsxParser:
         return sample_json
 
     def json(self, output_json_file):
-        # First check that all sheets present have the required headers;
-        # also guards against the case where conversion fails in init
-        if not self.is_valid():
+        # If the file could not be loaded at all, return without generating JSON.
+        if not self.file_loaded:
             return
         json_data = {}
         for title in self.xlsx_conf[WORKSHEETS_KEY_NAME]:
@@ -295,8 +263,6 @@ class XlsxParser:
                 json_data.update(self.get_project_json_data())
             elif title == SAMPLE:
                 sample_data = self.get_sample_json_data()
-                if sample_data is None:  # missing conditionally required headers
-                    return
                 json_data.update(sample_data)
             else:
                 json_data[self.xlsx_conf[WORKSHEETS_KEY_NAME][title]] = []
@@ -324,7 +290,6 @@ class XlsxParser:
         """Adds a conversion error using the same structure as other validation errors,
         and marks the spreadsheet as invalid."""
         self.errors.append({'sheet': sheet, 'row': row, 'column': column, 'description': message})
-        self.valid = False
 
     def save_errors(self, errors_yaml_file):
         with open(errors_yaml_file, 'w') as open_file:
