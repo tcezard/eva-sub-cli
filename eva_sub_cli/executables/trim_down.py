@@ -76,6 +76,3 @@ def main():
     with open(args.output_yaml_file) as open_file:
         yaml.safe_dump(trim_down_metrics, open_file)
 
-
-
-
