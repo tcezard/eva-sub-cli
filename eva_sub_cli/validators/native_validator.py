@@ -11,9 +11,11 @@ logger = logging_config.get_logger(__name__)
 class NativeValidator(Validator):
 
     def __init__(self, mapping_file, submission_dir, project_title, metadata_json=None, metadata_xlsx=None,
-                 vcf_validator_path='vcf_validator', assembly_checker_path='vcf_assembly_checker',
-                 biovalidator_path='biovalidator', submission_config=None):
-        super().__init__(mapping_file, submission_dir, project_title, metadata_json=metadata_json, metadata_xlsx=metadata_xlsx,
+                 shallow_validation=False, vcf_validator_path='vcf_validator',
+                 assembly_checker_path='vcf_assembly_checker', biovalidator_path='biovalidator',
+                 submission_config=None):
+        super().__init__(mapping_file, submission_dir, project_title, metadata_json=metadata_json,
+                         metadata_xlsx=metadata_xlsx, shallow_validation=shallow_validation,
                          submission_config=submission_config)
         self.vcf_validator_path = vcf_validator_path
         self.assembly_checker_path = assembly_checker_path
@@ -41,15 +43,16 @@ class NativeValidator(Validator):
             metadata_flag = f"--metadata_json {self.metadata_json}"
         path_to_workflow = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                         'nextflow/validation.nf')
-        return (
-            f"nextflow run {path_to_workflow} "
-            f"--vcf_files_mapping {self.mapping_file} "
-            f"{metadata_flag} "
-            f"--output_dir {self.output_dir} "
-            f"--executable.vcf_validator {self.vcf_validator_path} "
-            f"--executable.vcf_assembly_checker {self.assembly_checker_path} "
+        return ''.join([
+            f"nextflow run {path_to_workflow} ",
+            f"--vcf_files_mapping {self.mapping_file} ",
+            f"{metadata_flag} ",
+            f"--output_dir {self.output_dir} ",
+            f"--shallow_validation true " if self.shallow_validation else "",
+            f"--executable.vcf_validator {self.vcf_validator_path} ",
+            f"--executable.vcf_assembly_checker {self.assembly_checker_path} ",
             f"--executable.biovalidator {self.biovalidator_path}"
-        )
+        ])
 
     def verify_executables_installed(self):
         for name, path in [('vcf-validator', self.vcf_validator_path),

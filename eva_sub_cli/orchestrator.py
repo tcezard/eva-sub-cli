@@ -25,6 +25,7 @@ NATIVE = 'native'
 
 logger = logging_config.get_logger(__name__)
 
+
 def get_vcf_files(mapping_file):
     vcf_files = []
     with open(mapping_file) as open_file:
@@ -58,6 +59,7 @@ def get_project_title_and_create_vcf_files_mapping(submission_dir, vcf_files, re
 
     return project_title, mapping_file
 
+
 def get_project_and_vcf_fasta_mapping_from_metadata_json(metadata_json, mapping_req=False):
     with open(metadata_json) as file:
         json_metadata = json.load(file)
@@ -71,12 +73,15 @@ def get_project_and_vcf_fasta_mapping_from_metadata_json(metadata_json, mapping_
             analysis_alias_dict = defaultdict(dict)
             for analysis in json_metadata['analysis']:
                 analysis_alias_dict[analysis['analysisAlias']]['referenceFasta'] = analysis['referenceFasta']
-                analysis_alias_dict[analysis['analysisAlias']]['assemblyReport'] = analysis['assemblyReport'] if 'assemblyReport' in analysis else ''
+                analysis_alias_dict[analysis['analysisAlias']]['assemblyReport'] = analysis['assemblyReport'] \
+                    if 'assemblyReport' in analysis else ''
 
-            for file in json_metadata['files']:
-                reference_fasta = analysis_alias_dict[file['analysisAlias']]['referenceFasta']
-                assembly_report = analysis_alias_dict[file['analysisAlias']]['assemblyReport']
-                vcf_fasta_report_mapping.append([os.path.abspath(file['fileName']), os.path.abspath(reference_fasta), os.path.abspath(assembly_report) if assembly_report else ''])
+            for file_dict in json_metadata['files']:
+                reference_fasta = analysis_alias_dict[file_dict['analysisAlias']]['referenceFasta']
+                assembly_report = analysis_alias_dict[file_dict['analysisAlias']]['assemblyReport']
+                vcf_fasta_report_mapping.append([os.path.abspath(file_dict['fileName']),
+                                                 os.path.abspath(reference_fasta),
+                                                 os.path.abspath(assembly_report) if assembly_report else ''])
 
     return project_title, vcf_fasta_report_mapping
 
@@ -137,18 +142,21 @@ def check_validation_required(tasks, sub_config, username=None, password=None):
             except requests.HTTPError as ex:
                 if ex.response.status_code == 404:
                     logger.error(
-                        f'Submission with id {submission_id} could not be found: statuc code: {ex.response.status_code} response: {ex.response.text}')
+                        f'Submission with id {submission_id} could not be found: '
+                        f'status code: {ex.response.status_code} response: {ex.response.text}')
                     raise SubmissionNotFoundException(f'Submission with id {submission_id} could not be found')
                 else:
-                    logger.error(f'Error occurred while getting status of the submission with Id {submission_id}: status code: {ex.response.status_code} response: {ex.response.text}')
-                    raise SubmissionStatusException(f'Error occurred while getting status of the submission with Id {submission_id}')
+                    logger.error(f'Error occurred while getting status of the submission with Id {submission_id}: '
+                                 f'status code: {ex.response.status_code} response: {ex.response.text}')
+                    raise SubmissionStatusException(f'Error occurred while getting status of the submission '
+                                                    f'with Id {submission_id}')
 
         logger.info(f'submission id not found in config. This might be the first time user is submitting')
         return False
 
 
 def orchestrate_process(submission_dir, vcf_files, reference_fasta, metadata_json, metadata_xlsx,
-                        tasks, executor, username=None, password=None, **kwargs):
+                        tasks, executor, username=None, password=None, shallow_validation=False, **kwargs):
     # load config
     config_file_path = os.path.join(submission_dir, SUB_CLI_CONFIG_FILE)
     sub_config = WritableConfig(config_file_path, version=__version__)
@@ -174,11 +182,11 @@ def orchestrate_process(submission_dir, vcf_files, reference_fasta, metadata_jso
     if VALIDATE in tasks:
         if executor == DOCKER:
             validator = DockerValidator(vcf_files_mapping, submission_dir, project_title, metadata_json, metadata_xlsx,
-                                        submission_config=sub_config)
+                                        shallow_validation=shallow_validation, submission_config=sub_config)
         # default to native execution
         else:
             validator = NativeValidator(vcf_files_mapping, submission_dir, project_title, metadata_json, metadata_xlsx,
-                                        submission_config=sub_config)
+                                        shallow_validation=shallow_validation, submission_config=sub_config)
         with validator:
             validator.validate_and_report()
             if not metadata_json:

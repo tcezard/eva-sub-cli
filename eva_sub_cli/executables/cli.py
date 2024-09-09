@@ -35,8 +35,7 @@ def validate_command_line_arguments(args, argparser):
         print(f"'{args.submission_dir}' does not have write permissions or is not a directory.")
         sys.exit(1)
 
-
-def main():
+def parse_args(cmd_line_args):
     argparser = ArgumentParser(prog='eva-sub-cli', description='EVA Submission CLI - validate and submit data to EVA')
     argparser.add_argument('--version', action='version', version=f'%(prog)s {eva_sub_cli.__version__}')
     argparser.add_argument('--submission_dir', required=True, type=str,
@@ -67,18 +66,26 @@ def main():
                                                                   'upload to the EVA')
     credential_group.add_argument("--username", help="Username used for connecting to the ENA webin account")
     credential_group.add_argument("--password", help="Password used for connecting to the ENA webin account")
-    argparser.add_argument('--debug', action='store_true', default=False, help='Set the script to output debug messages')
-
-    args = argparser.parse_args()
-
+    argparser.add_argument('--shallow', action='store_true', default=False,
+                           help='Set the validation to be performed on the first 10000 records of the VCF. '
+                                'Only applies if the number of record exceed 10000')
+    argparser.add_argument('--debug', action='store_true', default=False,
+                           help='Set the script to output debug messages')
+    args = argparser.parse_args(cmd_line_args)
     validate_command_line_arguments(args, argparser)
+    return args
+
+
+def main():
+
+    args = parse_args(sys.argv[1:])
 
     args.submission_dir = os.path.abspath(args.submission_dir)
 
     if args.debug:
         logging_config.add_stdout_handler(logging.DEBUG)
     else:
-        logging_config.add_stdout_handler()
+        logging_config.add_stdout_handler(logging.INFO)
     logging_config.add_file_handler(os.path.join(args.submission_dir, 'eva_submission.log'), logging.DEBUG)
 
     try:

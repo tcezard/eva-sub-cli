@@ -14,7 +14,8 @@ def get_logo_data():
         return logo_data
 
 
-def generate_html_report(validation_results, validation_date, submission_dir, vcf_fasta_analysis_mapping, project_title=None):
+def generate_html_report(validation_results, validation_date, submission_dir, vcf_fasta_analysis_mapping,
+                         project_title=None):
     vcf_files = sorted(set([file_name
                             for check in validation_results if check in ["vcf_check", "assembly_check"]
                             for file_name in validation_results[check]
@@ -32,7 +33,7 @@ def generate_html_report(validation_results, validation_date, submission_dir, vc
         fasta_files=fasta_files,
         submission_dir=submission_dir,
         vcf_fasta_analysis_mapping=vcf_fasta_analysis_mapping,
-        validation_results=validation_results,
+        validation_results=validation_results
     )
 
     try:

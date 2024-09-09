@@ -1,0 +1,29 @@
+
+{% macro optional_shallow_validation_report(validation_results) -%}
+    {% set results = validation_results.get('shallow_validation', {}) %}
+
+    {% if results.get('required') %}
+    <section>
+        <div class="report-section fail collapsible"> <span class="expand_icon">&#9654;</span>
+            &#10060; <b>You requested to run the shallow validation, please run full validation before submitting the data</b>
+        </div>
+        <div class="no-show">
+        <table>
+            <tr>
+                <th><strong>VCF File</strong></th>
+                <th><strong>Variant lines validated in VCF</strong></th>
+                <th><strong>Entries used in Fasta</strong></th>
+            </tr>
+            {% for vcf_file in results.get('metrics') %}
+                <tr>
+                    <td>{{ vcf_file }}</td>
+                    <td>{{ results.get('metrics').get(vcf_file).get('trim_down_vcf_record') }}</td>
+                    <td>{{ results.get('metrics').get(vcf_file).get('number_sequence_found') }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+{%- endmacro %}

@@ -87,7 +87,7 @@ class TestOrchestrator(unittest.TestCase):
             m_get_vcf.assert_called_once_with(self.mapping_file)
             m_docker_validator.assert_any_call(
                 self.mapping_file, self.test_sub_dir, self.project_title, self.metadata_json, self.metadata_xlsx,
-                submission_config=m_config.return_value
+                submission_config=m_config.return_value, shallow_validation=False
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
@@ -108,7 +108,7 @@ class TestOrchestrator(unittest.TestCase):
             # Validate was run because the config show it was not run successfully before
             m_docker_validator.assert_any_call(
                 self.mapping_file, self.test_sub_dir, self.project_title, self.metadata_json, self.metadata_xlsx,
-                submission_config=m_config.return_value
+                submission_config=m_config.return_value, shallow_validation=False
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
@@ -154,7 +154,7 @@ class TestOrchestrator(unittest.TestCase):
                     assert row['report'] == None
             m_docker_validator.assert_any_call(
                 self.mapping_file, self.test_sub_dir, self.project_title, self.metadata_json, self.metadata_xlsx,
-                submission_config=m_config.return_value
+                submission_config=m_config.return_value, shallow_validation=False
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
@@ -172,7 +172,7 @@ class TestOrchestrator(unittest.TestCase):
                     assert row['report'] == ''
             m_docker_validator.assert_any_call(
                 self.mapping_file, self.test_sub_dir, self.project_title, self.metadata_json, None,
-                submission_config=m_config.return_value
+                submission_config=m_config.return_value, shallow_validation=False
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
@@ -192,7 +192,7 @@ class TestOrchestrator(unittest.TestCase):
                     assert row['report'].__contains__('GCA_000001405.27_report.txt')
             m_docker_validator.assert_any_call(
                 self.mapping_file, self.test_sub_dir, self.project_title, self.metadata_json, None,
-                submission_config=m_config.return_value
+                submission_config=m_config.return_value, shallow_validation=False
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
@@ -212,7 +212,7 @@ class TestOrchestrator(unittest.TestCase):
                     assert row['report'] == None
             m_docker_validator.assert_any_call(
                 self.mapping_file, self.test_sub_dir, self.project_title, self.metadata_json, None,
-                submission_config=m_config.return_value
+                submission_config=m_config.return_value, shallow_validation=False
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 
@@ -232,7 +232,7 @@ class TestOrchestrator(unittest.TestCase):
                     assert row['report'] == ''
             m_docker_validator.assert_any_call(
                 self.mapping_file, self.test_sub_dir, self.project_title, None, self.metadata_xlsx,
-                submission_config=m_config.return_value
+                submission_config=m_config.return_value, shallow_validation=False
             )
             m_docker_validator().validate_and_report.assert_called_once_with()
 

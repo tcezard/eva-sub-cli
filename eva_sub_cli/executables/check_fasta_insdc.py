@@ -10,6 +10,7 @@ from ebi_eva_common_pyutils.logger import logging_config
 from requests import HTTPError
 from retry import retry
 
+from eva_sub_cli.file_utils import fasta_iter
 from eva_sub_cli.metadata_utils import get_files_per_analysis, get_analysis_for_vcf_file, \
     get_reference_assembly_for_analysis
 
@@ -19,13 +20,6 @@ CONTIG_ALIAS_SERVER = 'https://www.ebi.ac.uk/eva/webservices/contig-alias/v1/chr
 logger = logging_config.get_logger(__name__)
 
 
-def open_gzip_if_required(input_file):
-    if input_file.endswith('.gz'):
-        return gzip.open(input_file, 'rt')
-    else:
-        return open(input_file, 'r')
-
-
 def write_result_yaml(output_yaml, results):
     with open(output_yaml, 'w') as open_yaml:
         yaml.safe_dump(data=results, stream=open_yaml)
@@ -33,27 +27,6 @@ def write_result_yaml(output_yaml, results):
 
 def refget_md5_digest(sequence):
     return hashlib.md5(sequence.upper().encode('utf-8')).hexdigest()
-
-
-def fasta_iter(input_fasta):
-    """
-    Given a fasta file. yield tuples of header, sequence
-    """
-    # first open the file outside
-    with open(input_fasta, 'r') as open_file:
-
-        # ditch the boolean (x[0]) and just keep the header or sequence since
-        # we know they alternate.
-        faiter = (x[1] for x in groupby(open_file, lambda line: line[0] == ">"))
-
-        for header in faiter:
-            # drop the ">"
-            headerStr = header.__next__()[1:].strip()
-
-            # join all sequence lines to one.
-            seq = "".join(s.strip() for s in faiter.__next__())
-            yield (headerStr, seq)
-
 
 @retry(exceptions=(HTTPError,), tries=3, delay=2, backoff=1.2, jitter=(1, 3))
 def get_refget_metadata(md5_digest):

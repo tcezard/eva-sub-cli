@@ -4,6 +4,7 @@
 {% from 'sample_name_check.html' import sample_name_check_report %}
 {% from 'fasta_check.html' import fasta_check_report %}
 {% from 'metadata_validation.html' import metadata_validation_report %}
+{% from 'shallow_validation.html' import optional_shallow_validation_report %}
 
 <html lang="EN">
 <head>
@@ -45,6 +46,8 @@
         <h6>eva-sub-cli v{{cli_version}}</h6>
     </div>
 </header>
+
+{{ optional_shallow_validation_report(validation_results) }}
 
 <section>
     <h2>Project Summary</h2>

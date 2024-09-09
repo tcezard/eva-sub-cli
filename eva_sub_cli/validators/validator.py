@@ -5,7 +5,6 @@ import glob
 import json
 import logging
 import os
-import re
 from functools import lru_cache, cached_property
 
 import yaml
@@ -13,9 +12,13 @@ from ebi_eva_common_pyutils.command_utils import run_command_with_output
 from ebi_eva_common_pyutils.config import WritableConfig
 
 from eva_sub_cli import ETC_DIR, SUB_CLI_CONFIG_FILE, __version__
-from eva_sub_cli.file_utils import backup_file_or_directory
+from eva_sub_cli.file_utils import backup_file_or_directory, resolve_single_file_path
 from eva_sub_cli.report import generate_html_report
 from ebi_eva_common_pyutils.logger import logging_config, AppLogger
+
+from eva_sub_cli.validators.validation_results_parsers import parse_assembly_check_log, parse_assembly_check_report, \
+    parse_biovalidator_validation_results, convert_metadata_sheet, convert_metadata_row, convert_metadata_attribute, \
+    parse_vcf_check_report, parse_metadata_property
 
 VALIDATION_OUTPUT_DIR = "validation_output"
 VALIDATION_RESULTS = 'validation_results'
@@ -24,18 +27,10 @@ READY_FOR_SUBMISSION_TO_EVA = 'ready_for_submission_to_eva'
 logger = logging_config.get_logger(__name__)
 
 
-def resolve_single_file_path(file_path):
-    files = glob.glob(file_path)
-    if len(files) == 0:
-        return None
-    elif len(files) > 0:
-        return files[0]
-
-
 class Validator(AppLogger):
 
     def __init__(self, mapping_file, submission_dir, project_title=None, metadata_json=None, metadata_xlsx=None,
-                 submission_config: WritableConfig = None):
+                 shallow_validation=False, submission_config: WritableConfig = None):
         # validator write to the validation output directory
         # If the submission_config is not set it will also be written to the VALIDATION_OUTPUT_DIR
         self.submission_dir = submission_dir
@@ -44,11 +39,12 @@ class Validator(AppLogger):
         vcf_files, fasta_files = self._find_vcf_and_fasta_files()
         self.vcf_files = vcf_files
         self.fasta_files = fasta_files
-        self.results = {}
+        self.results = {'shallow_validation': {'requested': shallow_validation}}
         self.project_title = project_title
         self.validation_date = datetime.datetime.now()
         self.metadata_json = metadata_json
         self.metadata_xlsx = metadata_xlsx
+        self.shallow_validation = shallow_validation
         if submission_config:
             self.sub_config = submission_config
         else:
@@ -132,7 +128,7 @@ class Validator(AppLogger):
         files_missing, missing_files_list = self.check_if_file_missing()
         if files_missing:
             raise FileNotFoundError(f"some files (vcf/fasta) mentioned in metadata file could not be found. "
-                               f"Missing files list {missing_files_list}")
+                                    f"Missing files list {missing_files_list}")
 
     def check_if_file_missing(self):
         files_missing = False
@@ -157,105 +153,31 @@ class Validator(AppLogger):
         self.sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=self.verify_ready_for_submission_to_eva())
 
     def verify_ready_for_submission_to_eva(self):
-        # TODO:  check validation results and confirm if they are good enough for submitting to EVA
-        return True
-
-    def parse_assembly_check_log(self, assembly_check_log):
-        error_list = []
-        nb_error, nb_mismatch = 0, 0
-        match = total = None
-        with open(assembly_check_log) as open_file:
-            for line in open_file:
-                if line.startswith('[error]'):
-                    nb_error += 1
-                    if nb_error < 11:
-                        error_list.append(line.strip()[len('[error] '):])
-                elif line.startswith('[info] Number of matches:'):
-                    match, total = line.strip()[len('[info] Number of matches: '):].split('/')
-                    match = int(match)
-                    total = int(total)
-        return error_list, nb_error, match, total
-
-    def parse_assembly_check_report(self, assembly_check_report):
-        mismatch_list = []
-        nb_mismatch = 0
-        nb_error = 0
-        error_list = []
-        with open(assembly_check_report) as open_file:
-            for line in open_file:
-                if 'does not match the reference sequence' in line:
-                    nb_mismatch += 1
-                    if nb_mismatch < 11:
-                        mismatch_list.append(line.strip())
-                elif 'Multiple synonyms' in line:
-                    nb_error += 1
-                    if nb_error < 11:
-                        error_list.append(line.strip())
-                # Contig not found in FASTA is reported here rather than in logs when no assembly report is used.
-                # Count and report once per contig name rather than once per line, to avoid redundant errors.
-                elif 'is not present in FASTA file' in line:
-                    line_num, error_msg = line.split(': ')
-                    error_msg = error_msg.strip()
-                    if error_msg not in error_list:
-                        nb_error += 1
-                        if nb_error < 11:
-                            error_list.append(error_msg)
-        return mismatch_list, nb_mismatch, error_list, nb_error
-
-    def parse_vcf_check_report(self, vcf_check_report):
-        valid = True
-        max_error_reported = 10
-        error_list, critical_list = [], []
-        warning_count = error_count = critical_count = 0
-        with open(vcf_check_report) as open_file:
-            for line in open_file:
-                if 'warning' in line:
-                    warning_count = 1
-                elif line.startswith('According to the VCF specification'):
-                    if 'not' in line:
-                        valid = False
-                elif self.vcf_check_errors_is_critical(line.strip()):
-                    critical_count += 1
-                    if critical_count <= max_error_reported:
-                        critical_list.append(line.strip())
-                else:
-                    error_count += 1
-                    if error_count <= max_error_reported:
-                        error_list.append(line.strip())
-
-        return valid, warning_count, error_count, critical_count, error_list, critical_list
-
-    def vcf_check_errors_is_critical(self, error):
         """
-        This function identify VCF check errors that are not critical for the processing of the VCF within EVA.
-        They affect specific INFO or FORMAT fields that are used in the variant detection but less so in the downstream analysis.
-        Critical:
-        Reference and alternate alleles must not be the same.
-        Requested evidence presence with --require-evidence. Please provide genotypes (GT field in FORMAT and samples), or allele frequencies (AF field in INFO), or allele counts (AC and AN fields in INFO)..
-        Contig is not sorted by position. Contig chr10 position 41695506 found after 41883113.
-        Duplicated variant chr1A:1106203:A>G found.
-        Metadata description string is not valid.
-
-        Error
-        Sample #10, field PL does not match the meta specification Number=G (expected 2 value(s)). PL=.. It must derive its number of values from the ploidy of GT (if present), or assume diploidy. Contains 1 value(s), expected 2 (derived from ploidy 1).
-        Sample #102, field AD does not match the meta specification Number=R (expected 3 value(s)). AD=..
+        Assess if the validation results are meeting expectations
+        It assumes all validation have been parsed already.
         """
-        non_critical_format_fields = ['PL', 'AD', 'AC']
-        non_critical_info_fields = ['AC']
-        regexes = {
-            r'^INFO (\w+) does not match the specification Number': non_critical_format_fields,
-            r'^Sample #\d+, field (\w+) does not match the meta specification Number=': non_critical_info_fields
-        }
-        for regex in regexes:
-            match = re.match(regex, error)
-            if match:
-                field_affected = match.group(1)
-                if field_affected in regexes[regex]:
-                    return False
-        return True
+        return all((
+            self.results.get('vcf_check', {}).get('critical_count', 1) == 0,
+            self.results.get('assembly_check', {}).get('nb_mismatch', 1) == 0,
+            self.results.get('assembly_check', {}).get('nb_error', 1) == 0,
+            all((
+                fa_file_check.get('all_insdc', False) is True
+                for fa_file, fa_file_check in self.results.get('fasta_check', {}).items()
+            )),
+            self.results.get('sample_check', {}).get('overall_differences', True) is False,
+            len(self.results.get('metadata_check', {}).get('spreadsheet_errors', [])) == 0,
+            len(self.results.get('metadata_check', {}).get('json_errors', [])) == 0,
+            any((
+                self.results['shallow_validation']['requested'] is False,
+                self.results['shallow_validation'].get('required', True) is False
+            ))
+        ))
 
     def _collect_validation_workflow_results(self):
         # Collect information from the output and summarise in the config
+        if self.shallow_validation:
+            self._collect_trim_down_metrics()
         self._collect_vcf_check_results()
         self._collect_assembly_check_results()
         self._load_sample_check_results()
@@ -280,30 +202,6 @@ class Validator(AppLogger):
             os.path.join(self.output_dir, 'vcf_format', vcf_name + '.*.db')
         )
 
-    def _collect_vcf_check_results(self,):
-        # detect output files for vcf check
-        self.results['vcf_check'] = {}
-        for vcf_file in self.vcf_files:
-            vcf_name = os.path.basename(vcf_file)
-
-            vcf_check_log = self._vcf_check_log(vcf_name)
-            vcf_check_text_report = self._vcf_check_text_report(vcf_name)
-            vcf_check_db_report = self._vcf_check_db_report(vcf_name)
-
-            if vcf_check_log and vcf_check_text_report and vcf_check_db_report:
-                valid, warning_count, error_count, critical_count, error_list, critical_list = self.parse_vcf_check_report(vcf_check_text_report)
-            else:
-                valid, warning_count, error_count, critical_count, error_list, critical_list = (False, 0, 0, 1, [], ['Process failed'])
-            self.results['vcf_check'][vcf_name] = {
-                'report_path': vcf_check_text_report,
-                'valid': valid,
-                'error_list': error_list,
-                'error_count': error_count,
-                'warning_count': warning_count,
-                'critical_count': critical_count,
-                'critical_list': critical_list
-            }
-
     @lru_cache
     def _assembly_check_log(self, vcf_name):
         return resolve_single_file_path(
@@ -316,6 +214,34 @@ class Validator(AppLogger):
             os.path.join(self.output_dir, 'assembly_check', vcf_name + '*text_assembly_report*')
         )
 
+    @cached_property
+    def _sample_check_yaml(self):
+        return resolve_single_file_path(os.path.join(self.output_dir, 'other_validations', 'sample_checker.yml'))
+
+    def _collect_vcf_check_results(self,):
+        # detect output files for vcf check
+        self.results['vcf_check'] = {}
+        for vcf_file in self.vcf_files:
+            vcf_name = os.path.basename(vcf_file)
+
+            vcf_check_log = self._vcf_check_log(vcf_name)
+            vcf_check_text_report = self._vcf_check_text_report(vcf_name)
+            vcf_check_db_report = self._vcf_check_db_report(vcf_name)
+
+            if vcf_check_log and vcf_check_text_report and vcf_check_db_report:
+                valid, warning_count, error_count, critical_count, error_list, critical_list = parse_vcf_check_report(vcf_check_text_report)
+            else:
+                valid, warning_count, error_count, critical_count, error_list, critical_list = (False, 0, 0, 1, [], ['Process failed'])
+            self.results['vcf_check'][vcf_name] = {
+                'report_path': vcf_check_text_report,
+                'valid': valid,
+                'error_list': error_list,
+                'error_count': error_count,
+                'warning_count': warning_count,
+                'critical_count': critical_count,
+                'critical_list': critical_list
+            }
+
     def _collect_assembly_check_results(self):
         # detect output files for assembly check
         self.results['assembly_check'] = {}
@@ -327,9 +253,9 @@ class Validator(AppLogger):
 
             if assembly_check_log and assembly_check_text_report:
                 error_list_from_log, nb_error_from_log, match, total = \
-                    self.parse_assembly_check_log(assembly_check_log)
+                    parse_assembly_check_log(assembly_check_log)
                 mismatch_list, nb_mismatch, error_list_from_report, nb_error_from_report = \
-                    self.parse_assembly_check_report(assembly_check_text_report)
+                    parse_assembly_check_report(assembly_check_text_report)
                 nb_error = nb_error_from_log + nb_error_from_report
                 error_list = error_list_from_log + error_list_from_report
             else:
@@ -343,10 +269,6 @@ class Validator(AppLogger):
                 'match': match,
                 'total': total
             }
-
-    @cached_property
-    def _sample_check_yaml(self):
-        return resolve_single_file_path(os.path.join(self.output_dir, 'other_validations', 'sample_checker.yml'))
 
     def _load_fasta_check_results(self):
         for fasta_file in self.fasta_files:
@@ -370,8 +292,8 @@ class Validator(AppLogger):
     def _collect_metadata_results(self):
         self.results['metadata_check'] = {}
         self._load_spreadsheet_conversion_errors()
-        self._parse_biovalidator_validation_results()
-        self._parse_semantic_metadata_results()
+        self.collect_biovalidator_validation_results()
+        self._collect_semantic_metadata_results()
         if self.metadata_xlsx:
             self._convert_biovalidator_validation_to_spreadsheet()
             self._write_spreadsheet_validation_results()
@@ -385,64 +307,19 @@ class Validator(AppLogger):
         with open(errors_file) as open_yaml:
             self.results['metadata_check']['spreadsheet_errors'] = yaml.safe_load(open_yaml)
 
-    def _parse_biovalidator_validation_results(self):
+    def collect_biovalidator_validation_results(self):
         """
         Read the biovalidator's report and extract the list of validation errors
         """
         metadata_check_file = resolve_single_file_path(os.path.join(self.output_dir, 'other_validations',
                                                                     'metadata_validation.txt'))
-        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-
-        def clean_read(ifile):
-            l = ifile.readline()
-            if l:
-                return ansi_escape.sub('', l).strip()
-
-        if not metadata_check_file:
-            return
-        with open(metadata_check_file) as open_file:
-            errors = []
-            collect = False
-            while True:
-                line = clean_read(open_file)
-                if line is None:
-                    break  # EOF
-                elif not line:
-                    continue  # Empty line
-                if not collect:
-                    if line.startswith('Validation failed with following error(s):'):
-                        collect = True
-                else:
-                    line2 = clean_read(open_file)
-                    if line is None or line2 is None:
-                        break  # EOF
-                    errors.append({'property': line, 'description': line2})
+        errors = parse_biovalidator_validation_results(metadata_check_file)
         self.results['metadata_check'].update({
             'json_report_path': metadata_check_file,
             'json_errors': errors
         })
 
-    def _parse_metadata_property(self, property_str):
-        if property_str.startswith('.'):
-            return property_str.strip('./'), None, None
-        # First attempt to parse as BioSample object
-        sheet, row, col = self._parse_sample_metadata_property(property_str)
-        if sheet is not None and row is not None and col is not None:
-            return sheet, row, col
-        match = re.match(r'/(\w+)(/(\d+))?([./](\w+))?', property_str)
-        if match:
-            return match.group(1), match.group(3), match.group(5)
-        else:
-            logger.error(f'Cannot parse {property_str} in JSON metadata error')
-            return None, None, None
-
-    def _parse_sample_metadata_property(self, property_str):
-        match = re.match(r'/sample/(\d+)/bioSampleObject/characteristics/(\w+)', property_str)
-        if match:
-            return 'sample', match.group(1), match.group(2)
-        return None, None, None
-
-    def _parse_semantic_metadata_results(self):
+    def _collect_semantic_metadata_results(self):
         errors_file = resolve_single_file_path(os.path.join(self.output_dir, 'other_validations',
                                                             'metadata_semantic_check.yml'))
         if not errors_file:
@@ -461,13 +338,13 @@ class Validator(AppLogger):
         if 'spreadsheet_errors' not in self.results['metadata_check']:
             self.results['metadata_check']['spreadsheet_errors'] = []
         for error in self.results['metadata_check'].get('json_errors', {}):
-            sheet_json, row_json, attribute_json = self._parse_metadata_property(error['property'])
+            sheet_json, row_json, attribute_json = parse_metadata_property(error['property'])
             # There should only be one Project but adding the row back means it's easier for users to find
             if sheet_json == 'project' and row_json is None:
                 row_json = 0
-            sheet = self._convert_metadata_sheet(sheet_json, xls2json_conf)
-            row = self._convert_metadata_row(sheet, row_json, xls2json_conf)
-            column = self._convert_metadata_attribute(sheet, attribute_json, xls2json_conf)
+            sheet = convert_metadata_sheet(sheet_json, xls2json_conf)
+            row = convert_metadata_row(sheet, row_json, xls2json_conf)
+            column = convert_metadata_attribute(sheet, attribute_json, xls2json_conf)
             if row_json is None and attribute_json is None:
                 new_description = f'Sheet "{sheet}" is missing'
             elif row_json is None:
@@ -502,31 +379,6 @@ class Validator(AppLogger):
                 for error_dict in self.results['metadata_check']['spreadsheet_errors']:
                     open_file.write(error_dict.get('description') + '\n')
             self.results['metadata_check']['spreadsheet_report_path'] = spreadsheet_report_file
-
-    def _convert_metadata_sheet(self, json_attribute, xls2json_conf):
-        if json_attribute is None:
-            return None
-        for sheet_name in xls2json_conf['worksheets']:
-            if xls2json_conf['worksheets'][sheet_name] == json_attribute:
-                return sheet_name
-
-    def _convert_metadata_row(self, sheet, json_row, xls2json_conf):
-        if json_row is None:
-            return ''
-        if 'header_row' in xls2json_conf[sheet]:
-            return int(json_row) + xls2json_conf[sheet]['header_row']
-        else:
-            return int(json_row) + 2
-
-    def _convert_metadata_attribute(self, sheet, json_attribute, xls2json_conf):
-        if json_attribute is None:
-            return ''
-        attributes_dict = {}
-        attributes_dict.update(xls2json_conf[sheet].get('required', {}))
-        attributes_dict.update(xls2json_conf[sheet].get('optional', {}))
-        for attribute in attributes_dict:
-            if attributes_dict[attribute] == json_attribute:
-                return attribute
 
     def _collect_file_info_to_metadata(self):
         md5sum_file = resolve_single_file_path(os.path.join(self.output_dir, 'other_validations', 'file_info.txt'))
@@ -576,6 +428,20 @@ class Validator(AppLogger):
         else:
             self.error(f'Cannot locate the metadata in JSON format in {os.path.join(self.output_dir, "metadata.json")}')
 
+    def _collect_trim_down_metrics(self):
+        self.results['shallow_validation']['metrics'] = {}
+        shallow_validation_required = False
+        for vcf_file in self.vcf_files:
+            basename = os.path.basename(vcf_file)
+            vcf_name, _ = os.path.splitext(basename)
+            trimmed_down_metrics = resolve_single_file_path(os.path.join(self.output_dir, 'other_validations',
+                                                                         f'{vcf_name}_trim_down.yml'))
+            with open(trimmed_down_metrics) as open_file:
+                metrics = yaml.safe_load(open_file)
+                shallow_validation_required = shallow_validation_required or metrics['trim_down_required']
+                self.results['shallow_validation']['metrics'][vcf_file] = metrics
+        self.results['shallow_validation']['required'] = shallow_validation_required
+
     def get_vcf_fasta_analysis_mapping(self):
         vcf_fasta_analysis_mapping = []
         with open(self.mapping_file) as open_file:
@@ -608,7 +474,8 @@ class Validator(AppLogger):
 
     def create_reports(self):
         report_html = generate_html_report(self.results, self.validation_date, self.submission_dir,
-                                           self.get_vcf_fasta_analysis_mapping(), self.project_title)
+                                           self.get_vcf_fasta_analysis_mapping(),
+                                           self.project_title)
         file_path = os.path.join(self.output_dir, 'report.html')
         with open(file_path, "w") as f:
             f.write(report_html)
