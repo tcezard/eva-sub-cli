@@ -37,24 +37,15 @@ class DockerValidator(Validator):
         return f'{container_validation_dir}/{file_path}'
 
     def get_docker_validation_cmd(self):
-        if self.metadata_xlsx and not self.metadata_json:
-            docker_cmd = ''.join([
-                f"{self.docker_path} exec {self.container_name} nextflow run eva_sub_cli/nextflow/validation.nf ",
-                f"--base_dir {container_validation_dir} ",
-                f"--vcf_files_mapping {self.mapping_file} ",
-                f"--metadata_xlsx {self.metadata_xlsx} ",
-                f"--shallow_validation true " if self.shallow_validation else "",
-                f"--output_dir {container_validation_output_dir}"
-            ])
-        else:
-            docker_cmd = ''.join([
-                f"{self.docker_path} exec {self.container_name} nextflow run eva_sub_cli/nextflow/validation.nf ",
-                f"--base_dir {container_validation_dir} ",
-                f"--vcf_files_mapping {self.mapping_file} ",
-                f"--metadata_json {self.metadata_json} ",
-                f"--shallow_validation true " if self.shallow_validation else "",
-                f"--output_dir {container_validation_output_dir}"
-            ])
+        docker_cmd = ''.join([
+            f"{self.docker_path} exec {self.container_name} nextflow run eva_sub_cli/nextflow/validation.nf ",
+            f"--base_dir {container_validation_dir} ",
+            f"--vcf_files_mapping {self.mapping_file} ",
+            f"--metadata_xlsx {self.metadata_xlsx} " if self.metadata_xlsx and not self.metadata_json
+                                                     else f"--metadata_json {self.metadata_json} ",
+            f"--shallow_validation true " if self.shallow_validation else "",
+            f"--output_dir {container_validation_output_dir}"
+        ])
         return docker_cmd
 
     def run_docker_validator(self):

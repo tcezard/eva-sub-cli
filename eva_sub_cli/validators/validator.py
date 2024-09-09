@@ -167,6 +167,7 @@ class Validator(AppLogger):
             )),
             self.results.get('sample_check', {}).get('overall_differences', True) is False,
             len(self.results.get('metadata_check', {}).get('spreadsheet_errors', [])) == 0,
+            len(self.results.get('metadata_check', {}).get('json_errors', [])) == 0,
             any((
                 self.results['shallow_validation']['requested'] is False,
                 self.results['shallow_validation'].get('required', True) is False
