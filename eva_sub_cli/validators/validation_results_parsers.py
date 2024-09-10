@@ -164,6 +164,9 @@ def convert_metadata_attribute(sheet, json_attribute, xls2json_conf):
     attributes_dict = {}
     attributes_dict.update(xls2json_conf[sheet].get('required', {}))
     attributes_dict.update(xls2json_conf[sheet].get('optional', {}))
+    attributes_dict['Scientific Name'] = 'species'
+    attributes_dict['BioSample Name'] = 'name'
+
     for attribute in attributes_dict:
         if attributes_dict[attribute] == json_attribute:
             return attribute
@@ -185,7 +188,12 @@ def parse_metadata_property(property_str):
 
 
 def parse_sample_metadata_property(property_str):
+    # Check characteristics
     match = re.match(r'/sample/(\d+)/bioSampleObject/characteristics/(\w+)', property_str)
     if match:
         return 'sample', match.group(1), match.group(2)
+    # Check name
+    match = re.match(r'/sample/(\d+)/bioSampleObject/name', property_str)
+    if match:
+        return 'sample', match.group(1), 'name'
     return None, None, None

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import csv
 import datetime
-import glob
 import json
 import logging
 import os
@@ -345,7 +344,7 @@ class Validator(AppLogger):
             sheet = convert_metadata_sheet(sheet_json, xls2json_conf)
             row = convert_metadata_row(sheet, row_json, xls2json_conf)
             column = convert_metadata_attribute(sheet, attribute_json, xls2json_conf)
-            if row_json is None and attribute_json is None:
+            if row_json is None and attribute_json is None and sheet is not None:
                 new_description = f'Sheet "{sheet}" is missing'
             elif row_json is None:
                 if 'have required' not in error['description']:

@@ -80,8 +80,8 @@ class TestValidator(TestCase):
                 ],
                 'spreadsheet_errors': [
                     # NB. Wouldn't normally get conversion error + validation errors together, but it is supported.
-                    {'sheet': 'Project', 'row': '', 'column': 'Tax ID',
-                     'description': 'Worksheet Project is missing required header Tax ID'},
+                    {'sheet': '', 'row': '', 'column': '',
+                     'description': 'Error loading problem.xlsx: Exception()'},
                     {'sheet': 'Files', 'row': '', 'column': '', 'description': 'Sheet "Files" is missing'},
                     {'sheet': 'Project', 'row': 2, 'column': 'Project Title',
                      'description': 'Column "Project Title" is not populated'},
@@ -170,8 +170,8 @@ class TestValidator(TestCase):
                      'description': 'alias_1,alias_2 present in Samples not in Analysis'},
                 ],
                 'spreadsheet_errors': [
-                    {'sheet': 'Project', 'row': '', 'column': 'Tax ID',
-                     'description': 'Worksheet Project is missing required header Tax ID'}
+                    {'sheet': '', 'row': '', 'column': '',
+                     'description': 'Error loading problem.xlsx: Exception()'}
                 ]
             }
         }
@@ -223,6 +223,19 @@ class TestValidator(TestCase):
                 {'property': '/sample/0/bioSampleObject',
                  'description': "should have required property 'bioSampleObject'"},
                 {'property': '/sample/0', 'description': 'should match exactly one schema in oneOf'},
+                # Missing BioSamples attributes
+                {'property': '/sample/3/bioSampleObject/name',
+                 'description': "must have required property 'name'"},
+                {'property': '/sample/3/bioSampleObject/characteristics/organism',
+                 'description': "must have required property 'organism'"},
+                {'property': '/sample/3/bioSampleObject/characteristics/Organism',
+                 'description': "must have required property 'Organism'"},
+                {'property': '/sample/3/bioSampleObject/characteristics/species',
+                 'description': "must have required property 'species'"},
+                {'property': '/sample/3/bioSampleObject/characteristics/Species',
+                 'description': "must have required property 'Species'"},
+                {'property': '/sample/3/bioSampleObject/characteristics',
+                 'description': 'must match a schema in anyOf'},
                 # Semantic checks
                 {'property': '/project/childProjects/1', 'description': 'PRJEBNA does not exist or is private'},
                 {'property': '/sample/2/bioSampleObject/characteristics/taxId',
@@ -248,6 +261,10 @@ class TestValidator(TestCase):
              'description': 'Column "Reference" is not populated'},
             {'sheet': 'Sample', 'row': 3, 'column': 'Sample Accession',
              'description': 'Column "Sample Accession" is not populated'},
+            {'sheet': 'Sample', 'row': 6, 'column': 'BioSample Name',
+             'description': 'Column "BioSample Name" is not populated'},
+            {'sheet': 'Sample', 'row': 6, 'column': 'Scientific Name',
+             'description': 'Column "Scientific Name" is not populated'},
             {'sheet': 'Project', 'row': 2, 'column': 'Child Project(s)',
              'description': 'PRJEBNA does not exist or is private'},
             {'sheet': 'Sample', 'row': 5, 'column': 'Tax Id', 'description': '1234 is not a valid taxonomy code'},
@@ -261,8 +278,8 @@ class TestValidator(TestCase):
         self.validator.results['metadata_check'] = {}
         self.validator._load_spreadsheet_conversion_errors()
         assert self.validator.results['metadata_check']['spreadsheet_errors'] == [{
-                'column': 'Tax ID',
-                'description': 'Worksheet Project is missing required header Tax ID',
+                'column': '',
+                'description': 'Error loading problem.xlsx: Exception()',
                 'row': '',
-                'sheet': 'Project'
+                'sheet': ''
             }]

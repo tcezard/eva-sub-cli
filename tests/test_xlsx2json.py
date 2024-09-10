@@ -1,6 +1,5 @@
 import json
 import os
-from copy import deepcopy
 from unittest import TestCase
 
 import jsonschema

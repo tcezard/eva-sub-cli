@@ -52,7 +52,7 @@ class XlsxParser:
         try:
             self.workbook = load_workbook(xlsx_filename, read_only=True)
         except Exception as e:
-            self.add_error(f'Error loading {xlsx_filename}: {e}')
+            self.add_error(f'Error loading {xlsx_filename}: {repr(e)}')
             self.file_loaded = False
             return
         self.worksheets = []
