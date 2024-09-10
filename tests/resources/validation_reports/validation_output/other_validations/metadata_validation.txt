@@ -26,4 +26,19 @@
 	should have required property 'bioSampleObject'
 /sample/0
 	should match exactly one schema in oneOf
+/sample/3/bioSampleObject/name
+        must have required property 'name'
+        must have required property 'name'
+        must have required property 'name'
+/sample/3/bioSampleObject/characteristics/organism
+        must have required property 'organism'
+        must have required property 'organism'
+/sample/3/bioSampleObject/characteristics/Organism
+        must have required property 'Organism'
+/sample/3/bioSampleObject/characteristics/species
+        must have required property 'species'
+/sample/3/bioSampleObject/characteristics/Species
+        must have required property 'Species'
+/sample/3/bioSampleObject/characteristics
+        must match a schema in anyOf
  [0m

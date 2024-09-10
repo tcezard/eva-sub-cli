@@ -134,6 +134,10 @@ def parse_biovalidator_validation_results(metadata_check_file):
                 if line.startswith('Validation failed with following error(s):'):
                     collect = True
             else:
+                while line and not line.startswith('/'):
+                    # Sometimes there are multiple (possibly redundant) errors listed under a single property,
+                    # we only report the first
+                    line = clean_read(open_file)
                 line2 = clean_read(open_file)
                 if line is None or line2 is None:
                     break  # EOF
