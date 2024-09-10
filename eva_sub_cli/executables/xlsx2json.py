@@ -55,12 +55,13 @@ class XlsxParser:
             self.add_error(f'Error loading {xlsx_filename}: {e}')
             self.file_loaded = False
             return
-        self.worksheets = self.valid_worksheets()
+        self.worksheets = []
         self._active_worksheet = None
         self.row_offset = {}
         self.headers = {}
         self.file_loaded = True
         self.errors = []
+        self.valid_worksheets()
 
     @property
     def active_worksheet(self):
@@ -78,14 +79,8 @@ class XlsxParser:
 
     def valid_worksheets(self):
         """
-        Get the list of the names of worksheets which have at least the expected header row.
-        :return: list of valid worksheet names in the Excel file
-        :rtype: list
+        Get the list of the names of worksheets which have the expected title and header row.
         """
-        if self.worksheets is not None:
-            return self.worksheets
-
-        self.worksheets = []
         sheet_titles = self.workbook.sheetnames
 
         for title in self.xlsx_conf[WORKSHEETS_KEY_NAME]:
@@ -102,8 +97,6 @@ class XlsxParser:
             self.headers[title] = [cell.value if cell.value is None else cell.value.strip()
                                    for cell in worksheet[header_row]]
             self.worksheets.append(title)
-
-        return self.worksheets
 
     @staticmethod
     def cast_value(value, type_name):

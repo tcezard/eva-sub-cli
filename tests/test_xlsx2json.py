@@ -1,5 +1,6 @@
 import json
 import os
+from copy import deepcopy
 from unittest import TestCase
 
 import jsonschema
@@ -63,7 +64,7 @@ class TestXlsReader(TestCase):
         create_xls_template_from_yaml(metadata_file, self.conf_filename)
         assert os.path.exists(metadata_file)
 
-    def test_json_conversion_fails(self):
+    def test_json_conversion_succeeds_with_invalid_metadata(self):
         xls_filename = os.path.join(self.resource_dir, 'EVA_Submission_test_fails.xlsx')
         self.parser = XlsxParser(xls_filename, self.conf_filename)
         output_json = os.path.join(self.resource_dir, 'EVA_Submission_test_output.json')
@@ -71,15 +72,22 @@ class TestXlsReader(TestCase):
         self.parser.json(output_json)
         self.parser.save_errors(errors_yaml)
 
-        assert not os.path.exists(output_json)
+        # confirm no errors
         with open(errors_yaml) as open_file:
             errors_data = yaml.safe_load(open_file)
-            assert errors_data == [{
-                'sheet': 'Project',
-                'row': '',
-                'column': 'Tax ID',
-                'description': 'Worksheet Project is missing required header Tax ID'
-            }]
+            assert errors_data == []
+
+        # json file exists but missing fields
+        assert os.path.exists(output_json)
+        with open(output_json) as open_file:
+            json_data = json.load(open_file)
+            assert sorted(json_data.keys()) == ['analysis', 'files', 'project', 'sample', 'submitterDetails']
+            # required field taxId is missing
+            assert 'taxId' not in json_data['project']
+            # novel sample is missing scientific name in characteristics and sample name
+            novel_sample = json_data['sample'][3]['bioSampleObject']
+            assert 'name' not in novel_sample
+            assert 'species' not in novel_sample['characteristics']
 
     def get_expected_json(self):
         return {
