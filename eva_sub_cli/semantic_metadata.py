@@ -1,4 +1,3 @@
-import re
 import json
 from copy import deepcopy
 
@@ -6,7 +5,7 @@ import yaml
 
 from retry import retry
 from ebi_eva_common_pyutils.biosamples_communicators import NoAuthHALCommunicator
-from ebi_eva_common_pyutils.ena_utils import download_xml_from_ena
+from ebi_eva_common_pyutils.ena_utils import download_xml_from_ena, get_scientific_name_and_common_name
 from ebi_eva_common_pyutils.logger import AppLogger
 
 from eva_sub_cli.date_utils import check_date
@@ -22,8 +21,10 @@ BIOSAMPLE_OBJECT_KEY = 'bioSampleObject'
 BIOSAMPLE_ACCESSION_KEY = 'bioSampleAccession'
 CHARACTERISTICS_KEY = 'characteristics'
 TAX_ID_KEY = 'taxId'
+SCI_NAME_KEYS = ['species', 'Species', 'organism', 'Organism']
 ANALYSIS_ALIAS_KEY = 'analysisAlias'
 ANALYSIS_RUNS_KEY = 'runAccessions'
+
 
 def cast_list(l, type_to_cast=str):
     for e in l:
@@ -36,7 +37,7 @@ class SemanticMetadataChecker(AppLogger):
         self.sample_checklist = sample_checklist
         self.metadata = metadata
         self.errors = []
-        # Caches whether taxonomy code is valid or not
+        # Caches whether taxonomy code is valid or not, and maps to scientific name if valid
         self.taxonomy_valid = {}
         self.communicator = NoAuthHALCommunicator(bsd_url='https://www.ebi.ac.uk/biosamples')
 
@@ -47,8 +48,9 @@ class SemanticMetadataChecker(AppLogger):
     def check_all(self):
         self.check_all_project_accessions()
         self.check_all_taxonomy_codes()
+        self.check_all_scientific_names()
         self.check_existing_biosamples()
-        self.check_all_analysis_run_accessions
+        self.check_all_analysis_run_accessions()
         self.check_analysis_alias_coherence()
 
     def check_all_project_accessions(self):
@@ -68,15 +70,34 @@ class SemanticMetadataChecker(AppLogger):
             self.check_taxonomy_code(project[TAX_ID_KEY], f'/{PROJECT_KEY}/{TAX_ID_KEY}')
         # Check sample taxonomies for novel samples
         for idx, sample in enumerate(self.metadata[SAMPLE_KEY]):
-            if BIOSAMPLE_OBJECT_KEY in sample:
+            if BIOSAMPLE_OBJECT_KEY in sample and TAX_ID_KEY in sample[BIOSAMPLE_OBJECT_KEY][CHARACTERISTICS_KEY]:
                 self.check_taxonomy_code(sample[BIOSAMPLE_OBJECT_KEY][CHARACTERISTICS_KEY][TAX_ID_KEY][0]['text'],
                                          f'/{SAMPLE_KEY}/{idx}/{BIOSAMPLE_OBJECT_KEY}/{CHARACTERISTICS_KEY}/{TAX_ID_KEY}')
+
+    def check_all_scientific_names(self):
+        """Check that all scientific names are consistent with taxonomy codes."""
+        for idx, sample in enumerate(self.metadata[SAMPLE_KEY]):
+            if BIOSAMPLE_OBJECT_KEY in sample and TAX_ID_KEY in sample[BIOSAMPLE_OBJECT_KEY][CHARACTERISTICS_KEY]:
+                characteristics = sample[BIOSAMPLE_OBJECT_KEY][CHARACTERISTICS_KEY]
+                # Get the scientific name from the taxonomy (if valid)
+                tax_code = int(characteristics[TAX_ID_KEY][0]['text'])
+                sci_name_from_tax = self.taxonomy_valid[tax_code]
+                if not sci_name_from_tax:
+                    continue
+                # Check if scientific name in sample matches
+                for sci_name_key in SCI_NAME_KEYS:
+                    if sci_name_key in characteristics:
+                        sci_name = characteristics[sci_name_key][0]['text']
+                        if sci_name_from_tax.lower() != sci_name.lower():
+                            self.add_error(
+                                f'/{SAMPLE_KEY}/{idx}/{BIOSAMPLE_OBJECT_KEY}/{CHARACTERISTICS_KEY}/{sci_name_key}',
+                                f'Species {sci_name} does not match taxonomy {tax_code} ({sci_name_from_tax})')
 
     def check_all_analysis_run_accessions(self):
         """Check that the Run accession are valid and exist in ENA"""
         for idx, analysis in enumerate(self.metadata[ANALYSIS_KEY]):
             json_path = f'/{ANALYSIS_KEY}/{idx}/{ANALYSIS_RUNS_KEY}'
-            if analysis[ANALYSIS_RUNS_KEY]:
+            if ANALYSIS_RUNS_KEY in analysis and analysis[ANALYSIS_RUNS_KEY]:
                 for run_acc in analysis[ANALYSIS_RUNS_KEY]:
                     self.check_accession_in_ena(run_acc, 'Run', json_path)
 
@@ -98,8 +119,8 @@ class SemanticMetadataChecker(AppLogger):
                 self.add_error(json_path, f'{taxonomy_code} is not a valid taxonomy code')
         else:
             try:
-                download_xml_from_ena(f'https://www.ebi.ac.uk/ena/browser/api/xml/{taxonomy_code}')
-                self.taxonomy_valid[taxonomy_code] = True
+                sci_name, _ = get_scientific_name_and_common_name(taxonomy_code)
+                self.taxonomy_valid[taxonomy_code] = sci_name
             except Exception:
                 self.add_error(json_path, f'{taxonomy_code} is not a valid taxonomy code')
                 self.taxonomy_valid[taxonomy_code] = False
