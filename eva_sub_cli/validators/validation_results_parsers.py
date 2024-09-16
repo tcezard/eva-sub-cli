@@ -134,6 +134,10 @@ def parse_biovalidator_validation_results(metadata_check_file):
                 if line.startswith('Validation failed with following error(s):'):
                     collect = True
             else:
+                while line and not line.startswith('/'):
+                    # Sometimes there are multiple (possibly redundant) errors listed under a single property,
+                    # we only report the first
+                    line = clean_read(open_file)
                 line2 = clean_read(open_file)
                 if line is None or line2 is None:
                     break  # EOF
@@ -164,6 +168,9 @@ def convert_metadata_attribute(sheet, json_attribute, xls2json_conf):
     attributes_dict = {}
     attributes_dict.update(xls2json_conf[sheet].get('required', {}))
     attributes_dict.update(xls2json_conf[sheet].get('optional', {}))
+    attributes_dict['Scientific Name'] = 'species'
+    attributes_dict['BioSample Name'] = 'name'
+
     for attribute in attributes_dict:
         if attributes_dict[attribute] == json_attribute:
             return attribute
@@ -185,7 +192,12 @@ def parse_metadata_property(property_str):
 
 
 def parse_sample_metadata_property(property_str):
+    # Check characteristics
     match = re.match(r'/sample/(\d+)/bioSampleObject/characteristics/(\w+)', property_str)
     if match:
         return 'sample', match.group(1), match.group(2)
+    # Check name
+    match = re.match(r'/sample/(\d+)/bioSampleObject/name', property_str)
+    if match:
+        return 'sample', match.group(1), 'name'
     return None, None, None

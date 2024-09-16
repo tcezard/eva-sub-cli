@@ -2,6 +2,8 @@
   property: /project/childProjects/1
 - description: 1234 is not a valid taxonomy code
   property: /sample/2/bioSampleObject/characteristics/taxId
+- description: Species sheep sapiens does not match taxonomy 9606 (Homo sapiens)
+  property: /sample/1/bioSampleObject/characteristics/Organism
 - description: alias1 present in Analysis not in Samples
   property: /sample/analysisAlias
 - description: alias_1,alias_2 present in Samples not in Analysis

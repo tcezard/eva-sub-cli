@@ -74,9 +74,9 @@ class TestSemanticMetadata(TestCase):
             ]
         }
         checker = SemanticMetadataChecker(metadata)
-        with patch('eva_sub_cli.semantic_metadata.download_xml_from_ena') as m_ena_download:
+        with patch('eva_sub_cli.semantic_metadata.get_scientific_name_and_common_name') as m_get_sci_name:
             # Mock should only be called once per taxonomy code
-            m_ena_download.side_effect = [True, Exception('problem downloading')]
+            m_get_sci_name.side_effect = [('Homo sapiens', 'human'), Exception('problem downloading')]
             checker.check_all_taxonomy_codes()
             self.assertEqual(checker.errors, [
                 {
@@ -84,6 +84,47 @@ class TestSemanticMetadata(TestCase):
                     'description': '1234 is not a valid taxonomy code'
                 }
             ])
+
+    def test_check_all_scientific_names(self):
+        metadata = {
+            "sample": [
+                {
+                    "bioSampleObject": {
+                        "characteristics": {
+                            "taxId": [{"text": "9606"}],
+                            "Organism": [{"text": "homo sapiens"}]
+                        }
+                    }
+                },
+                {
+                    "bioSampleObject": {
+                        "characteristics": {
+                            "taxId": [{"text": "9606"}],
+                            "Organism": [{"text": "sheep sapiens"}]
+                        }
+                    }
+                },
+                {
+                    "bioSampleObject": {
+                        "characteristics": {
+                            "taxId": [{"text": "1234"}]
+                        }
+                    }
+                }
+            ]
+        }
+        checker = SemanticMetadataChecker(metadata)
+        checker.taxonomy_valid = {
+            1234: False,
+            9606: "Homo sapiens"
+        }
+        checker.check_all_scientific_names()
+        self.assertEqual(checker.errors, [
+            {
+                'property': '/sample/1/bioSampleObject/characteristics/Organism',
+                'description': 'Species sheep sapiens does not match taxonomy 9606 (Homo sapiens)'
+            }
+        ])
 
     def test_check_existing_biosamples_with_checklist(self):
         checker = SemanticMetadataChecker(metadata)
