@@ -1,5 +1,5 @@
 # eva-sub-cli
-EVA Submission Command Line Interface for Validation
+The eva-sub-cli tool is a command line interface tool for data validation and upload. The tool transforms the submission process at EVA by enabling users to take control of data validation process. Previously handled by our helpdesk team, validation can now be performed directly by users. 
 
 
 ## Installation
@@ -7,7 +7,7 @@ EVA Submission Command Line Interface for Validation
 There are currently three ways to install and run the tool: using conda, from source using Docker,
 and from source natively (i.e. managing dependencies on your own).
 
-### Conda
+### 1. Conda
 
 The most straightforward way to install eva-sub-cli and its dependencies is through conda.
 For example the following installs eva-sub-cli in a new environment called `eva`, activates the environment, and prints
@@ -18,7 +18,7 @@ conda activate eva
 eva-sub-cli.py --help
 ````
 
-### From source using Docker
+### 2. From source using Docker
 
 Docker provides an easy way to run eva-sub-cli without installing dependencies separately.
 This method requires just Python 3.8+ and [Docker](https://docs.docker.com/engine/install/) to be installed.
@@ -42,7 +42,7 @@ To check it is installed correctly, you can run:
 eva-sub-cli.py -h
 ```
 
-### From source natively
+### 3. From source natively
 
 This method requires the following:
 * Python 3.8+
