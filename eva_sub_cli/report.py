@@ -1,5 +1,6 @@
 import base64
 import os.path
+import re
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -35,10 +36,5 @@ def generate_html_report(validation_results, validation_date, submission_dir, vc
         vcf_fasta_analysis_mapping=vcf_fasta_analysis_mapping,
         validation_results=validation_results
     )
+    return re.sub('\s+\n', '\n', rendered_template)
 
-    try:
-        # minify-html is not included in conda installation currently
-        from minify_html import minify_html
-        return minify_html.minify(rendered_template, minify_js=True, remove_processing_instructions=True)
-    except ImportError:
-        return rendered_template
