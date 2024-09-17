@@ -117,6 +117,6 @@ Will only submit the data and not validate.
 
 ### Shallow validation
 
-If you are working with extremely large VCF files and find that validation takes a very long time, you can add the
+If you are working with large VCF files and find that validation takes a very long time, you can add the
 argument `--shallow` to the command, which will validate only the first 10,000 lines in each VCF. Note that running
 shallow validation will **not** be sufficient for actual submission.
