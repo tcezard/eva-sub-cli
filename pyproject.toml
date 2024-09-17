@@ -26,7 +26,7 @@ classifiers = [
     'Programming Language :: Python :: 3.10',
     'Topic :: Scientific/Engineering :: Bio-Informatics',
     'Topic :: Communications :: File Sharing',
-    'License :: OSI Approved :: Apache',
+    'License :: OSI Approved :: Apache Software License',
 ]
 
 [project.scripts]
