@@ -12,7 +12,7 @@ There are currently three ways to install and run the tool :
 ### 1. Conda
 
 The most straightforward way to install eva-sub-cli and its dependencies is through conda.
-For instance, the following commands installs eva-sub-cli in a new environment called `eva`, activates the environment, and prints
+For instance, the following commands install eva-sub-cli in a new environment called `eva`, activate the environment, and print
 the help message:
 ```bash
 conda create -n eva -c conda-forge -c bioconda eva-sub-cli
@@ -24,7 +24,7 @@ eva-sub-cli.py --help
 
 Docker provides an easy way to run eva-sub-cli without installing dependencies separately.
 This method requires just Python 3.8+ and [Docker](https://docs.docker.com/engine/install/) to be installed.
-Once it is setup, you can either clone the git repository, or download the newest tagged release from [here](https://github.com/EBIvariation/eva-sub-cli/tags):
+Once it is set up, you can either clone the git repository, or download the newest tagged release from [here](https://github.com/EBIvariation/eva-sub-cli/tags):
 ```bash
 git clone git@github.com:EBIvariation/eva-sub-cli.git
 
@@ -59,7 +59,7 @@ Install each of these and ensure they are included in your PATH. Then, either cl
 ## Getting started with the eva-sub-cli tool 
 
 
-The [README file ](Getting_Started_with_eva_sub_cli.md) serves as an introductory guide for users of the eva-sub-cli tool. It includes instructions on how to prepare your data and metadata, ensuring that users are equipped with the necessary information to successfully submit variant data. This guide is essential for new users, offering practical advice and tips for a smooth onboarding experience with the eva-sub-cli tool.
+The ["Getting Started" guide](Getting_Started_with_eva_sub_cli.md) serves as an introduction for users of the eva-sub-cli tool. It includes instructions on how to prepare your data and metadata, ensuring that users are equipped with the necessary information to successfully submit variant data. This guide is essential for new users, offering practical advice and tips for a smooth onboarding experience with the eva-sub-cli tool.
 
 ## eva-sub-cli tool: Options and parameters guide
 
@@ -87,15 +87,14 @@ It should be populated following the instruction provided within the template
 
 ### The metadata JSON
 
-The metadata can also be provided via a JSON file which should conform to the schema located  at 
-`eva_sub_cli/etc/eva_schema.json` 
+The metadata can also be provided via a JSON file, which should conform to the schema located [here](eva_sub_cli/etc/eva_schema.json).
 
 
 ## Execution
 
 ### Validate only
 
-To validate and not submit run the following command
+To validate and not submit, run the following command:
 
 ```shell
 eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx --submission_dir submission_dir --tasks VALIDATE
@@ -123,7 +122,7 @@ eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx \
 
 ### Submit only
 
-All submission must have been validated. You cannot run the submission without validation. Once validated, execute the following command  
+All submissions must have been validated. You cannot run the submission without validation. Once validated, execute the following command:
 
 ```shell
 eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx --submission_dir submission_dir
