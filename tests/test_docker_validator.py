@@ -109,8 +109,8 @@ class TestDockerValidator(TestCase):
 
         with open(assembly_check_log_file) as assembly_check_log_file:
             assembly_check_logs = assembly_check_log_file.readlines()
-            self.assertEqual('[info] Number of matches: 247/247\n', assembly_check_logs[5])
-            self.assertEqual('[info] Percentage of matches: 100%\n', assembly_check_logs[6])
+            self.assertEqual('[info] Number of matches: 247/247\n', assembly_check_logs[4])
+            self.assertEqual('[info] Percentage of matches: 100%\n', assembly_check_logs[5])
 
         # Assert Samples concordance
         expected_checker = {

@@ -68,12 +68,12 @@ The path to the VCF files are provided in the Files section of the metadata and 
 This allows us to support different assemblies for each VCF file. 
 Please check the below sections `The metadata spreadsheet` and `The metadata JSON` for the format and options available in metadata files.
 
-### The metadata spreadsheet 
+#### The metadata spreadsheet
 
 The metadata template can be found within the etc folder at `eva_sub_cli/etc/EVA_Submission_template.xlsx`
 It should be populated following the instruction provided within the template
 
-### The metadata JSON
+#### The metadata JSON
 
 The metadata can also be provided via a JSON file which should conform to the schema located  at 
 `eva_sub_cli/etc/eva_schema.json` 
@@ -114,3 +114,9 @@ or
 eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx --submission_dir submission_dir --tasks SUBMIT
 ```
 Will only submit the data and not validate.
+
+### Shallow validation
+
+If you are working with large VCF files and find that validation takes a very long time, you can add the
+argument `--shallow` to the command, which will validate only the first 10,000 lines in each VCF. Note that running
+shallow validation will **not** be sufficient for actual submission.

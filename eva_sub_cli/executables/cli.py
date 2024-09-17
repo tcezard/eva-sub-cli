@@ -35,40 +35,42 @@ def validate_command_line_arguments(args, argparser):
         print(f"'{args.submission_dir}' does not have write permissions or is not a directory.")
         sys.exit(1)
 
+
 def parse_args(cmd_line_args):
-    argparser = ArgumentParser(prog='eva-sub-cli', description='EVA Submission CLI - validate and submit data to EVA')
+    argparser = ArgumentParser(prog='eva-sub-cli',
+                               description='EVA Submission CLI - validate and submit data to EVA. '
+                               'For full details, please see https://github.com/EBIvariation/eva-sub-cli')
     argparser.add_argument('--version', action='version', version=f'%(prog)s {eva_sub_cli.__version__}')
     argparser.add_argument('--submission_dir', required=True, type=str,
-                           help='Path to the directory where all processing will be done '
-                                'and submission info is/will be stored')
+                           help='Path to the directory where all processing is done and submission info is stored')
     vcf_group = argparser.add_argument_group(
         'Input VCF and assembly',
         "Specify the VCF files and associated assembly with the following options. If you used different assemblies "
-        "for different VCF files then include these in the metadata file."
+        "for different VCF files, then you must include these in the metadata file rather than specifying them here."
     )
-    vcf_group.add_argument('--vcf_files', nargs='+', help="One or several vcf files to validate")
+    vcf_group.add_argument('--vcf_files', nargs='+', help="One or more VCF files to validate")
     vcf_group.add_argument('--reference_fasta',
-                           help="The fasta file containing the reference genome from which the variants were derived")
+                           help="The FASTA file containing the reference genome from which the variants were derived")
 
     metadata_group = argparser.add_argument_group('Metadata', 'Specify the metadata in a spreadsheet or in a JSON file')
     metadata_group = metadata_group.add_mutually_exclusive_group(required=True)
     metadata_group.add_argument("--metadata_json",
-                                help="Json file that describe the project, analysis, samples and files")
+                                help="JSON file that describes the project, analysis, samples and files")
     metadata_group.add_argument("--metadata_xlsx",
-                                help="Excel spreadsheet  that describe the project, analysis, samples and files")
+                                help="Excel spreadsheet that describes the project, analysis, samples and files")
     argparser.add_argument('--tasks', nargs='+', choices=[VALIDATE, SUBMIT], default=[SUBMIT], type=str.lower,
-                           help='Select a task to perform. Selecting VALIDATE will run the validation regardless of the'
-                                ' outcome of previous runs. Selecting SUBMIT will run validate only if the validation'
-                                ' was not performed successfully before and then run the submission.')
+                           help='Select a task to perform (default SUBMIT). VALIDATE will run the validation'
+                                ' regardless of the outcome of previous runs. SUBMIT will run validate only if'
+                                ' the validation was not performed successfully before and then run the submission.')
     argparser.add_argument('--executor', choices=[DOCKER, NATIVE], default=NATIVE, type=str.lower,
-                           help='Select an execution type for running validation (default native)')
-    credential_group = argparser.add_argument_group('Credential', 'Specify the Webin credential you want to use to '
-                                                                  'upload to the EVA')
-    credential_group.add_argument("--username", help="Username used for connecting to the ENA webin account")
-    credential_group.add_argument("--password", help="Password used for connecting to the ENA webin account")
+                           help='Select the execution type for running validation (default native)')
+    credential_group = argparser.add_argument_group('Credentials', 'Specify the ENA Webin credentials you want to use '
+                                                                   'to submit to the EVA')
+    credential_group.add_argument("--username", help="Username for your ENA Webin account")
+    credential_group.add_argument("--password", help="Password for your ENA Webin account")
     argparser.add_argument('--shallow', action='store_true', default=False,
                            help='Set the validation to be performed on the first 10000 records of the VCF. '
-                                'Only applies if the number of record exceed 10000')
+                                'Only applies if the number of records exceed 10000')
     argparser.add_argument('--debug', action='store_true', default=False,
                            help='Set the script to output debug messages')
     args = argparser.parse_args(cmd_line_args)
@@ -77,7 +79,6 @@ def parse_args(cmd_line_args):
 
 
 def main():
-
     args = parse_args(sys.argv[1:])
 
     args.submission_dir = os.path.abspath(args.submission_dir)
