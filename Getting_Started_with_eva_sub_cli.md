@@ -1,4 +1,4 @@
-# How to generate inputs for the eva-sub-cli 
+# Comprehensive overview of the required inputs for eva-sub-cli tool 
 
 The eva-sub-cli tool requires the following inputs:
 
@@ -56,7 +56,7 @@ The CLI tool performs the following validation checks and generates correspondin
 
 In the following sections, we will examine each of these checks in detail, starting with the Metadata check.
 
-## Metadata check
+# Metadata check
 
 Once the user passes the metadata spreadsheet for validation checks, the eva-sub-cli tool verifies that all mandatory columns, marked in bold in the spreadsheet, are filled in. This data is crucial for further validation processes, such as retrieving the INDSC accession of the reference genome used to call the variants, and for sample and project metadata. If any mandatory columns or sheets are missing, the CLI tool will raise errors.
 
