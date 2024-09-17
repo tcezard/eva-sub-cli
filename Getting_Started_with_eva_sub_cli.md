@@ -1,4 +1,4 @@
-# Comprehensive overview of the required inputs for eva-sub-cli Tool 
+# Comprehensive overview of the required inputs for eva-sub-cli tool 
 
 The eva-sub-cli tool requires the following inputs:
 
