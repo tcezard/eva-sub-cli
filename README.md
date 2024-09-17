@@ -7,7 +7,7 @@ The eva-sub-cli tool is a command line interface tool for data validation and up
 There are currently three ways to install and run the tool : 
 - Using conda
 - From source using Docker
-- From source natively (i.e. managing dependencies on your own)
+- From source natively (i.e. installing dependencies yourself)
 
 ### 1. Conda
 
@@ -52,7 +52,7 @@ This installation method requires the following :
 * Python 3.8+
 * [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) 21.10+
 * [biovalidator](https://github.com/elixir-europe/biovalidator) 2.1.0+
-* [vcf-validator](https://github.com/EBIvariation/vcf-validator) 0.9.6+
+* [vcf-validator](https://github.com/EBIvariation/vcf-validator) 0.9.7+
 
 Install each of these and ensure they are included in your PATH. Then, either clone the repository using Git or install the latest release as previously described.
 
