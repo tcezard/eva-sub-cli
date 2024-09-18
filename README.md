@@ -24,21 +24,9 @@ eva-sub-cli.py --help
 
 Docker provides an easy way to run eva-sub-cli without installing dependencies separately.
 This method requires just Python 3.8+ and [Docker](https://docs.docker.com/engine/install/) to be installed.
-Once it is set up, you can either clone the git repository, or download the newest tagged release from [here](https://github.com/EBIvariation/eva-sub-cli/tags):
+Then you can install the most recent version from [PyPI](https://pypi.org/project/eva-sub-cli/) in a virtual environment:
 ```bash
-git clone https://github.com/EBIvariation/eva-sub-cli.git
-
-# OR (replace "v0.2" with the newest version)
-
-wget -O eva-sub-cli.zip https://github.com/EBIvariation/eva-sub-cli/archive/refs/tags/v0.2.zip
-unzip eva-sub-cli.zip && mv eva-sub-cli-* eva-sub-cli
-```
-
-Then install the library and its dependencies as follows (e.g. in a virtual environment):
-```bash
-cd eva-sub-cli
-# Activate your virtual environment 
-python -m pip install .
+pip install eva-sub-cli
 ```
 
 To verify that the cli tool is installed correctly, run the following command, and you should see the help message displayed : 
@@ -54,10 +42,9 @@ This installation method requires the following :
 * [biovalidator](https://github.com/elixir-europe/biovalidator) 2.1.0+
 * [vcf-validator](https://github.com/EBIvariation/vcf-validator) 0.9.7+
 
-Install each of these and ensure they are included in your PATH. Then, either clone the repository using Git or install the latest release as previously described.
+Install each of these and ensure they are included in your PATH. Then install the latest release as previously described.
 
 ## Getting started with the eva-sub-cli tool 
-
 
 The ["Getting Started" guide](Getting_Started_with_eva_sub_cli.md) serves as an introduction for users of the eva-sub-cli tool. It includes instructions on how to prepare your data and metadata, ensuring that users are equipped with the necessary information to successfully submit variant data. This guide is essential for new users, offering practical advice and tips for a smooth onboarding experience with the eva-sub-cli tool.
 
@@ -82,8 +69,7 @@ The eva-sub-cli tool provides several options/parameters that you can use to tai
 
 #### The metadata spreadsheet
 
-The metadata template can be found within the etc folder at `eva_sub_cli/etc/EVA_Submission_template.xlsx`
-It should be populated following the instruction provided within the template
+The metadata template can be found within the [etc folder](eva_sub_cli/etc/EVA_Submission_template.xlsx). It should be populated following the instruction provided within the template.
 
 #### The metadata JSON
 
@@ -112,7 +98,7 @@ eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx --submission_dir submis
 
 ### Validate and submit your dataset
 
-To validate and submit run the following command
+To validate and submit, run the following command:
 
 ```shell
 eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx \
@@ -131,7 +117,7 @@ or
 ```shell
 eva-sub-cli.py --metadata_xlsx metadata_spreadsheet.xlsx --submission_dir submission_dir --tasks SUBMIT
 ```
-Will only submit the data and not validate.
+This will only submit the data and not validate.
 
 ### Shallow validation
 
