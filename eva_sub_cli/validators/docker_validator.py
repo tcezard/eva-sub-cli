@@ -5,6 +5,7 @@ import subprocess
 import time
 
 from ebi_eva_common_pyutils.logger import logging_config
+from retry import retry
 
 from eva_sub_cli.validators.validator import Validator
 
@@ -166,6 +167,7 @@ class DockerValidator(Validator):
             )
             print(f'Verify that container is running after stop {self.verify_container_is_running()}')
 
+    @retry(RuntimeError, tries=3, delay=5, backoff=1, jitter=2, logger=logger)
     def download_container_image_if_needed(self):
         if not self.verify_image_available_locally():
             logger.debug(f"Pulling container ({container_image}) image")

@@ -1,7 +1,9 @@
 import json
 import os
 import shutil
+import subprocess
 from unittest import TestCase
+from unittest.mock import patch
 
 import yaml
 
@@ -194,3 +196,13 @@ class TestDockerValidator(TestCase):
                                  'property': '/project/childProjects/0'}
         self.assess_post_validation(self.validator_from_excel, expected_sample_checker, expected_metadata_files_json,
                                     expected_metadata_val, expected_semantic_val)
+
+    def test_download_container_image_if_needed(self):
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.side_effect = [
+                None,                                       # <- verify_image_available_locally
+                subprocess.CalledProcessError(1, 'pull'),   # <- First Pull
+                None,                                       # <- verify_image_available_locally
+                None                                        # <- Second Pull
+            ]
+            self.validator.download_container_image_if_needed()
