@@ -24,9 +24,8 @@ class DockerValidator(Validator):
                          metadata_json=metadata_json, metadata_xlsx=metadata_xlsx,
                          shallow_validation=shallow_validation, submission_config=submission_config)
         self.docker_path = docker_path
-        self.container_name = container_name
-        if self.container_name is None:
-            self.container_name = container_image.split('/')[1] + '.' + container_tag
+        submission_basename = re.sub('[^a-zA-Z0-9]', '', os.path.basename(submission_dir))
+        self.container_name = f'{container_image.split("/")[1]}.{container_tag}.{submission_basename}'
 
     def _validate(self):
         self.run_docker_validator()
@@ -49,8 +48,9 @@ class DockerValidator(Validator):
 
     def run_docker_validator(self):
         # check if docker container is ready for running validation
-        self.verify_docker_env()
-
+        self.verify_docker_is_installed()
+        self.download_container_image_if_needed()
+        self.run_container_if_required()
         try:
             # remove all existing files from container
             self._run_quiet_command(
@@ -77,6 +77,7 @@ class DockerValidator(Validator):
                 "Copy validation output from container to host",
                 f"{self.docker_path} cp {self.container_name}:{container_validation_dir}/{container_validation_output_dir}/. {self.output_dir}"
             )
+            self.stop_running_container()
 
     def verify_docker_is_installed(self):
         try:
@@ -135,50 +136,46 @@ class DockerValidator(Validator):
             logger.debug(f"Container ({container_image}) image is not available locally")
             return False
 
-    def run_container(self):
-        logger.debug(f"Trying to run container {self.container_name}")
-        try:
-            self._run_quiet_command(
-                "Try running container",
-                f"{self.docker_path} run -it --rm -d --name {self.container_name} {container_image}:{container_tag}"
-            )
-            # stopping execution to give some time to container to get up and running
-            time.sleep(5)
-            if not self.verify_container_is_running():
+    def run_container_if_required(self):
+        if self.verify_container_is_running():
+            raise RuntimeError(f"Container ({self.container_name}) is already running. "
+                               f"Did you start multiple validation for the same directory ?")
+        if self.verify_container_is_stopped():
+            logger.warn(f"Container {self.container_name} was stopped but not cleaned up before.")
+            self.try_restarting_container()
+        else:
+            logger.debug(f"Trying to start container {self.container_name}")
+            try:
+                self._run_quiet_command(
+                    "Running container",
+                    f"{self.docker_path} run -it --rm -d --name {self.container_name} {container_image}:{container_tag}"
+                )
+                # Wait to give some time to container to get up and running
+                time.sleep(5)
+                if not self.verify_container_is_running():
+                    raise RuntimeError(f"Container ({self.container_name}) could not be started")
+            except subprocess.CalledProcessError as ex:
+                logger.error(ex)
                 raise RuntimeError(f"Container ({self.container_name}) could not be started")
-        except subprocess.CalledProcessError as ex:
-            logger.error(ex)
-            raise RuntimeError(f"Container ({self.container_name}) could not be started")
 
     def stop_running_container(self):
-        if not self.verify_container_is_stopped():
+        if self.verify_container_is_running():
             self._run_quiet_command(
                 "Stop the running container",
                 f"{self.docker_path} stop {self.container_name}"
             )
+            print(f'Verify that container is running after stop {self.verify_container_is_running()}')
 
-    def download_container_image(self):
-        logger.debug(f"Pulling container ({container_image}) image")
-        try:
-            self._run_quiet_command("pull container image", f"{self.docker_path} pull {container_image}:{container_tag}")
-        except subprocess.CalledProcessError as ex:
-            logger.error(ex)
-            raise RuntimeError(f"Cannot pull container ({container_image}) image")
-        # Give the pull command some time to complete
-        time.sleep(5)
-        self.run_container()
-
-    def verify_docker_env(self):
-        self.verify_docker_is_installed()
-
-        if not self.verify_container_is_running():
-            if self.verify_container_is_stopped():
-                self.try_restarting_container()
-            else:
-                if self.verify_image_available_locally():
-                    self.run_container()
-                else:
-                    self.download_container_image()
+    def download_container_image_if_needed(self):
+        if not self.verify_image_available_locally():
+            logger.debug(f"Pulling container ({container_image}) image")
+            try:
+                self._run_quiet_command("pull container image", f"{self.docker_path} pull {container_image}:{container_tag}")
+            except subprocess.CalledProcessError as ex:
+                logger.error(ex)
+                raise RuntimeError(f"Cannot pull container ({container_image}) image")
+            # Give the pull command some time to complete
+            time.sleep(5)
 
     def copy_files_to_container(self):
         def _copy(file_description, file_path):
