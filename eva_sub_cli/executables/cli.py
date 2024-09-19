@@ -15,7 +15,7 @@ from ebi_eva_common_pyutils.logger import logging_config
 
 from eva_sub_cli import orchestrator
 from eva_sub_cli.orchestrator import VALIDATE, SUBMIT, DOCKER, NATIVE
-from eva_sub_cli.file_utils import is_submission_dir_writable
+from eva_sub_cli.file_utils import is_submission_dir_writable, DirLockError, DirLock
 
 
 def validate_command_line_arguments(args, argparser):
@@ -87,11 +87,19 @@ def main():
         logging_config.add_stdout_handler(logging.DEBUG)
     else:
         logging_config.add_stdout_handler(logging.INFO)
-    logging_config.add_file_handler(os.path.join(args.submission_dir, 'eva_submission.log'), logging.DEBUG)
 
     try:
-        # Pass on all the arguments
-        orchestrator.orchestrate_process(**args.__dict__)
+        # lock the submission directory
+
+        with DirLock(os.path.join(args.submission_dir, '.lock')) as lock:
+            # Create the log file
+            h.add_file_handler(os.path.join(args.submission_dir, 'eva_submission.log'), logging.DEBUG)
+            # Pass on all the arguments to the orchestrator
+            orchestrator.orchestrate_process(**args.__dict__)
+    except DirLockError:
+        print(f'Could not acquire the lock file for {args.submission_dir} because another process is using this '
+              f'directory or a previous process not terminated correctly. '
+              f'If the problem persist remove the lock file manually.')
     except FileNotFoundError as fne:
         print(fne)
     except SubmissionNotFoundException as snfe:

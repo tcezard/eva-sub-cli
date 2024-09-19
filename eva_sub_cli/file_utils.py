@@ -2,6 +2,7 @@ import glob
 import gzip
 import os
 import shutil
+import time
 from itertools import groupby
 
 
@@ -70,3 +71,47 @@ def fasta_iter(input_fasta):
             # join all sequence lines to one.
             seq = "".join(s.strip() for s in faiter.__next__())
             yield (headerStr, seq)
+
+
+class DirLockError(Exception):
+    pass
+
+
+class DirLock(object):
+
+    _SPIN_PERIOD_SECONDS = 0.05
+
+    def __init__(self, dirname, timeout=3):
+        """Prepare a file lock to protect access to dirname. timeout is the
+        period (in seconds) after an acquisition attempt is aborted.
+        The directory must exist, otherwise aquire() will timeout.
+        """
+        self._lockfilename = os.path.join(dirname, ".lock")
+        self._timeout = timeout
+
+    def acquire(self):
+        start_time = time.time()
+        while True:
+            try:
+                # O_EXCL: fail if file exists or create it (atomically)
+                os.close(os.open(self._lockfilename,
+                                 os.O_CREAT | os.O_EXCL | os.O_RDWR))
+                break
+            except OSError:
+                if (time.time() - start_time) > self._timeout:
+                    raise DirLockError(f"could not create {self._lockfilename} after {self._timeout} seconds")
+                else:
+                    time.sleep(self._SPIN_PERIOD_SECONDS)
+
+    def release(self):
+        try:
+            os.remove(self._lockfilename)
+        except OSError:
+            pass
+
+    def __enter__(self):
+        self.acquire()
+        return self
+
+    def __exit__(self, type_, value, traceback):
+        self.release()

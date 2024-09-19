@@ -1,9 +1,11 @@
 import glob
 import os
 import shutil
+import time
 from pathlib import Path
+from unittest import TestCase
 
-from eva_sub_cli.file_utils import backup_file_or_directory
+from eva_sub_cli.file_utils import backup_file_or_directory, DirLock, DirLockError
 
 
 def set_up_test_dir():
@@ -44,3 +46,37 @@ def test_backup_file_or_directory_max_backups():
         assert os.path.exists(f'backup_test/file.txt.{i}')
     assert not os.path.exists(f'backup_test/file.txt.{max_backups + 1}')
     clean_up()
+
+
+class TestDirLock(TestCase):
+    resources_folder = os.path.join(os.path.dirname(__file__), 'resources')
+
+    def setUp(self) -> None:
+        self.lock_folder = os.path.join(self.resources_folder, 'locked_folder')
+        os.makedirs(self.lock_folder)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.lock_folder)
+
+    def test_create_lock(self):
+        with DirLock(self.lock_folder) as lock:
+            assert os.path.isfile(lock._lockfilename)
+        assert not os.path.exists(lock._lockfilename)
+
+    def test_prevent_create_2_lock(self):
+        with DirLock(self.lock_folder) as lock:
+            assert os.path.isfile(lock._lockfilename)
+            with self.assertRaises(DirLockError):
+                with DirLock(self.lock_folder) as lock2:
+                    pass
+            assert os.path.isfile(lock._lockfilename)
+        assert not os.path.exists(lock._lockfilename)
+
+    def test_lock_with_exception(self):
+        try:
+            with DirLock(self.lock_folder) as lock:
+                assert os.path.isfile(lock._lockfilename)
+                raise Exception()
+        except Exception:
+            pass
+        assert not os.path.exists(lock._lockfilename)
