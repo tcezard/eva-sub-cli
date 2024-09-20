@@ -90,7 +90,7 @@ class TestDockerValidator(TestCase):
         with open(sample_checker_file) as open_yaml:
             self.assert_same_dict_and_unordered_list(yaml.safe_load(open_yaml), expected_checker)
 
-    def assess_post_validation(self, validator, expected_sample_checker, expected_metadata_files_json,
+    def assert_validation_results(self, validator, expected_sample_checker, expected_metadata_files_json,
                                expected_metadata_val, expected_semantic_val):
         vcf_format_dir = os.path.join(validator.output_dir, 'vcf_format')
         self.assertTrue(os.path.exists(vcf_format_dir))
@@ -167,7 +167,6 @@ class TestDockerValidator(TestCase):
 
     def test_validate_from_excel(self):
         self.validator_from_excel.validate()
-        self.assertTrue(os.path.isfile(self.validator_from_excel._sample_check_yaml))
         expected_sample_checker = {
             'overall_differences': True,
             'results_per_analysis': {

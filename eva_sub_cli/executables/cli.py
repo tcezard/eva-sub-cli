@@ -98,8 +98,8 @@ def main():
             orchestrator.orchestrate_process(**args.__dict__)
     except DirLockError:
         print(f'Could not acquire the lock file for {args.submission_dir} because another process is using this '
-              f'directory or a previous process not terminated correctly. '
-              f'If the problem persist remove the lock file manually.')
+              f'directory or a previous process did not terminate correctly. '
+              f'If the problem persists, remove the lock file manually.')
     except FileNotFoundError as fne:
         print(fne)
     except SubmissionNotFoundException as snfe:
