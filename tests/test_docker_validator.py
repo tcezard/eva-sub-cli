@@ -162,8 +162,8 @@ class TestDockerValidator(TestCase):
         expected_semantic_val = {'description': 'SAME123 does not exist or is private',
                                           'property': '/sample/0/bioSampleAccession'}
 
-        self.assess_post_validation(self.validator, expected_sample_checker, expected_metadata_files_json,
-                                    expected_metadata_val, expected_semantic_val)
+        self.assert_validation_results(self.validator, expected_sample_checker, expected_metadata_files_json,
+                                       expected_metadata_val, expected_semantic_val)
 
     def test_validate_from_excel(self):
         self.validator_from_excel.validate()
@@ -193,8 +193,8 @@ class TestDockerValidator(TestCase):
         expected_metadata_val = 'Validation passed successfully.'
         expected_semantic_val = {'description': 'Project PRJEB00002 does not exist in ENA or is private',
                                  'property': '/project/childProjects/0'}
-        self.assess_post_validation(self.validator_from_excel, expected_sample_checker, expected_metadata_files_json,
-                                    expected_metadata_val, expected_semantic_val)
+        self.assert_validation_results(self.validator_from_excel, expected_sample_checker, expected_metadata_files_json,
+                                       expected_metadata_val, expected_semantic_val)
 
     def test_download_container_image_if_needed(self):
         with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
