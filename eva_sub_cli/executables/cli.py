@@ -93,7 +93,7 @@ def main():
 
         with DirLock(os.path.join(args.submission_dir, '.lock')) as lock:
             # Create the log file
-            h.add_file_handler(os.path.join(args.submission_dir, 'eva_submission.log'), logging.DEBUG)
+            logging_config.add_file_handler(os.path.join(args.submission_dir, 'eva_submission.log'), logging.DEBUG)
             # Pass on all the arguments to the orchestrator
             orchestrator.orchestrate_process(**args.__dict__)
     except DirLockError:
