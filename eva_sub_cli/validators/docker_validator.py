@@ -20,7 +20,7 @@ container_validation_output_dir = 'vcf_validation_output'
 class DockerValidator(Validator):
 
     def __init__(self, mapping_file, submission_dir, project_title, metadata_json=None,
-                 metadata_xlsx=None, shallow_validation=False, container_name=None, docker_path='docker', submission_config=None):
+                 metadata_xlsx=None, shallow_validation=False, docker_path='docker', submission_config=None):
         super().__init__(mapping_file, submission_dir, project_title,
                          metadata_json=metadata_json, metadata_xlsx=metadata_xlsx,
                          shallow_validation=shallow_validation, submission_config=submission_config)
@@ -165,7 +165,6 @@ class DockerValidator(Validator):
                 "Stop the running container",
                 f"{self.docker_path} stop {self.container_name}"
             )
-            print(f'Verify that container is running after stop {self.verify_container_is_running()}')
 
     @retry(RuntimeError, tries=3, delay=5, backoff=1, jitter=2, logger=logger)
     def download_container_image_if_needed(self):
