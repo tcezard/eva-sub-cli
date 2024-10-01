@@ -28,7 +28,6 @@ class TestValidationParsers(TestCase):
              'alleles. SVLEN=31, expected value=33.', False),
         ]
         for error, is_critical in errors:
-            print(error, vcf_check_errors_is_critical(error))
             assert vcf_check_errors_is_critical(error) == is_critical, error
 
     def test_parse_assembly_check_log(self):
