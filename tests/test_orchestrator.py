@@ -102,7 +102,8 @@ class TestOrchestrator(unittest.TestCase):
                 patch('eva_sub_cli.orchestrator.WritableConfig') as m_config, \
                 patch('eva_sub_cli.orchestrator.get_project_title_and_create_vcf_files_mapping') as m_get_project_title_and_create_vcf_files_mapping, \
                 patch('eva_sub_cli.orchestrator.DockerValidator') as m_docker_validator, \
-                patch('eva_sub_cli.orchestrator.StudySubmitter') as m_submitter:
+                patch('eva_sub_cli.orchestrator.StudySubmitter') as m_submitter, \
+                patch('eva_sub_cli.orchestrator.check_validation_required', return_value=True):
             # Empty config
             config = WritableConfig()
             m_config.return_value = config
