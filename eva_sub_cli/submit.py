@@ -98,7 +98,7 @@ class StudySubmitter(AppLogger):
 
         if not self.is_submission_status_open():
             self.warning(f'You requested the submission using {self.submission_dir}. '
-                         f'This contains directory an already completed submission. '
+                         f'This directory contains an already completed submission. '
                          f'Please create a new submission directory to resubmit.')
             return
 
