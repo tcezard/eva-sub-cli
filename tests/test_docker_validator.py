@@ -209,3 +209,240 @@ class TestDockerValidator(TestCase):
                 None                                        # <- Second Pull
             ]
             self.validator.download_container_image_if_needed()
+
+
+class TestDockerValidatorMocked(TestCase):
+    """Unit tests for DockerValidator that don't require Docker to be running."""
+
+    resources_folder = os.path.join(os.path.dirname(__file__), 'resources')
+    vcf_files = os.path.join(resources_folder, 'vcf_files')
+    fasta_files = os.path.join(resources_folder, 'fasta_files')
+    assembly_reports = os.path.join(resources_folder, 'assembly_reports')
+
+    def setUp(self):
+        self.test_run_dir = os.path.join(self.resources_folder, 'docker_mocked_test')
+        os.makedirs(self.test_run_dir, exist_ok=True)
+        self.mapping_file = os.path.join(self.test_run_dir, 'vcf_files_metadata.csv')
+        self.metadata_json = os.path.join(self.test_run_dir, 'sub_metadata.json')
+
+        # create vcf mapping file
+        create_mapping_file(self.mapping_file,
+                            [os.path.join(self.vcf_files, 'input_passed.vcf')],
+                            [os.path.join(self.fasta_files, 'input_passed.fa')],
+                            [os.path.join(self.assembly_reports, 'input_passed.txt')])
+        import json
+        sub_metadata = {
+            "submitterDetails": [],
+            "project": {"parentProject": "PRJ_INVALID"},
+            "sample": [{"analysisAlias": ["AA"], "sampleInVCF": "HG00096", "bioSampleAccession": "SAME123"}],
+            "analysis": [{"analysisAlias": "AA"}],
+            "files": [{"analysisAlias": "AA", "fileName": 'input_passed.vcf', "fileType": "vcf"}]
+        }
+        with open(self.metadata_json, 'w') as open_metadata:
+            json.dump(sub_metadata, open_metadata)
+
+        self.validator = DockerValidator(
+            mapping_file=self.mapping_file,
+            submission_dir=self.test_run_dir,
+            project_title='Test Project',
+            metadata_json=self.metadata_json
+        )
+
+    def tearDown(self):
+        if os.path.exists(self.test_run_dir):
+            shutil.rmtree(self.test_run_dir)
+
+    def test_verify_docker_is_installed_success(self):
+        """Test verify_docker_is_installed succeeds when docker is available."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.return_value = 'Docker version 20.10.0'
+            self.validator.verify_docker_is_installed()
+            m_run_command.assert_called_once()
+            assert 'docker --version' in m_run_command.call_args[0][1]
+
+    def test_verify_docker_is_installed_failure(self):
+        """Test verify_docker_is_installed raises error when docker is not available."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.side_effect = subprocess.CalledProcessError(1, 'docker --version')
+            with self.assertRaises(RuntimeError) as context:
+                self.validator.verify_docker_is_installed()
+            assert 'docker' in str(context.exception).lower()
+
+    def test_verify_container_is_running_true(self):
+        """Test verify_container_is_running returns True when container is running."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.return_value = f'CONTAINER ID   IMAGE   STATUS\nabc123   {self.validator.container_name}   Up 5 minutes'
+            result = self.validator.verify_container_is_running()
+            assert result is True
+
+    def test_verify_container_is_running_false(self):
+        """Test verify_container_is_running returns False when container is not running."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.return_value = 'CONTAINER ID   IMAGE   STATUS'
+            result = self.validator.verify_container_is_running()
+            assert result is False
+
+    def test_verify_container_is_running_docker_failure(self):
+        """Test verify_container_is_running raises error when docker command fails."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.side_effect = subprocess.CalledProcessError(1, 'docker ps')
+            with self.assertRaises(RuntimeError) as context:
+                self.validator.verify_container_is_running()
+            assert 'docker' in str(context.exception).lower()
+
+    def test_verify_container_is_stopped_true(self):
+        """Test verify_container_is_stopped returns True when container is in stopped state."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.return_value = f'CONTAINER ID   IMAGE   STATUS\nabc123   {self.validator.container_name}   Exited (0)'
+            result = self.validator.verify_container_is_stopped()
+            assert result is True
+
+    def test_verify_container_is_stopped_false(self):
+        """Test verify_container_is_stopped returns False when container doesn't exist."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.return_value = 'CONTAINER ID   IMAGE   STATUS'
+            result = self.validator.verify_container_is_stopped()
+            assert result is False
+
+    def test_try_restarting_container_success(self):
+        """Test try_restarting_container succeeds when restart works."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.side_effect = [
+                None,  # docker start
+                f'CONTAINER ID   IMAGE   STATUS\nabc123   {self.validator.container_name}   Up 1 second'
+            ]
+            self.validator.try_restarting_container()
+
+    def test_try_restarting_container_failure(self):
+        """Test try_restarting_container raises error when restart fails."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.side_effect = subprocess.CalledProcessError(1, 'docker start')
+            with self.assertRaises(RuntimeError) as context:
+                self.validator.try_restarting_container()
+            assert 'could not be restarted' in str(context.exception)
+
+    def test_try_restarting_container_not_running_after_start(self):
+        """Test try_restarting_container raises error when container doesn't start."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.side_effect = [
+                None,
+                'CONTAINER ID   IMAGE   STATUS'
+            ]
+            with self.assertRaises(RuntimeError) as context:
+                self.validator.try_restarting_container()
+            assert 'could not be restarted' in str(context.exception)
+
+    def test_verify_image_available_locally_true(self):
+        """Test verify_image_available_locally returns True when image exists."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.return_value = f'{self.validator.container_image}   {self.validator.container_tag}   abc123'
+            result = self.validator.verify_image_available_locally()
+            assert result is True
+
+    def test_verify_image_available_locally_false(self):
+        """Test verify_image_available_locally returns False when image doesn't exist."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.return_value = 'REPOSITORY   TAG   IMAGE ID'
+            result = self.validator.verify_image_available_locally()
+            assert result is False
+
+    def test_run_container_if_required_container_already_running(self):
+        """Test run_container_if_required raises error when container already running."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.return_value = f'CONTAINER ID   IMAGE   STATUS\nabc123   {self.validator.container_name}   Up 5 minutes'
+            with self.assertRaises(RuntimeError) as context:
+                self.validator.run_container_if_required()
+            assert 'already running' in str(context.exception)
+
+    def test_run_container_if_required_restart_stopped_container(self):
+        """Test run_container_if_required restarts a stopped container."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.side_effect = [
+                'CONTAINER ID   IMAGE   STATUS',
+                f'CONTAINER ID   IMAGE   STATUS\nabc123   {self.validator.container_name}   Exited',
+                None,
+                f'CONTAINER ID   IMAGE   STATUS\nabc123   {self.validator.container_name}   Up 1 sec'
+            ]
+            self.validator.run_container_if_required()
+
+    @patch('time.sleep')
+    def test_run_container_if_required_start_new_container(self, mock_sleep):
+        """Test run_container_if_required starts a new container."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.side_effect = [
+                'CONTAINER ID   IMAGE   STATUS',
+                'CONTAINER ID   IMAGE   STATUS',
+                None,
+                f'CONTAINER ID   IMAGE   STATUS\nabc123   {self.validator.container_name}   Up 1 sec'
+            ]
+            self.validator.run_container_if_required()
+            calls = m_run_command.call_args_list
+            assert any('docker run' in str(call) for call in calls)
+
+    @patch('time.sleep')
+    def test_run_container_if_required_start_failure(self, mock_sleep):
+        """Test run_container_if_required raises error when start fails."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.side_effect = [
+                'CONTAINER ID   IMAGE   STATUS',
+                'CONTAINER ID   IMAGE   STATUS',
+                subprocess.CalledProcessError(1, 'docker run'),
+            ]
+            with self.assertRaises(RuntimeError) as context:
+                self.validator.run_container_if_required()
+            assert 'could not be started' in str(context.exception)
+
+    def test_stop_running_container_when_running(self):
+        """Test stop_running_container stops a running container."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.side_effect = [
+                f'CONTAINER ID   IMAGE   STATUS\nabc123   {self.validator.container_name}   Up 5 minutes',
+                None
+            ]
+            self.validator.stop_running_container()
+            calls = m_run_command.call_args_list
+            assert any('docker stop' in str(call) for call in calls)
+
+    def test_stop_running_container_when_not_running(self):
+        """Test stop_running_container does nothing when container not running."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.return_value = 'CONTAINER ID   IMAGE   STATUS'
+            self.validator.stop_running_container()
+            assert m_run_command.call_count == 1
+
+    def test_validation_file_path_for(self):
+        """Test _validation_file_path_for returns correct container path."""
+        from eva_sub_cli.validators.docker_validator import container_validation_dir
+        file_path = 'test/file.vcf'
+        result = DockerValidator._validation_file_path_for(file_path)
+        assert result == f'{container_validation_dir}/{file_path}'
+
+    def test_get_docker_validation_cmd_with_json(self):
+        """Test get_docker_validation_cmd with JSON metadata."""
+        cmd = self.validator.get_docker_validation_cmd()
+        assert f'docker exec {self.validator.container_name}' in cmd
+        assert 'nextflow run' in cmd
+        assert f'--metadata_json {self.validator.metadata_json}' in cmd
+        assert f'--vcf_files_mapping {self.validator.mapping_file}' in cmd
+
+    def test_get_docker_validation_cmd_with_shallow_validation(self):
+        """Test get_docker_validation_cmd includes shallow validation flag."""
+        validator = DockerValidator(
+            mapping_file=self.mapping_file,
+            submission_dir=self.test_run_dir,
+            project_title='Test Project',
+            metadata_json=self.metadata_json,
+            shallow_validation=True,
+            validation_tasks=['vcf_check']
+        )
+        cmd = validator.get_docker_validation_cmd()
+        assert '--shallow_validation true' in cmd
+
+    def test_copy_files_to_container(self):
+        """Test copy_files_to_container copies all required files."""
+        with patch('eva_sub_cli.validators.validator.run_command_with_output') as m_run_command:
+            m_run_command.return_value = None
+            self.validator.copy_files_to_container()
+            calls = [str(call) for call in m_run_command.call_args_list]
+            assert any('docker exec' in call and 'mkdir' in call for call in calls)
+            assert any('docker cp' in call for call in calls)
