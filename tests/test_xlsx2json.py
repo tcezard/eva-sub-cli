@@ -70,6 +70,34 @@ class TestXlsReader(TestCase):
         jsonschema.validate(json_data, eva_json_schema)
 
 
+    def test_conversion_2_json_with_formula(self) -> None:
+        # In Project Tab taxonomy ID is not a value but a formula (=10000-394)
+        xls_filename = os.path.join(self.resource_dir, 'EVA_Submission_test_with_formula.xlsx')
+        self.parser = XlsxParser(xls_filename, self.conf_filename)
+        output_json = os.path.join(self.resource_dir, 'EVA_Submission_test_output.json')
+        errors_yaml = os.path.join(self.resource_dir, 'EVA_Submission_test_errors.yml')
+        self.parser.json(output_json)
+        self.parser.save_errors(errors_yaml)
+
+        # confirm no errors
+        with open(errors_yaml) as open_file:
+            errors_data = yaml.safe_load(open_file)
+            assert errors_data == []
+
+        with open(output_json) as open_file:
+            json_data = json.load(open_file)
+            # assert json file is created with expected data
+            assert sorted(json_data.keys()) == ['analysis', 'files', 'project', 'sample', 'submitterDetails']
+            self.assertEqual(self.get_expected_json(), json_data)
+
+        # assert json schema
+        with open(self.eva_schema) as eva_schema_file:
+            eva_json_schema = json.load(eva_schema_file)
+
+        # assert created json file conform to eva_schema
+        jsonschema.validate(json_data, eva_json_schema)
+
+
     def test_conversion_2_json_V2(self) -> None:
         xls_filename = os.path.join(self.resource_dir, 'EVA_Submission_test_V2.xlsx')
         self.parser = XlsxParser(xls_filename, self.conf_filename_v2)
