@@ -129,7 +129,7 @@ def main():
             # Pass on all the arguments to the orchestrator
             orchestrator.orchestrate_process(call_home=call_home, **args.__dict__)
 
-    # User errors: not displayed as exceptions
+    # User errors: not displayed as exceptions, call-home records as failure with no exception
     except DirLockError as dle:
         print(f'Could not acquire the lock file for {args.submission_dir} because another process is using this '
               f'directory or a previous process did not terminate correctly. If the problem persists, remove the lock '
