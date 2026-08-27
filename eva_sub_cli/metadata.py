@@ -6,6 +6,8 @@ from functools import cached_property
 
 from ebi_eva_common_pyutils.logger import AppLogger
 
+from eva_sub_cli.exceptions import UserFileNotFoundException
+
 
 class EvaMetadataJson(AppLogger):
 
@@ -86,7 +88,7 @@ class EvaMetadataJson(AppLogger):
     def get_analysis_for_vcf_file(self, vcf_file):
         """Returns list of analysis aliases associated with the vcf file path."""
         if not os.path.exists(vcf_file):
-            raise FileNotFoundError(f'{vcf_file} cannot be resolved')
+            raise UserFileNotFoundException(f'{vcf_file} cannot be resolved, please check the file path.')
         analysis_aliases = [analysis_alias for analysis_alias in self.files_per_analysis
                             if vcf_file in self.files_per_analysis[analysis_alias]
                             or os.path.basename(vcf_file) in [

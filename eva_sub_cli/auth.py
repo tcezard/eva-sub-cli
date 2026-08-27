@@ -8,6 +8,7 @@ from ebi_eva_common_pyutils.logger import AppLogger
 from urllib3.exceptions import ResponseError
 
 from eva_sub_cli import LSRI_CLIENT_ID, ENA_WEBIN_ACCOUNT_VAR, ENA_WEBIN_PASSWORD_VAR
+from eva_sub_cli.exceptions import WebinBadCredentialsException
 
 ENA_AUTH_URL = "https://www.ebi.ac.uk/ena/submit/webin/auth/token"
 LSRI_AUTH_URL = "https://www.ebi.ac.uk/eva/v1/submission/auth/lsri"
@@ -69,8 +70,11 @@ class WebinAuth(AppLogger):
         if response.status_code == 200:
             self.info("Webin authentication successful!")
             return response.text
+        elif response.status_code == 401:
+            raise WebinBadCredentialsException('Could not authenticate with ENA Webin. Please check your credentials '
+                                               'and try again.')
         else:
-            raise ResponseError('Webin Authentication Error')
+            raise ResponseError(f'Could not authenticate with ENA Webin: {response.status_code}, {response.text}')
 
     def _get_webin_username_password(self):
         username = self.cmd_line_username

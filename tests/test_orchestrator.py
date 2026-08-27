@@ -12,7 +12,7 @@ from requests import HTTPError
 from eva_sub_cli import SUB_CLI_CONFIG_FILE
 from eva_sub_cli.exceptions import InvalidFileTypeError, MetadataTemplateVersionException, \
     MetadataTemplateVersionNotFoundException, SubmissionNotFoundException, SubmissionStatusException, \
-    NoVcfsFoundException
+    NoVcfsFoundException, UserFileNotFoundException
 from eva_sub_cli.file_utils import is_vcf_file
 from eva_sub_cli.metadata import EvaMetadataJson
 from eva_sub_cli.orchestrator import orchestrate_process, VALIDATE, SUBMIT, DOCKER, check_validation_required, \
@@ -371,7 +371,7 @@ class TestOrchestrator(unittest.TestCase):
             m_docker_validator().validate_and_report.assert_called_once_with()
 
     def test_metadata_file_does_not_exist_error(self):
-        with self.assertRaises(FileNotFoundError) as context:
+        with self.assertRaises(UserFileNotFoundException) as context:
             orchestrate_process(self.test_sub_dir, None, 'Non_existing_metadata.xlsx',
                                 tasks=[VALIDATE], executor=DOCKER)
         self.assertRegex(
