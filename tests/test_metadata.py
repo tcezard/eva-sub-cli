@@ -1,6 +1,7 @@
 import os
 from unittest import TestCase
 
+from eva_sub_cli.exceptions import UserFileNotFoundException
 from eva_sub_cli.metadata import EvaMetadataJson
 
 
@@ -62,7 +63,7 @@ class TestEvaMetadata(TestCase):
         os.remove('example1.vcf.gz')
 
         # File does not exist
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaises(UserFileNotFoundException):
             self.metadata.get_analysis_for_vcf_file('example2.vcf')
 
         # File exists but does not resolve to a path that matches metadata

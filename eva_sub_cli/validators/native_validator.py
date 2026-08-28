@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+from eva_sub_cli.exceptions import DependencyNotFoundException
 from eva_sub_cli.validators.validator import Validator, ALL_VALIDATION_TASKS
 
 
@@ -69,4 +70,5 @@ class NativeValidator(Validator):
                 )
             except subprocess.CalledProcessError as ex:
                 self.error(ex)
-                raise RuntimeError(f"Please make sure {name} ({path}) is installed and available on the path")
+                raise DependencyNotFoundException(f"Could not find {name}. Please make sure {name} ({path}) is "
+                                                  f"installed and available on the path")

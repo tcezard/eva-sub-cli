@@ -7,6 +7,8 @@ from itertools import groupby
 import pysam
 from ebi_eva_common_pyutils.logger import logging_config
 
+from eva_sub_cli.exceptions import DirLockError
+
 logger = logging_config.get_logger(__name__)
 
 
@@ -158,10 +160,6 @@ def fasta_iter(input_fasta):
             yield (headerStr, seq)
 
 
-class DirLockError(Exception):
-    pass
-
-
 class DirLock(object):
     _SPIN_PERIOD_SECONDS = 0.05
 
@@ -183,7 +181,7 @@ class DirLock(object):
                 break
             except OSError:
                 if (time.time() - start_time) > self._timeout:
-                    raise DirLockError(f"could not create {self._lockfilename} after {self._timeout} seconds")
+                    raise DirLockError(f"Could not create {self._lockfilename} after {self._timeout} seconds")
                 else:
                     time.sleep(self._SPIN_PERIOD_SECONDS)
 

@@ -8,6 +8,7 @@ from ebi_eva_common_pyutils.logger import AppLogger
 from retry import retry
 
 from eva_sub_cli import SUB_CLI_CONFIG_FILE, __version__
+from eva_sub_cli.exceptions import InvalidSubmissionException
 from eva_sub_cli.submission_ws import SubmissionWSClient
 from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
 
@@ -52,8 +53,8 @@ class StudySubmitter(AppLogger):
 
     def _upload_submission(self):
         if READY_FOR_SUBMISSION_TO_EVA not in self.sub_config or not self.sub_config[READY_FOR_SUBMISSION_TO_EVA]:
-            raise Exception(f'There are still validation errors that needs to be addressed. '
-                            f'Please review, address and re-validate before uploading.')
+            raise InvalidSubmissionException(f'There are still validation errors that needs to be addressed. '
+                                             f'Please review, address and re-validate before uploading.')
 
         submission_upload_url = self.sub_config[SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL]
 

@@ -14,6 +14,7 @@ from packaging import version
 
 import eva_sub_cli
 from eva_sub_cli import ETC_DIR, SUB_CLI_CONFIG_FILE, __version__
+from eva_sub_cli.exceptions import UserFileNotFoundException
 from eva_sub_cli.utils import get_json_schema_link
 from eva_sub_cli.file_utils import resolve_single_file_path
 from eva_sub_cli.metadata import EvaMetadataJson
@@ -170,8 +171,8 @@ class Validator(AppLogger):
         # verify all files mentioned in metadata files exist
         files_missing, missing_files_list = self.check_if_file_missing()
         if files_missing:
-            raise FileNotFoundError(f"some files (vcf/fasta) mentioned in metadata file could not be found. "
-                                    f"Missing files list {missing_files_list}")
+            raise UserFileNotFoundException(f"Some files (vcf/fasta) mentioned in metadata file could not be found. "
+                                            f"Missing files list: {missing_files_list}")
 
     def check_if_file_missing(self):
         files_missing = False

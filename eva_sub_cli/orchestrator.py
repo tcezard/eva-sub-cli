@@ -14,7 +14,7 @@ from eva_sub_cli import MINIMUM_METADATA_XLSX_TEMPLATE_VERSION
 from eva_sub_cli import SUB_CLI_CONFIG_FILE, __version__
 from eva_sub_cli.exceptions import InvalidFileTypeError, MetadataTemplateVersionException, \
     MetadataTemplateVersionNotFoundException, SubmissionNotFoundException, SubmissionStatusException, \
-    NoVcfsFoundException
+    NoVcfsFoundException, UserFileNotFoundException
 from eva_sub_cli.file_utils import is_vcf_file
 from eva_sub_cli.metadata import EvaMetadataJson
 from eva_sub_cli.submission_ws import SubmissionWSClient
@@ -111,17 +111,20 @@ def validate_vcf_mapping(vcf_mapping):
     :return:
     """
     if len(vcf_mapping) == 0:
-        raise NoVcfsFoundException('No VCF files detected in metadata')
+        raise NoVcfsFoundException('No VCF files detected in metadata. Please ensure that you have listed at least one '
+                                   'VCF file in the metadata Files section (.vcf or .vcf.gz file extension), and that '
+                                   'you have not modified the metadata template in any way.')
     for vcf_file, fasta_file, report_file in vcf_mapping:
         if not (vcf_file and os.path.isfile(vcf_file)):
-            raise FileNotFoundError(f'The variant file {vcf_file} does not exist, please check the file path.')
+            raise UserFileNotFoundException(f'The variant file {vcf_file} does not exist, please check the file path.')
         if not (fasta_file and os.path.isfile(fasta_file)):
-            raise FileNotFoundError(f'The reference fasta {fasta_file} does not exist, please check the file path.')
+            raise UserFileNotFoundException(f'The reference fasta {fasta_file} does not exist, please check the file '
+                                            f'path.')
         if fasta_file.lower().endswith('gz'):
             raise InvalidFileTypeError(f'The reference fasta {fasta_file} is compressed, please uncompress the file.')
         if report_file and not os.path.isfile(report_file):
-            raise FileNotFoundError(f'The assembly report file {report_file} does not exist, please check the file '
-                                    f'path.')
+            raise UserFileNotFoundException(f'The assembly report file {report_file} does not exist, please check the '
+                                            f'file path.')
 
 
 def get_project_and_vcf_fasta_mapping_from_metadata_json(metadata_json):
@@ -243,12 +246,14 @@ def check_validation_required(tasks, sub_config, username=None, password=None):
                 logger.error(
                     f'Submission with id {submission_id} could not be found: '
                     f'status code: {ex.response.status_code} response: {ex.response.text}')
-                raise SubmissionNotFoundException(f'Submission with id {submission_id} could not be found')
+                raise SubmissionNotFoundException(f'Submission with id {submission_id} could not be found. Please '
+                                                  f'contact EVA Helpdesk.')
             else:
-                logger.error(f'Error occurred while getting status of the submission with Id {submission_id}: '
+                logger.error(f'Error occurred while getting status of the submission with ID {submission_id}: '
                              f'status code: {ex.response.status_code} response: {ex.response.text}')
                 raise SubmissionStatusException(f'Error occurred while getting status of the submission '
-                                                f'with Id {submission_id}')
+                                                f'with ID {submission_id}. Please try again later. If the problem '
+                                                f'persists, please contact EVA Helpdesk.')
 
     logger.debug(f'submission id not found in config. This might be the first time user is submitting')
     return False
@@ -263,7 +268,8 @@ def orchestrate_process(submission_dir, metadata_json, metadata_xlsx,
 
     metadata_file = metadata_json or metadata_xlsx
     if not os.path.exists(os.path.abspath(metadata_file)):
-        raise FileNotFoundError(f'The provided metadata file {os.path.abspath(metadata_file)} does not exist')
+        raise UserFileNotFoundException(f'The provided metadata file {os.path.abspath(metadata_file)} does not exist, '
+                                        f'please check the file path.')
 
     if metadata_json:
         metadata_json = os.path.abspath(metadata_json)

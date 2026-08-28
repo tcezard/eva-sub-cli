@@ -15,7 +15,9 @@ import eva_sub_cli
 from eva_sub_cli import ENA_WEBIN_ACCOUNT_VAR, ENA_WEBIN_PASSWORD_VAR
 from eva_sub_cli import orchestrator
 from eva_sub_cli.exceptions import MetadataTemplateVersionException, MetadataTemplateVersionNotFoundException, \
-    SubmissionStatusException, SubmissionNotFoundException, SubmissionUploadException, NoVcfsFoundException
+    SubmissionStatusException, SubmissionNotFoundException, SubmissionUploadException, NoVcfsFoundException, \
+    UserFileNotFoundException, DependencyNotFoundException, WebinBadCredentialsException, InvalidFileTypeError, \
+    InvalidSubmissionException, DockerValidatorException
 from eva_sub_cli.call_home import CallHomeClient
 from eva_sub_cli.file_utils import is_submission_dir_writable, DirLockError, DirLock
 from eva_sub_cli.orchestrator import VALIDATE, SUBMIT, DOCKER, NATIVE
@@ -126,51 +128,69 @@ def main():
             logging_config.add_file_handler(os.path.join(args.submission_dir, 'eva_submission.log'), logging.DEBUG)
             # Pass on all the arguments to the orchestrator
             orchestrator.orchestrate_process(call_home=call_home, **args.__dict__)
+
+    # User errors: not displayed as exceptions, call-home records as failure with no exception
     except DirLockError as dle:
-        logger.exception(f'Could not acquire the lock file for {args.submission_dir} because another process is using '
-                         f'this directory or a previous process did not terminate correctly. '
-                         f'If the problem persists, remove the lock file manually.')
-        caught_exception = dle
-        exit_status = 65
+        print(f'Could not acquire the lock file for {args.submission_dir} because another process is using this '
+              f'directory or a previous process did not terminate correctly. If the problem persists, remove the lock '
+              f'file manually.')
+        exit_status = 101
+    except NoVcfsFoundException as nvfe:
+        print(nvfe.message)
+        exit_status = 102
+    except MetadataTemplateVersionException as mte:
+        print(mte.message)
+        exit_status = 103
+    except MetadataTemplateVersionNotFoundException as mte:
+        print(mte.message)
+        exit_status = 104
+    except UserFileNotFoundException as ufne:
+        print(ufne.message)
+        exit_status = 105
+    except InvalidFileTypeError as ife:
+        print(ife.message)
+        exit_status = 106
+    except DependencyNotFoundException as dnfe:
+        print(dnfe.message)
+        exit_status = 107
+    except WebinBadCredentialsException as wae:
+        print(wae.message)
+        exit_status = 108
+    except InvalidSubmissionException as ise:
+        print(ise.message)
+        exit_status = 109
+
+    # Process errors: displayed as exceptions and sent to call-home
     except FileNotFoundError as fne:
         logger.exception(fne)
         caught_exception = fne
-        exit_status = 66
-    except NoVcfsFoundException as nvfe:
-        logger.exception(f'{nvfe}. Please ensure that you have listed VCF files in the metadata (.vcf or .vcf.gz file '
-                         f'extension), and that you have not modified the metadata template in any way.')
-        caught_exception = nvfe
-        exit_status = 67
+        exit_status = 201
     except SubmissionNotFoundException as snfe:
-        logger.exception(f'{snfe}. Please contact EVA Helpdesk')
+        logger.exception(snfe)
         caught_exception = snfe
-        exit_status = 68
+        exit_status = 202
     except SubmissionStatusException as sse:
-        logger.exception(f'{sse}. Please try again later. If the problem persists, please contact EVA Helpdesk')
+        logger.exception(sse)
         caught_exception = sse
-        exit_status = 69
-    except MetadataTemplateVersionException as mte:
-        logger.exception(mte)
-        caught_exception = mte
-        exit_status = 70
-    except MetadataTemplateVersionNotFoundException as mte:
-        logger.exception(mte)
-        caught_exception = mte
-        exit_status = 71
+        exit_status = 203
     except SubmissionUploadException as sue:
         logger.exception(sue)
         caught_exception = sue
-        exit_status = 72
+        exit_status = 204
     except HTTPError as http_err:
         logger.exception(http_err)
         if http_err.response is not None and http_err.response.text:
             print(http_err.response.text)
         caught_exception = http_err
-        exit_status = 73
+        exit_status = 205
+    except DockerValidatorException as dve:
+        logger.exception(dve)
+        caught_exception = dve
+        exit_status = 206
     except Exception as ex:
         logger.exception(ex)
         caught_exception = ex
-        exit_status = 74
+        exit_status = 299
 
     if call_home is not None:
         if exit_status == 0:

@@ -69,15 +69,15 @@ class TestCli(TestCase):
         test_cases = [
             (DirLockError(f'Could not acquire the lock file for {self.submission_dir} because another process is '
                           f'using this directory or a previous process did not terminate correctly. '
-                          f'If the problem persists, remove the lock file manually.'), 65),
-            (FileNotFoundError("The test_file does not exist"), 66),
-            (SubmissionNotFoundException("submission not found"), 68),
-            (SubmissionStatusException("can't get submission status"), 69),
-            (MetadataTemplateVersionException("Metadata template version lower than expected"), 70),
-            (MetadataTemplateVersionNotFoundException("Metadata template version not found"), 71),
-            (SubmissionUploadException("Error while uploading submission: File size in metadata json does not match with the size of the file uploaded"), 72),
-            (http_error, 73),
-            (Exception("Exception occurred while processing"), 74),
+                          f'If the problem persists, remove the lock file manually.'), 101),
+            (FileNotFoundError("The test_file does not exist"), 201),
+            (SubmissionNotFoundException("submission not found"), 202),
+            (SubmissionStatusException("can't get submission status"), 203),
+            (MetadataTemplateVersionException("Metadata template version lower than expected"), 103),
+            (MetadataTemplateVersionNotFoundException("Metadata template version not found"), 104),
+            (SubmissionUploadException("Error while uploading submission: File size in metadata json does not match with the size of the file uploaded"), 204),
+            (http_error, 205),
+            (Exception("Exception occurred while processing"), 299),
         ]
 
         for exception, expected_exit in test_cases:
