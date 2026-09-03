@@ -651,10 +651,11 @@ class Validator(AppLogger):
                     file_count = 0
                     for file_dict in metadata.files:
                         file_path = self._validation_file_path_for(file_dict.get('fileName'))
+                        file_name = os.path.basename(file_dict.get('fileName') or '')
                         file_dict['md5'] = file_path_2_md5.get(file_path) or \
-                                           file_name_2_md5.get(file_dict.get('fileName')) or ''
+                                           file_name_2_md5.get(file_name) or ''
                         file_dict['fileSize'] = file_path_2_file_size.get(file_path) or \
-                                                file_name_2_file_size.get(file_dict.get('fileName')) or ''
+                                                file_name_2_file_size.get(file_name) or ''
 
                         if not file_dict.get('fileSize'):
                             error_txt = f"File size is not available for {file_dict.get('fileName')}"
