@@ -308,21 +308,24 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "oneOf": [
-          {
-            "required": [
-              "analysisAlias",
-              "sampleInVCF",
-              "bioSampleAccession"
-            ]
-          },
-          {
-            "required": [
-              "analysisAlias",
-              "bioSampleObject"
-            ]
-          }
-        ],
+        "if": {
+          "required": [
+            "bioSampleAccession"
+          ]
+        },
+        "then": {
+          "required": [
+            "analysisAlias",
+            "sampleInVCF",
+            "bioSampleAccession"
+          ]
+        },
+        "else": {
+          "required": [
+            "analysisAlias",
+            "bioSampleObject"
+          ]
+        },
         "properties": {
           "analysisAlias": {
             "type": "array",
