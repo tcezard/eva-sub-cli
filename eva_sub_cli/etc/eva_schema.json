@@ -108,9 +108,14 @@
           },
           "publications": {
             "type": "array",
+            "description": "Publications associated with the project, each given as <database>:<identifier>",
             "items": {
               "type": "string",
-              "pattern": "^[^:,]+?:[^:,]+?$"
+              "pattern": "^[^:,]+?:[^:,]+?$",
+              "examples": [
+                "DOI:10.1093/nar/gkw1121",
+                "PMID:24565421"
+              ]
             }
           },
           "parentProject": {
