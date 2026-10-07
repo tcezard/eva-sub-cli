@@ -248,8 +248,11 @@ class XlsxParser:
     def get_sample_data_with_split_analysis_alias(self, data, analysis_alias, sample_name_in_vcf):
         analysis_alias_val = data.get(analysis_alias)
         analysis_alias_list = analysis_alias_val.split(',') if analysis_alias_val else []
-        sample_in_vcf_val = data.get(sample_name_in_vcf)
-        return {analysis_alias: analysis_alias_list, sample_name_in_vcf: sample_in_vcf_val}
+        sample_data = {analysis_alias: analysis_alias_list}
+        # Sample name in VCF is not relevant for VCF without genotypes, so it can be left empty
+        if data.get(sample_name_in_vcf) is not None:
+            sample_data[sample_name_in_vcf] = data.get(sample_name_in_vcf)
+        return sample_data
 
     def get_sample_json_data(self):
         json_key = self.xlsx_conf[WORKSHEETS_KEY_NAME][SAMPLE]

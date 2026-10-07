@@ -332,6 +332,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
+        "$comment": "sampleInVCF is required when the VCF files individual genotypes. It can be omitted when the VCF files only contain allele frequencies",
         "if": {
           "required": [
             "bioSampleAccession"
@@ -340,7 +341,6 @@
         "then": {
           "required": [
             "analysisAlias",
-            "sampleInVCF",
             "bioSampleAccession"
           ]
         },
@@ -360,8 +360,8 @@
             }
           },
           "sampleInVCF": {
-            "type": "string",
-            "description": "Sample Name used in the VCF file. It is a required field when genotypes are provided."
+            "type": ["string", "null"],
+            "description": "Sample Name used in the VCF file. It is required when the VCF files contain individual genotypes (evidenceType 'genotype') and can be omitted when they only contain allele frequencies (evidenceType 'allele_frequency')."
           },
           "bioSampleAccession": {
             "type": "string",
