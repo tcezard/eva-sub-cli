@@ -4,6 +4,7 @@ from datetime import datetime
 from unittest import TestCase
 
 import jsonschema
+import openpyxl
 import yaml
 
 from eva_sub_cli import ETC_DIR
@@ -21,6 +22,7 @@ class TestXlsReader(TestCase):
         files_from_tests = [
             os.path.join(self.resource_dir, 'EVA_Submission_test_output.json'),
             os.path.join(self.resource_dir, 'EVA_Submission_test_output_v2.json'),
+            os.path.join(self.resource_dir, 'EVA_Submission_test_no_sample_in_vcf.xlsx'),
             os.path.join(self.resource_dir, 'metadata_not_existing.xlsx'),
             os.path.join(self.resource_dir, 'EVA_Submission_test_errors.yml'),
             os.path.join(self.resource_dir, 'EVA_Submission_test_errors_v2.yml'),
@@ -278,16 +280,42 @@ class TestXlsReader(TestCase):
             jsonschema.validate(json_data, eva_json_schema)
         assert context.exception.message == "'description' is a required property"
 
-    def test_json_validation_reports_only_missing_sample_in_vcf(self) -> None:
+    def test_conversion_2_json_with_empty_sample_in_vcf(self) -> None:
+        xls_filename = os.path.join(self.resource_dir, 'EVA_Submission_test.xlsx')
+        xls_no_sample_in_vcf = os.path.join(self.resource_dir, 'EVA_Submission_test_no_sample_in_vcf.xlsx')
+        output_json = os.path.join(self.resource_dir, 'EVA_Submission_test_output.json')
+        # Remove all the values from the "Sample Name in VCF" column
+        workbook = openpyxl.load_workbook(xls_filename)
+        worksheet = workbook['Sample']
+        with open(self.conf_filename) as open_file:
+            header_row = yaml.safe_load(open_file)['Sample']['header_row']
+        headers = [cell.value.strip() if cell.value else cell.value for cell in worksheet[header_row]]
+        column = headers.index('Sample Name in VCF') + 1
+        for row in range(header_row + 1, worksheet.max_row + 1):
+            worksheet.cell(row=row, column=column).value = None
+        workbook.save(xls_no_sample_in_vcf)
+
+        XlsxParser(xls_no_sample_in_vcf, self.conf_filename).json(output_json)
+        with open(output_json) as open_file:
+            json_data = json.load(open_file)
+        assert len(json_data['sample']) == 4
+        for sample in json_data['sample']:
+            # No properties sampleInVCF in sample
+            assert 'sampleInVCF' not in sample
+            assert sample['analysisAlias']
+
+    def test_json_validation_accepts_missing_or_null_sample_in_vcf(self) -> None:
+        # sampleInVCF is not required by the schema: the semantic check requires it only when genotypes are present
         with open(self.eva_schema) as eva_schema_file:
             eva_json_schema = json.load(eva_schema_file)
 
         json_data = self.get_expected_json()
+        # Pre-registered sample
         del json_data['sample'][0]['sampleInVCF']
-
-        with self.assertRaises(jsonschema.ValidationError) as context:
-            jsonschema.validate(json_data, eva_json_schema)
-        assert context.exception.message == "'sampleInVCF' is a required property"
+        json_data['sample'][1]['sampleInVCF'] = None
+        # Novel sample
+        del json_data['sample'][3]['sampleInVCF']
+        jsonschema.validate(json_data, eva_json_schema)
 
     def build_large_string_of_length(self, length):
         return "A" * length
