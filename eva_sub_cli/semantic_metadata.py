@@ -68,8 +68,10 @@ class SemanticMetadataChecker(AppLogger):
         self.check_existing_biosamples()
         self.check_all_analysis_run_accessions()
         self.check_analysis_alias_coherence()
+        self.check_uniqueness_analysis_alias()
         self.check_all_analysis_contain_samples()
         self.check_all_samples_have_sample_in_vcf()
+        self.check_uniqueness_sample_in_vcf_per_analysis()
         self.check_hold_date()
         self.check_statements()
 
@@ -353,13 +355,39 @@ class SemanticMetadataChecker(AppLogger):
                 self.add_error(property=json_path,
                                description=f'No sample found for the analysis. Should have at the least one sample.')
 
+    def _sample_in_vcf_required(self, analysis_alias):
+        """SampleInVCF is required unless the VCF files of the analysis only contain allele frequencies."""
+        return self.evidence_type_results.get(analysis_alias, {}).get('evidence_type') != 'allele_frequency'
+
     def check_all_samples_have_sample_in_vcf(self):
         for idx, sample in enumerate(self.metadata[SAMPLE_KEY]):
             json_path = f'/{SAMPLE_KEY}/{idx}/{SAMPLE_IN_VCF_KEY}'
             analysis_aliases = sample.get(ANALYSIS_ALIAS_KEY, [])
             if any([self.evidence_type_results.get(analysis_alias, {}).get('evidence_type') != 'allele_frequency' for
                     analysis_alias in analysis_aliases]):
+            if any([self._sample_in_vcf_required(analysis_alias) for analysis_alias in analysis_aliases]):
                 # SampleInVCF is required
                 if sample.get(SAMPLE_IN_VCF_KEY) is None or sample.get(SAMPLE_IN_VCF_KEY) == '':
-                    self.add_error(json_path,
-                                   f'{SAMPLE_IN_VCF_KEY} must be provided when Genotypes are present in the VCF file')
+                    self.add_error(json_path, f'{SAMPLE_IN_VCF_KEY} must be provided when Genotypes are present in the VCF file')
+
+    def check_uniqueness_sample_in_vcf_per_analysis(self):
+        """Check that, within an analysis containing genotypes, each sampleInVCF is used by a single sample."""
+        sample_indices_per_analysis = {}
+        for idx, sample in enumerate(self.metadata[SAMPLE_KEY]):
+            for analysis_alias in sample.get(ANALYSIS_ALIAS_KEY, []):
+                sample_indices_per_analysis.setdefault(analysis_alias, []).append(idx)
+
+        for analysis_alias, sample_indices in sample_indices_per_analysis.items():
+            if not self._sample_in_vcf_required(analysis_alias):
+                continue
+            # Missing values are reported by check_all_samples_have_sample_in_vcf
+            counter = Counter(self.metadata[SAMPLE_KEY][idx].get(SAMPLE_IN_VCF_KEY) for idx in sample_indices)
+            for idx in sample_indices:
+                sample_in_vcf = self.metadata[SAMPLE_KEY][idx].get(SAMPLE_IN_VCF_KEY)
+                if sample_in_vcf and counter[sample_in_vcf] > 1:
+                    self.add_error(
+                        f'/{SAMPLE_KEY}/{idx}/{SAMPLE_IN_VCF_KEY}',
+                        f'{SAMPLE_IN_VCF_KEY} {sample_in_vcf} is used by {counter[sample_in_vcf]} samples '
+                        f'in analysis {analysis_alias}'
+                    )
+
