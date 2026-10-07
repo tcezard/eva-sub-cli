@@ -450,6 +450,38 @@ class TestSemanticMetadata(TestCase):
         checker.check_all_samples_have_sample_in_vcf()
         self.assertEqual(checker.errors, [])
 
+    def test_check_uniqueness_sample_in_vcf_per_analysis(self):
+        metadata = {
+            "sample": [
+                {"analysisAlias": ["GT1"], "sampleInVCF": "S1"},
+                {"analysisAlias": ["GT1"], "sampleInVCF": "S1"},
+                {"analysisAlias": ["GT1", "GT2"], "sampleInVCF": "S2"},
+                # Same name in a different analysis is allowed
+                {"analysisAlias": ["GT2"], "sampleInVCF": "S1"},
+                # Missing values are reported by another check
+                {"analysisAlias": ["GT2"]},
+                {"analysisAlias": ["GT2"], "sampleInVCF": ""},
+            ]
+        }
+        evidence_types = {'GT1': {'evidence_type': 'genotype'}, 'GT2': {'evidence_type': 'genotype'}}
+        checker = SemanticMetadataChecker(metadata, evidence_type_results=evidence_types)
+        checker.check_uniqueness_sample_in_vcf_per_analysis()
+        self.assertEqual(checker.errors, [
+            {'property': '/sample/0/sampleInVCF', 'description': 'sampleInVCF S1 is used by 2 samples in analysis GT1'},
+            {'property': '/sample/1/sampleInVCF', 'description': 'sampleInVCF S1 is used by 2 samples in analysis GT1'},
+        ])
+
+        # Duplicates are allowed in allele frequency analyses where sampleInVCF is not used
+        metadata = {
+            "sample": [
+                {"analysisAlias": ["AF1"], "sampleInVCF": "NA"},
+                {"analysisAlias": ["AF1"], "sampleInVCF": "NA"},
+            ]
+        }
+        checker = SemanticMetadataChecker(metadata, evidence_type_results={'AF1': {'evidence_type': 'allele_frequency'}})
+        checker.check_uniqueness_sample_in_vcf_per_analysis()
+        self.assertEqual(checker.errors, [])
+
     def test_check_hold_date(self):
         # No error when holdDate is within 2 years
         hold_date_ok = (datetime.now() + timedelta(days=365)).strftime('%Y-%m-%d')
