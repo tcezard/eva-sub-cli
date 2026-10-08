@@ -3,7 +3,6 @@ import shutil
 from unittest import TestCase
 
 import pytest
-import yaml
 
 from eva_sub_cli.validators.native_validator import NativeValidator
 from eva_sub_cli.validators.validator import METADATA_CHECK
@@ -39,16 +38,13 @@ class TestNativeValidatorSampleInVCF(TestCase):
             validation_tasks=tasks,
         )
 
-    def _get_semantic_errors(self):
-        semantic_yaml = os.path.join(
-            self.test_run_dir, 'validation_output', 'other_validations', 'metadata_semantic_check.yml'
-        )
-        with open(semantic_yaml) as f:
-            return yaml.safe_load(f) or []
+    def _get_metadata_errors(self, validator):
+        # Includes both the JSON schema (biovalidator) and the semantic check errors
+        return validator.results[METADATA_CHECK]['json_errors']
 
     def _sample_in_vcf_errors(self, errors):
-        return [e for e in errors if 'sampleInVCF' in e.get('property', '')]
-
+        # Missing required property errors are reported against the parent object so check the description too
+        return [e for e in errors if 'sampleInVCF' in e.get('property', '') or 'sampleInVCF' in e.get('description', '')]
 
     def test_af_vcf_without_sample_in_vcf(self):
         """AF evidence type: omitting sampleInVCF should produce no error."""
@@ -58,7 +54,7 @@ class TestNativeValidatorSampleInVCF(TestCase):
             [METADATA_CHECK]
         )
         validator.validate()
-        errors = self._get_semantic_errors()
+        errors = self._get_metadata_errors(validator)
         self.assertEqual(self._sample_in_vcf_errors(errors), [])
 
     def test_af_vcf_with_sample_in_vcf(self):
@@ -69,7 +65,18 @@ class TestNativeValidatorSampleInVCF(TestCase):
             [METADATA_CHECK]
         )
         validator.validate()
-        errors = self._get_semantic_errors()
+        errors = self._get_metadata_errors(validator)
+        self.assertEqual(self._sample_in_vcf_errors(errors), [])
+
+    def test_af_vcf_with_null_sample_in_vcf(self):
+        """AF evidence type: sampleInVCF set to null (empty cell in the spreadsheet) should produce no error."""
+        validator = self._build_validator(
+            os.path.join(self.sample_in_vcf_dir, 'metadata_af_null_sample_in_vcf.json'),
+            os.path.join(self.sample_in_vcf_dir, 'allele_freq.vcf'),
+            [METADATA_CHECK]
+        )
+        validator.validate()
+        errors = self._get_metadata_errors(validator)
         self.assertEqual(self._sample_in_vcf_errors(errors), [])
 
     def test_genotype_vcf_without_sample_in_vcf(self):
@@ -80,7 +87,7 @@ class TestNativeValidatorSampleInVCF(TestCase):
             [METADATA_CHECK]
         )
         validator.validate()
-        errors = self._get_semantic_errors()
+        errors = self._get_metadata_errors(validator)
         sample_in_vcf_errors = self._sample_in_vcf_errors(errors)
         self.assertEqual(len(sample_in_vcf_errors), 3)
 
@@ -92,5 +99,5 @@ class TestNativeValidatorSampleInVCF(TestCase):
             [METADATA_CHECK]
         )
         validator.validate()
-        errors = self._get_semantic_errors()
+        errors = self._get_metadata_errors(validator)
         self.assertEqual(self._sample_in_vcf_errors(errors), [])
