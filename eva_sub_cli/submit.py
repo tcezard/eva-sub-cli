@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import json
 import os
+import time
 
 import requests
 from ebi_eva_common_pyutils.config import WritableConfig
@@ -8,13 +9,17 @@ from ebi_eva_common_pyutils.logger import AppLogger
 from retry import retry
 
 from eva_sub_cli import SUB_CLI_CONFIG_FILE, __version__
-from eva_sub_cli.exceptions import InvalidSubmissionException
+from eva_sub_cli.exceptions import InvalidSubmissionException, SubmissionUploadException, RetryableUploadException
 from eva_sub_cli.submission_ws import SubmissionWSClient
 from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
 
 SUB_CLI_CONFIG_KEY_SUBMISSION_ID = "submission_id"
 SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL = "submission_upload_url"
 SUB_CLI_CONFIG_KEY_COMPLETE = "submission_complete"
+
+# HTTP status codes that can be caused by transient conditions and are worth retrying
+RETRYABLE_HTTP_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
+MAX_RETRY_AFTER_SECONDS = 300
 
 
 class StudySubmitter(AppLogger):
@@ -63,14 +68,35 @@ class StudySubmitter(AppLogger):
         for f in self.vcf_files:
             self._upload_file(submission_upload_url, f)
 
-    @retry(tries=5, delay=10, backoff=5)
+    @retry(exceptions=(RetryableUploadException, requests.ConnectionError, requests.Timeout),
+           tries=5, delay=10, backoff=5)
     def _upload_file(self, submission_upload_url, input_file):
         base_name = os.path.basename(input_file)
         self.debug(f'Transfer {base_name} to EVA FTP')
         with open(input_file, 'rb') as f:
             r = requests.put(os.path.join(submission_upload_url, base_name), data=f)
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except requests.HTTPError as e:
+            self._handle_upload_error(r, input_file, e)
         self.debug(f'Upload of {base_name} completed')
+
+    def _handle_upload_error(self, response, input_file, error):
+        base_name = os.path.basename(input_file)
+        if response.status_code in RETRYABLE_HTTP_STATUS_CODES:
+            retry_after = response.headers.get('Retry-After')
+            if retry_after and retry_after.isdigit():
+                time.sleep(min(int(retry_after), MAX_RETRY_AFTER_SECONDS))
+            self.warning(f'Upload of {base_name} failed with a transient error ({error}). It will be retried.')
+            raise RetryableUploadException(str(error)) from error
+        if response.status_code == 413:
+            file_size_gb = os.path.getsize(input_file) / 1024 ** 3
+            raise SubmissionUploadException(
+                f'The file {base_name} ({file_size_gb:.2f} GB) is too large to be uploaded to EVA. '
+                f'Please make sure the file is compressed (.vcf.gz) or split it into several smaller files '
+                f'(e.g. per chromosome), update the metadata, then re-validate and resubmit.'
+            ) from error
+        raise SubmissionUploadException(f'Upload of {base_name} failed: {error}') from error
 
     def _initiate_submission(self):
         response_json = self.submission_ws_client.initiate_submission()

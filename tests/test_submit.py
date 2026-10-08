@@ -4,10 +4,12 @@ import shutil
 import unittest
 from unittest.mock import MagicMock, patch, Mock
 
+import requests
 import yaml
 from ebi_eva_common_pyutils.config import WritableConfig
 
 from eva_sub_cli import SUB_CLI_CONFIG_FILE
+from eva_sub_cli.exceptions import SubmissionUploadException, RetryableUploadException
 from eva_sub_cli.file_utils import is_submission_dir_writable
 from eva_sub_cli.submission_ws import SubmissionWSClient, DEFAULT_SUBMISSION_WS_URL
 from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
@@ -163,3 +165,52 @@ class TestSubmit(unittest.TestCase):
             self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.mock_calls[0][1][0] == test_url + os.path.basename(file_to_upload)
             # Cannot test the content of the upload as opening the same file twice give different object
+
+    def _mock_error_response(self, status_code, headers=None):
+        response = requests.Response()
+        response.status_code = status_code
+        response.headers.update(headers or {})
+        response.url = 'http://example.com/EVA_Submission_test.json'
+        return response
+
+    def test_upload_file_too_large_not_retried(self):
+        test_url = 'http://example.com/'
+        file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
+        with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_error_response(413)) as mock_put, \
+                patch('retry.api.time.sleep') as mock_sleep:
+            with self.assertRaises(SubmissionUploadException) as context:
+                self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
+            assert 'too large' in context.exception.message
+            assert mock_put.call_count == 1
+            mock_sleep.assert_not_called()
+
+    def test_upload_file_client_error_not_retried(self):
+        test_url = 'http://example.com/'
+        file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
+        with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_error_response(403)) as mock_put, \
+                patch('retry.api.time.sleep'):
+            with self.assertRaises(SubmissionUploadException):
+                self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
+            assert mock_put.call_count == 1
+
+    def test_upload_file_transient_error_retried(self):
+        test_url = 'http://example.com/'
+        file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
+        success_response = MagicMock()
+        responses = [self._mock_error_response(503), self._mock_error_response(429, {'Retry-After': '2'}),
+                     success_response]
+        with patch('eva_sub_cli.submit.requests.put', side_effect=responses) as mock_put, \
+                patch('time.sleep') as mock_sleep:
+            self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
+            assert mock_put.call_count == 3
+            # retry backoff after the 503, then Retry-After followed by the retry backoff after the 429
+            assert [c.args[0] for c in mock_sleep.call_args_list] == [10, 2, 50]
+
+    def test_upload_file_transient_error_gives_up(self):
+        test_url = 'http://example.com/'
+        file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
+        with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_error_response(502)) as mock_put, \
+                patch('retry.api.time.sleep'):
+            with self.assertRaises(RetryableUploadException):
+                self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
+            assert mock_put.call_count == 5
