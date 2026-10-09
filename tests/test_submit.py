@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import shutil
@@ -9,12 +10,12 @@ import yaml
 from ebi_eva_common_pyutils.config import WritableConfig
 
 from eva_sub_cli import SUB_CLI_CONFIG_FILE
-from eva_sub_cli.exceptions import SubmissionUploadException, RetryableUploadException
+from eva_sub_cli.exceptions import SubmissionUploadException, RetryableUploadException, FileTooLargeException
 from eva_sub_cli.file_utils import is_submission_dir_writable
 from eva_sub_cli.submission_ws import SubmissionWSClient, DEFAULT_SUBMISSION_WS_URL
 from eva_sub_cli.validators.validator import READY_FOR_SUBMISSION_TO_EVA
 from eva_sub_cli.submit import StudySubmitter, SUB_CLI_CONFIG_KEY_SUBMISSION_ID, \
-    SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL
+    SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL, FilePart
 
 
 class TestSubmit(unittest.TestCase):
@@ -156,7 +157,12 @@ class TestSubmit(unittest.TestCase):
         for vcf_file in self.submitter.vcf_files:
             mock_upload_file.assert_any_call(test_url, vcf_file)
 
-        mock_upload_file.assert_any_call(test_url, self.submitter.metadata_json_file)
+        # The metadata json is uploaded last, from a copy in the submission directory
+        uploaded_metadata = os.path.join(self.test_sub_dir, '.eva_sub_cli_upload',
+                                         os.path.basename(self.submitter.metadata_json_file))
+        assert mock_upload_file.call_args_list[-1].args == (test_url, uploaded_metadata)
+        with open(uploaded_metadata) as open_file:
+            assert json.load(open_file) == self.metadata_json
 
     def test_upload_file(self):
         test_url = 'http://example.com/'
@@ -178,9 +184,8 @@ class TestSubmit(unittest.TestCase):
         file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
         with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_error_response(413)) as mock_put, \
                 patch('retry.api.time.sleep') as mock_sleep:
-            with self.assertRaises(SubmissionUploadException) as context:
+            with self.assertRaises(FileTooLargeException):
                 self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
-            assert 'too large' in context.exception.message
             assert mock_put.call_count == 1
             mock_sleep.assert_not_called()
 
@@ -214,3 +219,133 @@ class TestSubmit(unittest.TestCase):
             with self.assertRaises(RetryableUploadException):
                 self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.call_count == 5
+
+
+    def test_file_part(self):
+        file_to_upload = os.path.join(self.test_sub_dir, 'file.vcf.gz')
+        os.makedirs(self.test_sub_dir, exist_ok=True)
+        with open(file_to_upload, 'wb') as open_file:
+            open_file.write(b'0123456789')
+        with FilePart(file_to_upload, 3, 4) as part:
+            prepared = requests.Request('PUT', 'http://example.com/part', data=part).prepare()
+            assert prepared.headers['Content-Length'] == '4'
+            assert part.read(3) + part.read() + part.read() == b'3456'
+            assert part.md5 == hashlib.md5(b'3456').hexdigest()
+
+
+class FakeUploadServer:
+    """Stores the data uploaded with requests.put and returns 413 for VCF uploads larger than max_size."""
+
+    def __init__(self, max_size):
+        self.max_size = max_size
+        self.uploaded = {}
+        self.put_urls = []
+
+    def put(self, url, data):
+        content = data.read()
+        self.put_urls.append(url)
+        response = requests.Response()
+        response.url = url
+        # The limit only applies to the VCF files and their parts in these tests
+        if '.vcf' in url and len(content) > self.max_size:
+            response.status_code = 413
+        else:
+            response.status_code = 200
+            self.uploaded[url] = content
+        return response
+
+    def uploaded_names(self):
+        return [os.path.basename(url) for url in self.uploaded]
+
+
+class TestSubmitInParts(unittest.TestCase):
+    resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
+    test_sub_dir = os.path.join(resource_dir, 'test_sub_dir_parts')
+    upload_url = 'http://example.com/upload/'
+
+    def setUp(self):
+        shutil.rmtree(self.test_sub_dir, ignore_errors=True)
+        os.makedirs(self.test_sub_dir)
+        self.large_vcf = os.path.join(self.test_sub_dir, 'large.vcf.gz')
+        self.large_content = bytes(range(256)) * 4  # 1024 bytes
+        with open(self.large_vcf, 'wb') as open_file:
+            open_file.write(self.large_content)
+        self.small_vcf = os.path.join(self.test_sub_dir, 'small.vcf.gz')
+        with open(self.small_vcf, 'wb') as open_file:
+            open_file.write(b'small')
+        self.metadata_file = os.path.join(self.test_sub_dir, 'metadata.json')
+        self.metadata = {'files': [{'analysisAlias': 'A1', 'fileName': 'large.vcf.gz', 'fileSize': 1024},
+                                   {'analysisAlias': 'A1', 'fileName': 'small.vcf.gz', 'fileSize': 5}]}
+        with open(self.metadata_file, 'w') as open_file:
+            json.dump(self.metadata, open_file)
+
+        self.submitter = StudySubmitter(submission_dir=self.test_sub_dir)
+        self.submitter.sub_config.set('metadata_json', value=self.metadata_file)
+        self.submitter.sub_config.set('vcf_files', value=[self.large_vcf, self.small_vcf])
+        self.submitter.sub_config.set(READY_FOR_SUBMISSION_TO_EVA, value=True)
+        self.submitter.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL, value=self.upload_url)
+
+    def tearDown(self):
+        shutil.rmtree(self.test_sub_dir, ignore_errors=True)
+
+    def _upload(self, server, default_part_size=300, min_part_size=50):
+        with patch('eva_sub_cli.submit.requests.put', side_effect=server.put), \
+                patch('eva_sub_cli.submit.DEFAULT_PART_SIZE', default_part_size), \
+                patch('eva_sub_cli.submit.MIN_PART_SIZE', min_part_size), \
+                patch('retry.api.time.sleep'):
+            self.submitter._upload_submission()
+
+    def _expected_parts(self, part_size):
+        parts = []
+        for index, offset in enumerate(range(0, len(self.large_content), part_size)):
+            content = self.large_content[offset:offset + part_size]
+            parts.append({'fileName': f'large.vcf.gz.part{index + 1:03d}', 'fileSize': len(content),
+                          'md5': hashlib.md5(content).hexdigest()})
+        return parts
+
+    def _uploaded_metadata(self, server):
+        return json.loads(server.uploaded[self.upload_url + 'metadata.json'])
+
+    def test_upload_in_parts_after_413(self):
+        server = FakeUploadServer(max_size=500)
+        self._upload(server)
+
+        expected_parts = self._expected_parts(300)
+        assert [part['fileSize'] for part in expected_parts] == [300, 300, 300, 124]
+        assert server.uploaded_names() == [part['fileName'] for part in expected_parts] + \
+               ['small.vcf.gz', 'metadata.json']
+        assert b''.join(server.uploaded[self.upload_url + part['fileName']] for part in expected_parts) == \
+               self.large_content
+
+        assert self.submitter.file_parts == {self.large_vcf: expected_parts}
+
+        # Only the file uploaded in parts is described with its parts
+        uploaded_metadata = self._uploaded_metadata(server)
+        assert uploaded_metadata['files'][0]['fileParts'] == expected_parts
+        assert 'fileParts' not in uploaded_metadata['files'][1]
+        assert uploaded_metadata == self.submitter._metadata_for_submission()
+        # The metadata json provided is not modified
+        with open(self.metadata_file) as open_file:
+            assert json.load(open_file) == self.metadata
+
+    def test_upload_in_parts_halves_part_size(self):
+        server = FakeUploadServer(max_size=200)
+        self._upload(server)
+
+        expected_parts = self._expected_parts(150)
+        assert self.submitter.file_parts == {self.large_vcf: expected_parts}
+        assert self._uploaded_metadata(server)['files'][0]['fileParts'] == expected_parts
+
+    def test_upload_in_parts_minimum_part_size(self):
+        server = FakeUploadServer(max_size=40)
+        with self.assertRaises(SubmissionUploadException):
+            self._upload(server)
+        assert self.submitter.file_parts == {}
+
+    def test_complete_submission_sends_metadata_with_parts(self):
+        self._upload(FakeUploadServer(max_size=500))
+        self.submitter.sub_config.set(SUB_CLI_CONFIG_KEY_SUBMISSION_ID, value='submission_id')
+        with patch.object(self.submitter.submission_ws_client, 'mark_submission_uploaded') as mock_uploaded:
+            self.submitter._complete_submission()
+        mock_uploaded.assert_called_once_with('submission_id', self.submitter._metadata_for_submission())
+        assert mock_uploaded.call_args.args[1]['files'][0]['fileParts'] == self._expected_parts(300)
