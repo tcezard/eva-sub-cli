@@ -21,16 +21,15 @@ SUB_CLI_CONFIG_KEY_SUBMISSION_ID = "submission_id"
 SUB_CLI_CONFIG_KEY_SUBMISSION_UPLOAD_URL = "submission_upload_url"
 SUB_CLI_CONFIG_KEY_COMPLETE = "submission_complete"
 
-# HTTP status codes that can be caused by transient conditions and are worth retrying
-RETRYABLE_HTTP_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
+# HTTP status codes that can be caused by transient conditions and are worth retrying.
+# 404 is included because the Globus HTTPS server can return it when its storage backend fails during an upload,
+RETRYABLE_HTTP_STATUS_CODES = {408, 404, 425, 429, 500, 502, 503, 504}
 MAX_RETRY_AFTER_SECONDS = 300
 
-# Files rejected by the upload server as too large are uploaded in parts of this size, halved while still too large
-DEFAULT_PART_SIZE = 512 * 1024 ** 2
-MIN_PART_SIZE = 16 * 1024 ** 2
+# Files rejected by the upload server as too large are uploaded in parts of this size,
+# below the 1 GB limit of the upload server
+PART_SIZE = 512 * 1024 ** 2
 
-# Directory in the submission directory holding the metadata json uploaded to EVA
-UPLOAD_DIR_NAME = '.eva_sub_cli_upload'
 
 
 class FilePart:
@@ -119,7 +118,7 @@ class StudySubmitter(AppLogger):
                 self._upload_file(submission_upload_url, f)
             except FileTooLargeException:
                 self.warning(f'{os.path.basename(f)} is too large to be uploaded in one go: uploading it in parts')
-                self._upload_file_in_parts(submission_upload_url, f, DEFAULT_PART_SIZE)
+                self._upload_file_in_parts(submission_upload_url, f)
 
         # The metadata json is uploaded last so that it describes the files uploaded in parts
         self._upload_file(submission_upload_url, self._write_metadata_for_submission())
@@ -131,7 +130,7 @@ class StudySubmitter(AppLogger):
         self.debug(f'Upload of {base_name} completed')
 
     @retry(exceptions=(RetryableUploadException, requests.ConnectionError, requests.Timeout),
-           tries=5, delay=10, backoff=5)
+           tries=5, delay=10, backoff=5, max_delay=300)
     def _put(self, url, open_data, name):
         """Upload the data returned by open_data, which is called on each attempt. Returns the data object, closed."""
         with open_data() as data:
@@ -142,24 +141,17 @@ class StudySubmitter(AppLogger):
             self._handle_upload_error(r, name, e)
         return data
 
-    def _upload_file_in_parts(self, submission_upload_url, input_file, part_size):
-        """Upload a file as consecutive parts, halving the part size while parts are still too large.
+    def _upload_file_in_parts(self, submission_upload_url, input_file):
+        """Upload a file as consecutive parts of PART_SIZE.
         The parts are recorded so that they can be described in the metadata."""
         base_name = os.path.basename(input_file)
         file_size = os.path.getsize(input_file)
-        while True:
-            try:
-                parts = self._upload_parts(submission_upload_url, input_file, file_size, part_size)
-                break
-            except FileTooLargeException:
-                part_size //= 2
-                if part_size < MIN_PART_SIZE:
-                    raise SubmissionUploadException(
-                        f'{base_name} could not be uploaded even when split into small parts. '
-                        f'Please contact EVA Helpdesk.'
-                    )
-                self.warning(f'Parts of {base_name} are still too large: '
-                             f'uploading it in parts of {part_size / 1024 ** 2:.0f} MB')
+        try:
+            parts = self._upload_parts(submission_upload_url, input_file, file_size, PART_SIZE)
+        except FileTooLargeException:
+            raise SubmissionUploadException(
+                f'{base_name} could not be uploaded even when split into parts. Please contact EVA Helpdesk.'
+            )
         if sum(part['fileSize'] for part in parts) != file_size:
             raise SubmissionUploadException(f'The parts of {base_name} do not add up to its size of {file_size} bytes')
         self.file_parts[input_file] = parts
@@ -202,7 +194,7 @@ class StudySubmitter(AppLogger):
 
     def _write_metadata_for_submission(self):
         """Write the metadata to upload, without modifying the metadata json provided or generated during validation."""
-        upload_dir = os.path.join(self.submission_dir, UPLOAD_DIR_NAME)
+        upload_dir = os.path.join(self.submission_dir, '.metadata_upload_in_parts')
         os.makedirs(upload_dir, exist_ok=True)
         metadata_file = os.path.join(upload_dir, os.path.basename(self.metadata_json_file))
         with open(metadata_file, 'w') as open_file:
@@ -211,10 +203,10 @@ class StudySubmitter(AppLogger):
 
     def _handle_upload_error(self, response, base_name, error):
         if response.status_code in RETRYABLE_HTTP_STATUS_CODES:
-            retry_after = response.headers.get('Retry-After')
+            retry_after = response.headers.get('Retry-After') # Wait for whatever the server says on top of the retry delay
             if retry_after and retry_after.isdigit():
                 time.sleep(min(int(retry_after), MAX_RETRY_AFTER_SECONDS))
-            self.warning(f'Upload of {base_name} failed with a transient error ({error}). It will be retried.')
+            self.warning(f'Upload of {base_name} failed with error ({error}). It will be retried.')
             raise RetryableUploadException(str(error)) from error
         if response.status_code == 413:
             raise FileTooLargeException(f'{base_name} is too large to be uploaded in one request') from error

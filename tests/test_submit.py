@@ -158,7 +158,7 @@ class TestSubmit(unittest.TestCase):
             mock_upload_file.assert_any_call(test_url, vcf_file)
 
         # The metadata json is uploaded last, from a copy in the submission directory
-        uploaded_metadata = os.path.join(self.test_sub_dir, '.eva_sub_cli_upload',
+        uploaded_metadata = os.path.join(self.test_sub_dir, '.metadata_upload_in_parts',
                                          os.path.basename(self.submitter.metadata_json_file))
         assert mock_upload_file.call_args_list[-1].args == (test_url, uploaded_metadata)
         with open(uploaded_metadata) as open_file:
@@ -215,10 +215,12 @@ class TestSubmit(unittest.TestCase):
         test_url = 'http://example.com/'
         file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
         with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_error_response(502)) as mock_put, \
-                patch('retry.api.time.sleep'):
+                patch('retry.api.time.sleep') as mock_sleep:
             with self.assertRaises(RetryableUploadException):
                 self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.call_count == 5
+            # The retry backoff is capped
+            assert [c.args[0] for c in mock_sleep.call_args_list] == [10, 50, 250, 300]
 
 
     def test_file_part(self):
@@ -288,10 +290,9 @@ class TestSubmitInParts(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.test_sub_dir, ignore_errors=True)
 
-    def _upload(self, server, default_part_size=300, min_part_size=50):
+    def _upload(self, server):
         with patch('eva_sub_cli.submit.requests.put', side_effect=server.put), \
-                patch('eva_sub_cli.submit.DEFAULT_PART_SIZE', default_part_size), \
-                patch('eva_sub_cli.submit.MIN_PART_SIZE', min_part_size), \
+                patch('eva_sub_cli.submit.PART_SIZE', 300), \
                 patch('retry.api.time.sleep'):
             self.submitter._upload_submission()
 
@@ -328,16 +329,8 @@ class TestSubmitInParts(unittest.TestCase):
         with open(self.metadata_file) as open_file:
             assert json.load(open_file) == self.metadata
 
-    def test_upload_in_parts_halves_part_size(self):
+    def test_upload_in_parts_still_too_large(self):
         server = FakeUploadServer(max_size=200)
-        self._upload(server)
-
-        expected_parts = self._expected_parts(150)
-        assert self.submitter.file_parts == {self.large_vcf: expected_parts}
-        assert self._uploaded_metadata(server)['files'][0]['fileParts'] == expected_parts
-
-    def test_upload_in_parts_minimum_part_size(self):
-        server = FakeUploadServer(max_size=40)
         with self.assertRaises(SubmissionUploadException):
             self._upload(server)
         assert self.submitter.file_parts == {}
