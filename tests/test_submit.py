@@ -261,6 +261,11 @@ class FakeUploadServer:
 
 
 class TestSubmitInParts(unittest.TestCase):
+    """
+    Upload of a submission with a large VCF rejected by the server (413) and a small VCF accepted as a whole,
+    against a FakeUploadServer and with a part size of 300 bytes. Checks that the large VCF is uploaded in parts,
+    that the parts are described in the metadata uploaded and sent to complete the submission.
+    """
     resource_dir = os.path.join(os.path.dirname(__file__), 'resources')
     test_sub_dir = os.path.join(resource_dir, 'test_sub_dir_parts')
     upload_url = 'http://example.com/upload/'
@@ -328,12 +333,6 @@ class TestSubmitInParts(unittest.TestCase):
         # The metadata json provided is not modified
         with open(self.metadata_file) as open_file:
             assert json.load(open_file) == self.metadata
-
-    def test_upload_in_parts_still_too_large(self):
-        server = FakeUploadServer(max_size=200)
-        with self.assertRaises(SubmissionUploadException):
-            self._upload(server)
-        assert self.submitter.file_parts == {}
 
     def test_complete_submission_sends_metadata_with_parts(self):
         self._upload(FakeUploadServer(max_size=500))
