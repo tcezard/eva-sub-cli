@@ -172,7 +172,7 @@ class TestSubmit(unittest.TestCase):
             assert mock_put.mock_calls[0][1][0] == test_url + os.path.basename(file_to_upload)
             # Cannot test the content of the upload as opening the same file twice give different object
 
-    def _mock_error_response(self, status_code, headers=None):
+    def _mock_put_error_response(self, status_code, headers=None):
         response = requests.Response()
         response.status_code = status_code
         response.headers.update(headers or {})
@@ -182,8 +182,8 @@ class TestSubmit(unittest.TestCase):
     def test_upload_file_too_large_not_retried(self):
         test_url = 'http://example.com/'
         file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
-        with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_error_response(413)) as mock_put, \
-                patch('retry.api.time.sleep') as mock_sleep:
+        with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_put_error_response(413)) as mock_put, \
+                patch('time.sleep') as mock_sleep:
             with self.assertRaises(FileTooLargeException):
                 self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.call_count == 1
@@ -192,8 +192,8 @@ class TestSubmit(unittest.TestCase):
     def test_upload_file_client_error_not_retried(self):
         test_url = 'http://example.com/'
         file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
-        with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_error_response(403)) as mock_put, \
-                patch('retry.api.time.sleep'):
+        with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_put_error_response(403)) as mock_put, \
+                patch('time.sleep'):
             with self.assertRaises(SubmissionUploadException):
                 self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.call_count == 1
@@ -202,26 +202,26 @@ class TestSubmit(unittest.TestCase):
         test_url = 'http://example.com/'
         file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
         success_response = MagicMock()
-        responses = [self._mock_error_response(503), self._mock_error_response(429, {'Retry-After': '2'}),
+        responses = [self._mock_put_error_response(503), self._mock_put_error_response(429, {'Retry-After': '2'}),
                      success_response]
         with patch('eva_sub_cli.submit.requests.put', side_effect=responses) as mock_put, \
                 patch('time.sleep') as mock_sleep:
             self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.call_count == 3
+            # 2 retries but 3 sleeps:
             # retry backoff after the 503, then Retry-After followed by the retry backoff after the 429
             assert [c.args[0] for c in mock_sleep.call_args_list] == [10, 2, 50]
 
     def test_upload_file_transient_error_gives_up(self):
         test_url = 'http://example.com/'
         file_to_upload = os.path.join(self.resource_dir, 'EVA_Submission_test.json')
-        with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_error_response(502)) as mock_put, \
-                patch('retry.api.time.sleep') as mock_sleep:
+        with patch('eva_sub_cli.submit.requests.put', return_value=self._mock_put_error_response(502)) as mock_put, \
+                patch('time.sleep') as mock_sleep:
             with self.assertRaises(RetryableUploadException):
                 self.submitter._upload_file(submission_upload_url=test_url, input_file=file_to_upload)
             assert mock_put.call_count == 5
-            # The retry backoff is capped
+            # The retry backoff is capped at 300
             assert [c.args[0] for c in mock_sleep.call_args_list] == [10, 50, 250, 300]
-
 
     def test_file_part(self):
         file_to_upload = os.path.join(self.test_sub_dir, 'file.vcf.gz')
@@ -293,7 +293,7 @@ class TestSubmitInParts(unittest.TestCase):
     def _upload(self, server):
         with patch('eva_sub_cli.submit.requests.put', side_effect=server.put), \
                 patch('eva_sub_cli.submit.PART_SIZE', 300), \
-                patch('retry.api.time.sleep'):
+                patch('time.sleep'):
             self.submitter._upload_submission()
 
     def _expected_parts(self, part_size):
