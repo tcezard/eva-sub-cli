@@ -9,7 +9,7 @@ import requests
 import yaml
 from ebi_eva_common_pyutils.config import WritableConfig
 
-from eva_sub_cli import SUB_CLI_CONFIG_FILE
+from eva_sub_cli import SUB_CLI_CONFIG_FILE, UPLOAD_PART_SIZE_VAR
 from eva_sub_cli.exceptions import SubmissionUploadException, RetryableUploadException, FileTooLargeException
 from eva_sub_cli.file_utils import is_submission_dir_writable
 from eva_sub_cli.submission_ws import SubmissionWSClient, DEFAULT_SUBMISSION_WS_URL
@@ -297,7 +297,7 @@ class TestSubmitInParts(unittest.TestCase):
 
     def _upload(self, server):
         with patch('eva_sub_cli.submit.requests.put', side_effect=server.put), \
-                patch('eva_sub_cli.submit.PART_SIZE', 300), \
+                patch.dict(os.environ, {UPLOAD_PART_SIZE_VAR: '300'}), \
                 patch('time.sleep'):
             self.submitter._upload_submission()
 

@@ -11,7 +11,7 @@ from ebi_eva_common_pyutils.config import WritableConfig
 from ebi_eva_common_pyutils.logger import AppLogger
 from retry import retry
 
-from eva_sub_cli import SUB_CLI_CONFIG_FILE, __version__
+from eva_sub_cli import SUB_CLI_CONFIG_FILE, UPLOAD_PART_SIZE_VAR, __version__
 from eva_sub_cli.exceptions import InvalidSubmissionException, SubmissionUploadException, RetryableUploadException, \
     FileTooLargeException
 from eva_sub_cli.submission_ws import SubmissionWSClient
@@ -27,8 +27,8 @@ RETRYABLE_HTTP_STATUS_CODES = {408, 404, 425, 429, 500, 502, 503, 504}
 MAX_RETRY_AFTER_SECONDS = 300
 
 # Files rejected by the upload server as too large are uploaded in parts of this size,
-# below the 1 GB limit of the upload server
-PART_SIZE = 512 * 1024 ** 2
+# below the 1 GB limit of the upload server. It can be changed with the UPLOAD_PART_SIZE environment variable (bytes)
+DEFAULT_PART_SIZE = 512 * 1024 ** 2
 
 
 
@@ -68,6 +68,16 @@ class FilePart:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+
+def get_part_size():
+    """Size in bytes of the parts when a file is uploaded in parts."""
+    part_size = os.environ.get(UPLOAD_PART_SIZE_VAR)
+    if not part_size:
+        return DEFAULT_PART_SIZE
+    if not part_size.isdigit() or int(part_size) == 0:
+        raise SubmissionUploadException(f'{UPLOAD_PART_SIZE_VAR} must be a positive number of bytes, not {part_size}')
+    return int(part_size)
 
 
 class StudySubmitter(AppLogger):
@@ -142,12 +152,12 @@ class StudySubmitter(AppLogger):
         return data
 
     def _upload_file_in_parts(self, submission_upload_url, input_file):
-        """Upload a file as consecutive parts of PART_SIZE.
+        """Upload a file as consecutive parts of the size returned by get_part_size.
         The parts are recorded so that they can be described in the metadata."""
         base_name = os.path.basename(input_file)
         file_size = os.path.getsize(input_file)
         try:
-            parts = self._upload_parts(submission_upload_url, input_file, file_size, PART_SIZE)
+            parts = self._upload_parts(submission_upload_url, input_file, file_size, get_part_size())
         except FileTooLargeException:
             raise SubmissionUploadException(
                 f'{base_name} could not be uploaded even when split into parts. Please contact EVA Helpdesk.'
