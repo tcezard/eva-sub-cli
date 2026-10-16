@@ -2,9 +2,9 @@ name: Python tests
 
 on:
   push:
-    branches: [ main, add-checkbox ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, add-checkbox ]
+    branches: [ main ]
 
 permissions:
   contents: read
