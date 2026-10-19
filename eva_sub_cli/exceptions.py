@@ -40,6 +40,18 @@ class SubmissionUploadException(Exception):
         super().__init__(self.message)
 
 
+class RetryableUploadException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+
+class FileTooLargeException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+
 class DirLockError(Exception):
     def __init__(self, message):
         self.message = message

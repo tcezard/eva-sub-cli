@@ -399,6 +399,32 @@
           "md5": {
             "type": "string",
             "description": "MD5 hash of the file"
+          },
+          "fileParts": {
+            "type": "array",
+            "description": "Parts the file was split into for upload, in order. Concatenated, they form the file.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "fileName",
+                "fileSize"
+              ],
+              "properties": {
+                "fileName": {
+                  "type": "string",
+                  "description": "Name of the part"
+                },
+                "fileSize": {
+                  "type": "number",
+                  "description": "Size of the part in bytes"
+                },
+                "md5": {
+                  "type": "string",
+                  "description": "MD5 hash of the part"
+                }
+              }
+            }
           }
         }
       }
