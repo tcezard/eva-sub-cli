@@ -124,6 +124,15 @@ class TestOrchestrator(unittest.TestCase):
             get_project_title_and_create_vcf_files_mapping(self.test_sub_dir, None, self.metadata_xlsx,
                                                            self.metadata_xlsx_version)
 
+    def test_get_project_title_and_create_vcf_files_mapping_json_no_reference_fasta(self):
+        metadata_for_test_path = os.path.join(self.test_sub_dir, 'test_metadata.json')
+        metadata = EvaMetadataJson(self.metadata_json)
+        for analysis in metadata.analyses:
+            analysis.pop('referenceFasta', None)
+        metadata.write(metadata_for_test_path)
+        with self.assertRaisesRegex(UserFileNotFoundException, r'No reference fasta is provided for the variant file'):
+            get_project_title_and_create_vcf_files_mapping(self.test_sub_dir, metadata_for_test_path, None, None)
+
     def test_check_validation_required(self):
         tasks = ['submit']
 
