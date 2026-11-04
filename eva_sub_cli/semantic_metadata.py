@@ -363,8 +363,6 @@ class SemanticMetadataChecker(AppLogger):
         for idx, sample in enumerate(self.metadata[SAMPLE_KEY]):
             json_path = f'/{SAMPLE_KEY}/{idx}/{SAMPLE_IN_VCF_KEY}'
             analysis_aliases = sample.get(ANALYSIS_ALIAS_KEY, [])
-            if any([self.evidence_type_results.get(analysis_alias, {}).get('evidence_type') != 'allele_frequency' for
-                    analysis_alias in analysis_aliases]):
             if any([self._sample_in_vcf_required(analysis_alias) for analysis_alias in analysis_aliases]):
                 # SampleInVCF is required
                 if sample.get(SAMPLE_IN_VCF_KEY) is None or sample.get(SAMPLE_IN_VCF_KEY) == '':
